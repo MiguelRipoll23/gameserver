@@ -9,9 +9,12 @@ export class CORSMiddleware {
       }
 
       // Set CORS headers for all requests
-      c.header("Access-Control-Allow-Origin", "*");
-      c.header("Access-Control-Allow-Methods", "*");
-      c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+      c.res.headers.set("Access-Control-Allow-Origin", "*");
+      c.res.headers.set("Access-Control-Allow-Methods", "*");
+      c.res.headers.set(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+      );
 
       // Handle preflight requests (OPTIONS)
       if (c.req.method === "OPTIONS") {
