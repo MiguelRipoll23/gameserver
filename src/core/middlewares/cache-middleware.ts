@@ -51,6 +51,11 @@ export class CacheMiddleware {
       return true;
     }
 
+    // Check if request URL contains any query parameters
+    if (request.url.includes("?")) {
+      return true;
+    }
+
     // Check if request URL contains any excluded paths
     return CACHE_EXCLUDED_PATHS.some((path) => request.url.includes(path));
   }
