@@ -41,10 +41,18 @@ export class CacheMiddleware {
   }
 
   private static mustSkipCache(request: Request): boolean {
-    return (
-      request.method !== "GET" ||
-      CACHE_EXCLUDED_PATHS.some((path) => request.url.includes(path))
-    );
+    // Check if request is not a GET request
+    if (request.method !== "GET") {
+      return true;
+    }
+
+    // Check if Authorization header is present
+    if (request.headers.has("Authorization")) {
+      return true;
+    }
+
+    // Check if request URL contains any excluded paths
+    return CACHE_EXCLUDED_PATHS.some((path) => request.url.includes(path));
   }
 
   private static getPathFromURL(url: string): string {
