@@ -56,8 +56,9 @@ export class CacheMiddleware {
       return true;
     }
 
-    // Check if request URL contains any excluded paths
-    return CACHE_EXCLUDED_PATHS.some((path) => request.url.includes(path));
+    const path = this.getPathFromURL(request.url);
+
+    return CACHE_EXCLUDED_PATHS.includes(path);
   }
 
   private static getPathFromURL(url: string): string {
