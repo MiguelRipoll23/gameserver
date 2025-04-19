@@ -30,7 +30,6 @@ export class OpenAPIService {
       Scalar({
         url: "/.well-known/openapi",
         pageTitle: "Game server API",
-        favicon: "https://fav.farm/🎮",
         metaData: {
           title: "Game server API",
           description: "A game server built with Deno KV",
