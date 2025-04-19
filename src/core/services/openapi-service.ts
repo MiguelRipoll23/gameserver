@@ -1,5 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { apiReference } from "@scalar/hono-api-reference";
+import { Scalar } from "@scalar/hono-api-reference";
 import { HonoVariablesType } from "../types/hono-variables-type.ts";
 
 export class OpenAPIService {
@@ -27,21 +27,21 @@ export class OpenAPIService {
 
     app.get(
       "/",
-      apiReference({
+      Scalar({
+        url: "/.well-known/openapi",
         pageTitle: "Game server API",
+        favicon: "https://fav.farm/🎮",
         metaData: {
           title: "Game server API",
           description: "A game server built with Deno KV",
           ogTitle: "Game server API",
           ogDescription: "A game server built with Deno KV",
         },
-        theme: "default",
         darkMode: true,
         defaultOpenAllTags: true,
         authentication: {
           preferredSecurityScheme: "bearer",
         },
-        url: "/.well-known/openapi",
       })
     );
   }
