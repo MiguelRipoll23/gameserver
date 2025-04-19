@@ -30,7 +30,7 @@ export class KVService {
 
   public async init(): Promise<void> {
     this.kv = await Deno.openKv();
-    console.log("KV service initialized");
+    console.log("KV connection opened");
   }
 
   public async getVersion(): Promise<VersionKV | null> {
