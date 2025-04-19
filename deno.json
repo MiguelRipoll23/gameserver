@@ -1,14 +1,14 @@
 {
   "imports": {
-    "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.19.4",
-    "@needle-di/core": "jsr:@needle-di/core@^0.12.0",
-    "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.8.1",
+    "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.19.5",
+    "@needle-di/core": "jsr:@needle-di/core@^0.12.1",
+    "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.8.2",
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.1.1",
     "@simplewebauthn/types": "jsr:@simplewebauthn/types@^12.0.0",
     "@std/encoding": "jsr:@std/encoding@^1.0.9",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
-    "hono": "npm:hono@^4.7.6",
-    "zod": "npm:zod@^3.24.2"
+    "hono": "npm:hono@^4.7.7",
+    "zod": "npm:zod@^3.24.3"
   },
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
