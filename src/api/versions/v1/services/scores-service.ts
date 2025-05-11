@@ -28,7 +28,7 @@ export class ScoresService {
 
     scores.sort((a: ScoreKV, b: ScoreKV) => b.score - a.score);
 
-    return scores.slice(0, 100);
+    return scores.slice(0, 10);
   }
 
   public async save(
