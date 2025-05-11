@@ -1,4 +1,4 @@
-export const RATE_REQUESTS_LIMIT = 10;
+export const RATE_REQUESTS_LIMIT = 20;
 export const RATE_WINDOW_MILLISECONDS = 15 * 1000;
 
 export const DEFAULT_ICE_SERVERS = [

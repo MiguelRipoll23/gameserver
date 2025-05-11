@@ -24,6 +24,7 @@ import { MessageKV } from "../../api/versions/v1/interfaces/kv/message-kv.ts";
 import { MatchKV } from "../../api/versions/v1/interfaces/kv/match_kv.ts";
 import { ScoreKV } from "../../api/versions/v1/interfaces/kv/score.ts";
 import { ConfigurationType } from "../types/configuration-type.ts";
+import { RATE_WINDOW_MILLISECONDS } from "../../api/versions/v1/constants/api-constants.ts";
 
 @injectable()
 export class KVService {
@@ -46,7 +47,9 @@ export class KVService {
     ipAddress: string,
     timestamps: number[]
   ): Promise<void> {
-    await this.getKv().set([KV_RATE_LIMIT, ipAddress], timestamps);
+    await this.getKv().set([KV_RATE_LIMIT, ipAddress], timestamps, {
+      expireIn: RATE_WINDOW_MILLISECONDS,
+    });
   }
 
   public async getVersion(): Promise<VersionKV | null> {
