@@ -5,6 +5,7 @@ import {
   KV_KEYS,
   KV_MATCHES,
   KV_MESSAGE,
+  KV_RATE_LIMIT,
   KV_REGISTRATION_OPTIONS,
   KV_SCORES,
   KV_SESSIONS,
@@ -31,6 +32,21 @@ export class KVService {
   public async init(): Promise<void> {
     this.kv = await Deno.openKv();
     console.log("KV connection opened");
+  }
+
+  public async getRateLimit(ipAddress: string): Promise<number[] | null> {
+    const entry: Deno.KvEntryMaybe<number[]> = await this.getKv().get<number[]>(
+      [KV_RATE_LIMIT, ipAddress]
+    );
+
+    return entry.value;
+  }
+
+  public async setRateLimit(
+    ipAddress: string,
+    timestamps: number[]
+  ): Promise<void> {
+    await this.getKv().set([KV_RATE_LIMIT, ipAddress], timestamps);
   }
 
   public async getVersion(): Promise<VersionKV | null> {

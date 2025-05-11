@@ -1,3 +1,4 @@
+export const KV_RATE_LIMIT = "rate_limit";
 export const KV_VERSION = "version";
 export const KV_USERS = "users";
 export const KV_USERS_BY_DISPLAY_NAME = "users_by_display_name";
