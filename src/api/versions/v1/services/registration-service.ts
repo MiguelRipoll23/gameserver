@@ -18,16 +18,17 @@ import {
   GetRegistrationOptionsRequest,
   VerifyRegistrationRequest,
 } from "../schemas/registration-schemas.ts";
+import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 
 @injectable()
 export class RegistrationService {
   constructor(
     private kvService = inject(KVService),
-    private authenticationService = inject(AuthenticationService),
+    private authenticationService = inject(AuthenticationService)
   ) {}
 
   public async getOptions(
-    registrationOptionsRequest: GetRegistrationOptionsRequest,
+    registrationOptionsRequest: GetRegistrationOptionsRequest
   ): Promise<object> {
     const transactionId = registrationOptionsRequest.transaction_id;
     const displayName = registrationOptionsRequest.display_name;
@@ -47,30 +48,33 @@ export class RegistrationService {
       },
     });
 
-    await this.kvService.setRegistrationOptions(transactionId, options);
+    await this.kvService.setRegistrationOptions(transactionId, {
+      data: options,
+      created_at: Date.now(),
+    });
 
     return options;
   }
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    registrationRequest: VerifyRegistrationRequest,
+    registrationRequest: VerifyRegistrationRequest
   ): Promise<AuthenticationResponse> {
     const transactionId = registrationRequest.transaction_id;
     const registrationOptions = await this.getRegistrationOptionsOrThrow(
-      transactionId,
+      transactionId
     );
 
     await this.kvService.deleteRegistrationOptionsByTransactionId(
-      transactionId,
+      transactionId
     );
 
-    const registrationResponse = registrationRequest
-      .registration_response as object as RegistrationResponseJSON;
+    const registrationResponse =
+      registrationRequest.registration_response as object as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
-      registrationOptions,
+      registrationOptions
     );
 
     const credential = this.createCredential(registrationOptions, verification);
@@ -88,31 +92,42 @@ export class RegistrationService {
       throw new ServerError(
         "DISPLAY_NAME_TAKEN",
         "Display name already exists",
-        409,
+        409
       );
     }
   }
 
   private async getRegistrationOptionsOrThrow(
-    transactionId: string,
+    transactionId: string
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const registrationOptions = await this.kvService
-      .getRegistrationOptionsByTransactionId(transactionId);
+    const registrationOptions =
+      await this.kvService.getRegistrationOptionsByTransactionId(transactionId);
 
     if (registrationOptions === null) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
         "Registration options not found",
-        400,
+        400
       );
     }
 
-    return registrationOptions;
+    // Check if the registration options are expired
+    const createdAt = registrationOptions.created_at;
+
+    if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
+      throw new ServerError(
+        "REGISTRATION_OPTIONS_EXPIRED",
+        "Registration options expired",
+        400
+      );
+    }
+
+    return registrationOptions.data;
   }
 
   private async verifyRegistrationResponse(
     registrationResponse: RegistrationResponseJSON,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON
   ): Promise<VerifiedRegistrationResponse> {
     try {
       const verification = await verifyRegistrationResponse({
@@ -136,14 +151,14 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_VERIFICATION_FAILED",
         "Registration verification failed",
-        400,
+        400
       );
     }
   }
 
   private createCredential(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
-    verification: VerifiedRegistrationResponse,
+    verification: VerifiedRegistrationResponse
   ): CredentialKV {
     const { registrationInfo } = verification;
 
@@ -163,7 +178,7 @@ export class RegistrationService {
   }
 
   private createUser(
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON
   ): UserKV {
     const userId = registrationOptions.user.id;
     const userDisplayName = registrationOptions.user.name;
@@ -177,7 +192,7 @@ export class RegistrationService {
 
   private async addCredentialAndUserOrThrow(
     credential: CredentialKV,
-    user: UserKV,
+    user: UserKV
   ): Promise<void> {
     const result = await this.kvService.setCredentialAndUser(credential, user);
 
@@ -185,7 +200,7 @@ export class RegistrationService {
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
         "Failed to add credential and user",
-        500,
+        500
       );
     }
 

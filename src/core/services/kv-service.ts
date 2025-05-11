@@ -1,4 +1,3 @@
-import { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/server";
 import {
   KV_AUTHENTICATION_OPTIONS,
   KV_CONFIGURATION,
@@ -15,13 +14,14 @@ import {
 } from "../../api/versions/v1/constants/kv-constants.ts";
 import { VersionKV } from "../../api/versions/v1/interfaces/kv/version-kv.ts";
 import { injectable } from "@needle-di/core";
+import { RegistrationOptionsKV } from "../../api/versions/v1/interfaces/kv/registration-options-kv.ts";
+import { AuthenticationOptionsKV } from "../../api/versions/v1/interfaces/authentication-options.ts";
 import { UserKV } from "../../api/versions/v1/interfaces/kv/user-kv.ts";
 import { CredentialKV } from "../../api/versions/v1/interfaces/kv/credential-kv.ts";
 import { SessionKV } from "../../api/versions/v1/interfaces/kv/session-kv.ts";
 import { MessageKV } from "../../api/versions/v1/interfaces/kv/message-kv.ts";
 import { MatchKV } from "../../api/versions/v1/interfaces/kv/match_kv.ts";
 import { ScoreKV } from "../../api/versions/v1/interfaces/kv/score.ts";
-import { PublicKeyCredentialRequestOptionsJSON } from "@simplewebauthn/types";
 import { ConfigurationType } from "../types/configuration-type.ts";
 
 @injectable()
@@ -34,9 +34,8 @@ export class KVService {
   }
 
   public async getVersion(): Promise<VersionKV | null> {
-    const entry: Deno.KvEntryMaybe<VersionKV> = await this.getKv().get<
-      VersionKV
-    >([KV_VERSION]);
+    const entry: Deno.KvEntryMaybe<VersionKV> =
+      await this.getKv().get<VersionKV>([KV_VERSION]);
 
     return entry.value;
   }
@@ -46,10 +45,10 @@ export class KVService {
   }
 
   public async getRegistrationOptionsByTransactionId(
-    transactionId: string,
-  ): Promise<PublicKeyCredentialCreationOptionsJSON | null> {
-    const entry: Deno.KvEntryMaybe<PublicKeyCredentialCreationOptionsJSON> =
-      await this.getKv().get<PublicKeyCredentialCreationOptionsJSON>([
+    transactionId: string
+  ): Promise<RegistrationOptionsKV | null> {
+    const entry: Deno.KvEntryMaybe<RegistrationOptionsKV> =
+      await this.getKv().get<RegistrationOptionsKV>([
         KV_REGISTRATION_OPTIONS,
         transactionId,
       ]);
@@ -59,28 +58,28 @@ export class KVService {
 
   public async setRegistrationOptions(
     transactionId: string,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
+    registrationOptions: RegistrationOptionsKV
   ): Promise<void> {
     await this.getKv().set(
       [KV_REGISTRATION_OPTIONS, transactionId],
       registrationOptions,
       {
         expireIn: 60 * 1_000,
-      },
+      }
     );
   }
 
   public async deleteRegistrationOptionsByTransactionId(
-    transactionId: string,
+    transactionId: string
   ): Promise<void> {
     await this.getKv().delete([KV_REGISTRATION_OPTIONS, transactionId]);
   }
 
-  public async getAuthenticationOptionsByRequestId(
-    transactionId: string,
-  ): Promise<PublicKeyCredentialRequestOptionsJSON | null> {
-    const entry: Deno.KvEntryMaybe<PublicKeyCredentialRequestOptionsJSON> =
-      await this.getKv().get<PublicKeyCredentialRequestOptionsJSON>([
+  public async getAuthenticationOptionsByTransactionId(
+    transactionId: string
+  ): Promise<AuthenticationOptionsKV | null> {
+    const entry: Deno.KvEntryMaybe<AuthenticationOptionsKV> =
+      await this.getKv().get<AuthenticationOptionsKV>([
         KV_AUTHENTICATION_OPTIONS,
         transactionId,
       ]);
@@ -90,36 +89,35 @@ export class KVService {
 
   public async setAuthenticationOptions(
     requestId: string,
-    authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
+    authenticationOptions: AuthenticationOptionsKV
   ): Promise<void> {
     await this.getKv().set(
       [KV_AUTHENTICATION_OPTIONS, requestId],
       authenticationOptions,
       {
         expireIn: 60 * 1_000,
-      },
+      }
     );
   }
 
   public async deleteAuthenticationOptionsByTransactionId(
-    transactionId: string,
+    transactionId: string
   ): Promise<void> {
     await this.getKv().delete([KV_AUTHENTICATION_OPTIONS, transactionId]);
   }
 
   public async getCredential(
-    credentialId: string,
+    credentialId: string
   ): Promise<CredentialKV | null> {
-    const entry: Deno.KvEntryMaybe<CredentialKV> = await this.getKv().get<
-      CredentialKV
-    >([KV_CREDENTIALS, credentialId]);
+    const entry: Deno.KvEntryMaybe<CredentialKV> =
+      await this.getKv().get<CredentialKV>([KV_CREDENTIALS, credentialId]);
 
     return entry.value;
   }
 
   public async setCredential(
     credentialId: string,
-    credential: CredentialKV,
+    credential: CredentialKV
   ): Promise<void> {
     await this.getKv().set([KV_CREDENTIALS, credentialId], credential);
   }
@@ -134,7 +132,7 @@ export class KVService {
   }
 
   public async getUserByDisplayName(
-    displayName: string,
+    displayName: string
   ): Promise<UserKV | null> {
     const entry: Deno.KvEntryMaybe<UserKV> = await this.getKv().get<UserKV>([
       KV_USERS_BY_DISPLAY_NAME,
@@ -146,7 +144,7 @@ export class KVService {
 
   public async setCredentialAndUser(
     credential: CredentialKV,
-    user: UserKV,
+    user: UserKV
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     const displayNameKey = [KV_USERS_BY_DISPLAY_NAME, user.display_name];
 
@@ -160,15 +158,14 @@ export class KVService {
   }
 
   public async getConfiguration(): Promise<ConfigurationType | null> {
-    const entry: Deno.KvEntryMaybe<ConfigurationType> = await this.getKv().get<
-      ConfigurationType
-    >([KV_CONFIGURATION]);
+    const entry: Deno.KvEntryMaybe<ConfigurationType> =
+      await this.getKv().get<ConfigurationType>([KV_CONFIGURATION]);
 
     return entry.value;
   }
 
   public async setConfiguration(
-    configuration: ConfigurationType,
+    configuration: ConfigurationType
   ): Promise<void> {
     await this.getKv().set([KV_CONFIGURATION], configuration);
   }
@@ -189,9 +186,8 @@ export class KVService {
   }
 
   public async getSession(token: string): Promise<SessionKV | null> {
-    const entry: Deno.KvEntryMaybe<SessionKV> = await this.getKv().get<
-      SessionKV
-    >([KV_SESSIONS, token]);
+    const entry: Deno.KvEntryMaybe<SessionKV> =
+      await this.getKv().get<SessionKV>([KV_SESSIONS, token]);
 
     return entry.value;
   }
@@ -224,7 +220,7 @@ export class KVService {
 
   public async setMatch(
     userId: string,
-    match: MatchKV,
+    match: MatchKV
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv()
       .atomic()
@@ -235,7 +231,7 @@ export class KVService {
   }
 
   public async deleteMatch(
-    userId: string,
+    userId: string
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv().atomic().delete([KV_MATCHES, userId]).commit();
   }
@@ -257,13 +253,13 @@ export class KVService {
 
   public async setScore(
     playerName: string,
-    scoreboard: ScoreKV,
+    scoreboard: ScoreKV
   ): Promise<void> {
     await this.getKv().set([KV_SCORES, playerName], scoreboard);
   }
 
   public async deleteUserTemporaryData(
-    userId: string,
+    userId: string
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv()
       .atomic()
