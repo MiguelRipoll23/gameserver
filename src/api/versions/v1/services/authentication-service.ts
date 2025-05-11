@@ -21,17 +21,18 @@ import {
   GetAuthenticationOptionsRequest,
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
+import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 
 @injectable()
 export class AuthenticationService {
   constructor(
     private kvService = inject(KVService),
     private jwtService = inject(JWTService),
-    private iceService = inject(ICEService),
+    private iceService = inject(ICEService)
   ) {}
 
   public async getOptions(
-    authenticationRequest: GetAuthenticationOptionsRequest,
+    authenticationRequest: GetAuthenticationOptionsRequest
   ): Promise<object> {
     const transactionId = authenticationRequest.transaction_id;
 
@@ -40,35 +41,38 @@ export class AuthenticationService {
       userVerification: "preferred",
     });
 
-    await this.kvService.setAuthenticationOptions(transactionId, options);
+    await this.kvService.setAuthenticationOptions(transactionId, {
+      data: options,
+      created_at: Date.now(),
+    });
 
     return options;
   }
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    authenticationRequest: VerifyAuthenticationRequest,
+    authenticationRequest: VerifyAuthenticationRequest
   ): Promise<AuthenticationResponse> {
     const transactionId = authenticationRequest.transaction_id;
-    const authenticationResponse = authenticationRequest
-      .authentication_response as object as AuthenticationResponseJSON;
+    const authenticationResponse =
+      authenticationRequest.authentication_response as object as AuthenticationResponseJSON;
 
     const authenticationOptions = await this.getAuthenticationOptionsOrThrow(
-      transactionId,
+      transactionId
     );
 
     await this.kvService.deleteAuthenticationOptionsByTransactionId(
-      transactionId,
+      transactionId
     );
 
     const credentialKV = await this.getCredentialOrThrow(
-      authenticationResponse.id,
+      authenticationResponse.id
     );
 
     const verification = await this.verifyAuthenticationResponse(
       authenticationResponse,
       authenticationOptions,
-      credentialKV,
+      credentialKV
     );
 
     await this.updateCredentialCounter(credentialKV, verification);
@@ -80,7 +84,7 @@ export class AuthenticationService {
 
   public async getResponseForUser(
     connectionInfo: ConnInfo,
-    user: UserKV,
+    user: UserKV
   ): Promise<AuthenticationResponse> {
     const key = await this.jwtService.getKey();
     const publicIp = connectionInfo.remote.address ?? null;
@@ -91,12 +95,12 @@ export class AuthenticationService {
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
       { id: userId, name: userDisplayName },
-      key,
+      key
     );
 
     // add AES key
     const sessionKey: string = encodeBase64(
-      crypto.getRandomValues(new Uint8Array(32)).buffer,
+      crypto.getRandomValues(new Uint8Array(32)).buffer
     );
 
     await this.kvService.setKey(userId, sessionKey);
@@ -117,20 +121,33 @@ export class AuthenticationService {
   }
 
   private async getAuthenticationOptionsOrThrow(
-    transactionId: string,
+    transactionId: string
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    const authenticationOptions = await this.kvService
-      .getAuthenticationOptionsByRequestId(transactionId);
+    const authenticationOptions =
+      await this.kvService.getAuthenticationOptionsByTransactionId(
+        transactionId
+      );
 
     if (authenticationOptions === null) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_NOT_FOUND",
         "Authentication options not found",
-        400,
+        400
       );
     }
 
-    return authenticationOptions;
+    // Check if the authentication options are expired
+    const createdAt = authenticationOptions.created_at;
+
+    if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
+      throw new ServerError(
+        "AUTHENTICATION_OPTIONS_EXPIRED",
+        "Authentication options expired",
+        400
+      );
+    }
+
+    return authenticationOptions.data;
   }
 
   private async getCredentialOrThrow(id: string): Promise<CredentialKV> {
@@ -140,7 +157,7 @@ export class AuthenticationService {
       throw new ServerError(
         "CREDENTIAL_NOT_FOUND",
         "Credential not found",
-        400,
+        400
       );
     }
 
@@ -150,7 +167,7 @@ export class AuthenticationService {
   private async verifyAuthenticationResponse(
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
-    credentialKV: CredentialKV,
+    credentialKV: CredentialKV
   ): Promise<VerifiedAuthenticationResponse> {
     try {
       const verification = await verifyAuthenticationResponse({
@@ -170,7 +187,7 @@ export class AuthenticationService {
         throw new ServerError(
           "AUTHENTICATION_FAILED",
           "Authentication failed",
-          400,
+          400
         );
       }
 
@@ -180,14 +197,14 @@ export class AuthenticationService {
       throw new ServerError(
         "AUTHENTICATION_FAILED",
         "Authentication failed",
-        400,
+        400
       );
     }
   }
 
   private async updateCredentialCounter(
     credential: CredentialKV,
-    verification: VerifiedAuthenticationResponse,
+    verification: VerifiedAuthenticationResponse
   ): Promise<void> {
     const { authenticationInfo } = verification;
     credential.counter = authenticationInfo.newCounter;
