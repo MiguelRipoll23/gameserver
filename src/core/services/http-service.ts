@@ -11,12 +11,15 @@ import { HonoVariablesType } from "../types/hono-variables-type.ts";
 import { CORSMiddleware } from "../middlewares/cors-middleware.ts";
 import { CacheMiddleware } from "../middlewares/cache-middleware.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
+import { RateLimiterMiddleware } from "../middlewares/rate-limiter-middleware.ts";
+import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class HTTPService {
   private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
 
   constructor(
+    private kvService = inject(KVService),
     private rootRooter = inject(RootRouter),
     private apiRouter = inject(APIRouter)
   ) {
@@ -39,6 +42,7 @@ export class HTTPService {
 
   private setMiddlewares(): void {
     this.app.use("*", logger());
+    this.app.use("*", RateLimiterMiddleware.create(this.kvService));
     this.app.use("*", CORSMiddleware.create());
     this.app.use("*", CacheMiddleware.create());
     this.app.use("*", serveStatic({ root: "./static" }));

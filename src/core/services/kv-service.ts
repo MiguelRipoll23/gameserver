@@ -5,6 +5,7 @@ import {
   KV_KEYS,
   KV_MATCHES,
   KV_MESSAGE,
+  KV_RATE_LIMIT,
   KV_REGISTRATION_OPTIONS,
   KV_SCORES,
   KV_SESSIONS,
@@ -23,6 +24,7 @@ import { MessageKV } from "../../api/versions/v1/interfaces/kv/message-kv.ts";
 import { MatchKV } from "../../api/versions/v1/interfaces/kv/match_kv.ts";
 import { ScoreKV } from "../../api/versions/v1/interfaces/kv/score.ts";
 import { ConfigurationType } from "../types/configuration-type.ts";
+import { RATE_WINDOW_MILLISECONDS } from "../../api/versions/v1/constants/api-constants.ts";
 
 @injectable()
 export class KVService {
@@ -31,6 +33,23 @@ export class KVService {
   public async init(): Promise<void> {
     this.kv = await Deno.openKv();
     console.log("KV connection opened");
+  }
+
+  public async getRateLimit(ipAddress: string): Promise<number[] | null> {
+    const entry: Deno.KvEntryMaybe<number[]> = await this.getKv().get<number[]>(
+      [KV_RATE_LIMIT, ipAddress]
+    );
+
+    return entry.value;
+  }
+
+  public async setRateLimit(
+    ipAddress: string,
+    timestamps: number[]
+  ): Promise<void> {
+    await this.getKv().set([KV_RATE_LIMIT, ipAddress], timestamps, {
+      expireIn: RATE_WINDOW_MILLISECONDS,
+    });
   }
 
   public async getVersion(): Promise<VersionKV | null> {
