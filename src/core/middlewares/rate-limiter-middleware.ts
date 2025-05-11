@@ -25,11 +25,9 @@ export class RateLimiterMiddleware {
 
       // Check if rate limit has been exceeded
       if (validTimestamps.length >= RATE_REQUESTS_LIMIT) {
-        console.warn(`Rate limit exceeded for IP: ${address}`);
-
         throw new ServerError(
           "RATE_LIMIT_EXCEEDED",
-          "Rate limit exceeded",
+          `Rate limit exceeded (${address})`,
           429
         );
       }
