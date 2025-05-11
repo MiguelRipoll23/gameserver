@@ -2,8 +2,8 @@ import { createMiddleware } from "hono/factory";
 import { getConnInfo } from "hono/deno";
 import { KVService } from "../services/kv-service.ts";
 import {
-  RATE_REQUESTS_LIMIT,
-  RATE_WINDOW_MILLISECONDS,
+  RATE_LIMIT_REQUESTS_PER_WINDOW,
+  RATE_LIMIT_WINDOW_MILLISECONDS,
 } from "../../api/versions/v1/constants/api-constants.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 
@@ -20,11 +20,12 @@ export class RateLimiterMiddleware {
       // Filter out timestamps that are older than the rate window
       const validTimestamps =
         storedTimestamps?.filter(
-          (timeStamp) => currentTime - timeStamp < RATE_WINDOW_MILLISECONDS
+          (timestamp) =>
+            currentTime - timestamp < RATE_LIMIT_WINDOW_MILLISECONDS
         ) || [];
 
       // Check if rate limit has been exceeded
-      if (validTimestamps.length >= RATE_REQUESTS_LIMIT) {
+      if (validTimestamps.length >= RATE_LIMIT_REQUESTS_PER_WINDOW) {
         throw new ServerError(
           "RATE_LIMIT_EXCEEDED",
           `Rate limit exceeded (${address})`,

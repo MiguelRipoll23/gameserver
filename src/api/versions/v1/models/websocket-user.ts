@@ -6,6 +6,8 @@ export class WebSocketUser {
   private token: string;
   private name: string;
   private timestamp: number;
+  private messageTimestamps: number[];
+
   private webSocket: WSContext<WebSocket> | null = null;
 
   constructor(id: string, name: string) {
@@ -13,6 +15,7 @@ export class WebSocketUser {
     this.token = this.generateToken();
     this.name = name;
     this.timestamp = Date.now();
+    this.messageTimestamps = [];
   }
 
   public getId(): string {
@@ -29,6 +32,14 @@ export class WebSocketUser {
 
   public getTimestamp(): number {
     return this.timestamp;
+  }
+
+  public getMessageTimestamps(): number[] {
+    return this.messageTimestamps;
+  }
+
+  public setMessageTimestamps(timestamps: number[]): void {
+    this.messageTimestamps = timestamps;
   }
 
   public getWebSocket(): WSContext<WebSocket> | null {
