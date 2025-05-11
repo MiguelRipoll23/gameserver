@@ -1,6 +1,10 @@
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
-import { TUNNEL_CHANNEL } from "../constants/websocket_constants.ts";
+import {
+  RATE_LIMIT_MESSAGES_PER_WINDOW,
+  RATE_LIMIT_WINDOW_MILLISECONDS,
+  TUNNEL_CHANNEL,
+} from "../constants/websocket-constants.ts";
 import { SessionKV } from "../interfaces/kv/session-kv.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
@@ -28,19 +32,37 @@ export class WebSocketService {
 
   public async handleCloseEvent(
     _event: CloseEvent,
-    user: WebSocketUser,
+    user: WebSocketUser
   ): Promise<void> {
     await this.handleDisconnection(user);
   }
 
   public handleMessageEvent(
     event: MessageEvent<WSMessageReceive>,
-    user: WebSocketUser,
+    user: WebSocketUser
   ): void {
     // Check if the message is an ArrayBuffer
     if (event.data instanceof ArrayBuffer === false) {
       return;
     }
+
+    const messageTimestamps = user.getMessageTimestamps();
+    const currentTime = Date.now();
+
+    // Filter out timestamps that are older than the rate window
+    const validTimestamps = messageTimestamps.filter(
+      (timestamp) => currentTime - timestamp < RATE_LIMIT_WINDOW_MILLISECONDS
+    );
+
+    // Check if rate limit has been exceeded
+    if (validTimestamps.length >= RATE_LIMIT_MESSAGES_PER_WINDOW) {
+      console.warn(`WebSocket rate limit exceeded for user ${user.getName()}`);
+      return;
+    }
+
+    // Update the list of timestamps with the current time
+    validTimestamps.push(currentTime);
+    user.setMessageTimestamps([...validTimestamps, currentTime]);
 
     try {
       this.handleMessage(user, event.data);
@@ -86,8 +108,8 @@ export class WebSocketService {
     const userName = user.getName();
     console.log(`User ${userName} disconnected from server`);
 
-    const result: Deno.KvCommitResult | Deno.KvCommitError = await this
-      .kvService.deleteUserTemporaryData(userId);
+    const result: Deno.KvCommitResult | Deno.KvCommitError =
+      await this.kvService.deleteUserTemporaryData(userId);
 
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
@@ -121,7 +143,7 @@ export class WebSocketService {
   public sendMessage(
     user: WebSocketUser,
     messageId: number,
-    payload: ArrayBuffer,
+    payload: ArrayBuffer
   ): void {
     const webSocket = user.getWebSocket();
     const name = user.getName();
@@ -155,7 +177,7 @@ export class WebSocketService {
   private handleTunnelMessage(
     originToken: string,
     payload: ArrayBuffer | null,
-    broadcasted: boolean,
+    broadcasted: boolean
   ): void {
     if (payload === null) {
       return console.warn("Received empty tunnel message, dropping...");
@@ -172,7 +194,7 @@ export class WebSocketService {
         originToken,
         payload,
         destinationToken,
-        broadcasted,
+        broadcasted
       );
       return;
     }
@@ -189,13 +211,13 @@ export class WebSocketService {
     const destinationUserName = destinationUser.getName();
 
     console.log(
-      `Routing tunnel message from user ${originUserName} to ${destinationUserName}`,
+      `Routing tunnel message from user ${originUserName} to ${destinationUserName}`
     );
 
     this.sendMessage(
       destinationUser,
       WebSocketType.Tunnel,
-      destinationPayload.buffer,
+      destinationPayload.buffer
     );
   }
 
@@ -203,13 +225,13 @@ export class WebSocketService {
     originToken: string,
     payload: ArrayBuffer,
     destinationToken: string,
-    broadcasted: boolean,
+    broadcasted: boolean
   ): void {
     if (broadcasted) {
       console.debug(`User ${destinationToken} not found, message dropped`);
     } else {
       console.debug(
-        `User ${destinationToken} not found, broadcasting tunnel message...`,
+        `User ${destinationToken} not found, broadcasting tunnel message...`
       );
 
       this.broadcastChannel.postMessage({ originToken, payload });
