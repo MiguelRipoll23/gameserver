@@ -8,15 +8,15 @@
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@wok/djwt@^3.0.2": "3.0.2",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@~0.19.6": "0.19.6_hono@4.7.9_zod@3.24.4",
+    "npm:@hono/zod-openapi@~0.19.6": "0.19.6_hono@4.7.10_zod@3.24.4",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.3.10": "2.3.16",
     "npm:@peculiar/asn1-ecc@^2.3.8": "2.3.15",
     "npm:@peculiar/asn1-rsa@^2.3.8": "2.3.15",
     "npm:@peculiar/asn1-schema@^2.3.8": "2.3.15",
     "npm:@peculiar/asn1-x509@^2.3.8": "2.3.15",
-    "npm:@scalar/hono-api-reference@~0.8.8": "0.8.8_hono@4.7.9",
-    "npm:hono@^4.7.9": "4.7.9",
+    "npm:@scalar/hono-api-reference@~0.8.10": "0.8.10_hono@4.7.10",
+    "npm:hono@^4.7.10": "4.7.10",
     "npm:zod@^3.24.4": "3.24.4"
   },
   "jsr": {
@@ -62,7 +62,7 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@0.19.6_hono@4.7.9_zod@3.24.4": {
+    "@hono/zod-openapi@0.19.6_hono@4.7.10_zod@3.24.4": {
       "integrity": "sha512-qD2I0i5Ksry8gf47rXR6tuUAfv5S/wRZPRUNn+y8vOkgArDtIs30Ha3KGHeuGhcMk773D197IlPUppSCbHt6iQ==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
@@ -71,7 +71,7 @@
         "zod@3.24.4"
       ]
     },
-    "@hono/zod-validator@0.5.0_hono@4.7.9_zod@3.24.4": {
+    "@hono/zod-validator@0.5.0_hono@4.7.10_zod@3.24.4": {
       "integrity": "sha512-ds5bW6DCgAnNHP33E3ieSbaZFd5dkV52ZjyaXtGoR06APFrCtzAsKZxTHwOrJNBdXsi0e5wNwo5L4nVEVnJUdg==",
       "dependencies": [
         "hono",
@@ -124,27 +124,27 @@
         "tslib"
       ]
     },
-    "@scalar/core@0.2.14": {
-      "integrity": "sha512-w2oLqUVJt88ed2uHKFgg8UOFeyHDpi3QmSJqqc4CZPjAz/lKj34antHYMEG3A4Iom+06W31XQeqFO9zQ2eNsfA==",
+    "@scalar/core@0.2.16": {
+      "integrity": "sha512-PYIsWbaC/0jE61aundn3koUE+m9beOSEgu+fCxB1G31PmoloIQdVcRp6O95uCa89TofPU317u+8SjeIG8NuWpw==",
       "dependencies": [
         "@scalar/types"
       ]
     },
-    "@scalar/hono-api-reference@0.8.8_hono@4.7.9": {
-      "integrity": "sha512-VLpgkUOcKg4SSnWwp6/hGF5gNypeL+e791HD4ANmxImU8k+VbsKh53W7ZOivRY1fIMkPcd0TvzQvKm2MqyJDJw==",
+    "@scalar/hono-api-reference@0.8.10_hono@4.7.10": {
+      "integrity": "sha512-wZQMsvU2okC3RkqYPtjhd0LjSlO7BUjgE//zFPzYAcLD7lhH6qxvXporYgR0gnMBonhH9QiWmGHKkRdOrdisug==",
       "dependencies": [
         "@scalar/core",
         "hono"
       ]
     },
-    "@scalar/openapi-types@0.2.2": {
-      "integrity": "sha512-fwWboUf3W5U4qWU7nj4jrs+KYilnfKyVp0d6LC1ejB2aROgWXIAscRtVaPLPaNLpTZOBsMC8XpiAPm3/SlU+mA==",
+    "@scalar/openapi-types@0.2.3": {
+      "integrity": "sha512-O1GwqLpcRc3GKXTbeBZ5E12fXR2ltpqGWk4RfhoN4ebKZsPVknV5at5425G97E1SwMy12BporRvn90k1Z+MruQ==",
       "dependencies": [
         "zod@3.24.1"
       ]
     },
-    "@scalar/types@0.1.14": {
-      "integrity": "sha512-N7qZ9qARJfi4Gl5MEsRfwPHFWs68qDXWQ+jGi05LGExDqErAJStc4PPkEmxt44uSO4+TVx4ADxWB6xNoGMG/Zg==",
+    "@scalar/types@0.1.16": {
+      "integrity": "sha512-v1L96F8Inn27NUw5Xcl0iifw3SOX0R9WBV6GeswR23s8i1SJz7UiLEi8rLOqOB5DiLtC8hDK0kNl4TKn7MNJWQ==",
       "dependencies": [
         "@scalar/openapi-types",
         "nanoid",
@@ -159,8 +159,8 @@
         "tslib"
       ]
     },
-    "hono@4.7.9": {
-      "integrity": "sha512-/EsCoR5h7N4yu01TDu9GMCCJa6ZLk5ZJIWFFGNawAXmd1Tp53+Wir4xm0D2X19bbykWUlzQG0+BvPAji6p9E8Q=="
+    "hono@4.7.10": {
+      "integrity": "sha512-QkACju9MiN59CKSY5JsGZCYmPZkA6sIW6OFCUp7qDjZu6S6KHtJHhAc9Uy9mV9F8PJ1/HQ3ybZF2yjCa/73fvQ=="
     },
     "nanoid@5.1.5": {
       "integrity": "sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw==",
@@ -184,8 +184,8 @@
     "tslib@2.8.1": {
       "integrity": "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="
     },
-    "yaml@2.7.1": {
-      "integrity": "sha512-10ULxpnOCQXxJvBgxsn9ptjq6uviG/htZKk9veJGhlqn3w/DxQ631zFF+nlQXLwmImeS5amR2dl2U8sg6U9jsQ==",
+    "yaml@2.8.0": {
+      "integrity": "sha512-4lLa/EcQCB0cJkyts+FpIRx5G/llPxfP6VQU5KByHEhLxY3IJCH0f0Hy1MHI8sClTvsIb8qwRJ6R/ZdlDJ/leQ==",
       "bin": true
     },
     "zod@3.24.1": {
@@ -203,8 +203,8 @@
       "jsr:@std/encoding@^1.0.10",
       "jsr:@wok/djwt@^3.0.2",
       "npm:@hono/zod-openapi@~0.19.6",
-      "npm:@scalar/hono-api-reference@~0.8.8",
-      "npm:hono@^4.7.9",
+      "npm:@scalar/hono-api-reference@~0.8.10",
+      "npm:hono@^4.7.10",
       "npm:zod@^3.24.4"
     ]
   }
