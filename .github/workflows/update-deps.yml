@@ -1,0 +1,29 @@
+name: Update deps
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: vx.x.x
+
+      - name: Run outdated command
+        run: deno outdated --update --latest
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: Update deps
+          title: Update deps to latest version
+          body: Automated pull request triggered by a cron job
+          labels: dependencies
