@@ -61,7 +61,6 @@ export class WebSocketService {
     }
 
     // Update the list of timestamps with the current time
-    validTimestamps.push(currentTime);
     user.setMessageTimestamps([...validTimestamps, currentTime]);
 
     try {
@@ -73,8 +72,10 @@ export class WebSocketService {
 
   private addBroadcastChannelListeners(): void {
     this.broadcastChannel.onmessage = (event: MessageEvent) => {
-      const { originToken, payload } = event.data;
-      this.handleTunnelMessage(originToken, payload, true);
+      const { serializedOriginUser, payload } = event.data;
+      const originUser = WebSocketUser.deserialize(serializedOriginUser);
+
+      this.handleTunnelMessage(originUser, payload, true);
     };
   }
 
@@ -113,7 +114,7 @@ export class WebSocketService {
 
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
-      delete this.users[userId];
+      delete this.users[user.getToken()];
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
       user.setWebSocket(null);
@@ -121,10 +122,7 @@ export class WebSocketService {
   }
 
   private handleMessage(user: WebSocketUser, data: ArrayBuffer): void {
-    const userToken = user.getToken();
-    const userName = user.getName();
-
-    console.debug("Received message from user", userName, data);
+    console.debug("Received message from user", user.getName(), data);
 
     const dataView = new DataView(data);
     const id = dataView.getUint8(0);
@@ -132,7 +130,7 @@ export class WebSocketService {
 
     switch (id) {
       case WebSocketType.Tunnel: {
-        return this.handleTunnelMessage(userToken, payload, false);
+        return this.handleTunnelMessage(user, payload, false);
       }
 
       default:
@@ -146,7 +144,6 @@ export class WebSocketService {
     payload: ArrayBuffer
   ): void {
     const webSocket = user.getWebSocket();
-    const name = user.getName();
 
     if (webSocket === null || webSocket.readyState !== WebSocket.OPEN) {
       return;
@@ -161,7 +158,7 @@ export class WebSocketService {
     // Copy the payload into the buffer
     new Uint8Array(arrayBuffer, 1).set(new Uint8Array(payload));
 
-    console.debug("Sent message to user", name, arrayBuffer);
+    console.debug("Sent message to user", user.getName(), arrayBuffer);
     webSocket.send(arrayBuffer);
   }
 
@@ -175,56 +172,59 @@ export class WebSocketService {
   }
 
   private handleTunnelMessage(
-    originToken: string,
+    originUser: WebSocketUser,
     payload: ArrayBuffer | null,
     broadcasted: boolean
   ): void {
     if (payload === null) {
-      return console.warn("Received empty tunnel message, dropping...");
+      console.warn("Received empty tunnel message, dropping...");
+      return;
     }
 
-    const destinationTokenBytes: ArrayBuffer = payload.slice(0, 32);
-    const webrtcDataBytes: ArrayBuffer = payload.slice(32);
+    if (payload.byteLength < 32) {
+      console.warn(
+        "Received tunnel message with invalid payload size, dropping..."
+      );
+      return;
+    }
 
-    // Check if destination user is connected to this server
-    const destinationToken: string = encodeBase64(destinationTokenBytes);
+    const destinationTokenBytes = payload.slice(0, 32);
+    const webrtcDataBytes = payload.slice(32);
+
+    const destinationToken = encodeBase64(destinationTokenBytes);
+    const destinationUser = this.users[destinationToken];
 
     if (destinationToken in this.users === false) {
       this.handleUserNotFound(
-        originToken,
-        payload,
+        originUser,
         destinationToken,
+        payload,
         broadcasted
       );
       return;
     }
 
-    const destinationPayload = new Uint8Array([
-      ...decodeBase64(originToken),
+    const originTokenBytes = decodeBase64(originUser.getToken());
+    const tunnelPayload = new Uint8Array([
+      ...originTokenBytes,
       ...new Uint8Array(webrtcDataBytes),
     ]);
 
-    const originUser: WebSocketUser = this.users[originToken];
-    const destinationUser: WebSocketUser = this.users[destinationToken];
-
-    const originUserName = originUser.getName();
-    const destinationUserName = destinationUser.getName();
-
     console.log(
-      `Routing tunnel message from user ${originUserName} to ${destinationUserName}`
+      `Routing tunnel message from user ${originUser.getName()} to ${destinationUser.getName()}`
     );
 
     this.sendMessage(
       destinationUser,
       WebSocketType.Tunnel,
-      destinationPayload.buffer
+      tunnelPayload.buffer
     );
   }
 
   private handleUserNotFound(
-    originToken: string,
-    payload: ArrayBuffer,
+    originUser: WebSocketUser,
     destinationToken: string,
+    payload: ArrayBuffer,
     broadcasted: boolean
   ): void {
     if (broadcasted) {
@@ -234,7 +234,8 @@ export class WebSocketService {
         `User ${destinationToken} not found, broadcasting tunnel message...`
       );
 
-      this.broadcastChannel.postMessage({ originToken, payload });
+      const serializedOriginUser = originUser.serialize();
+      this.broadcastChannel.postMessage({ serializedOriginUser, payload });
     }
   }
 }
