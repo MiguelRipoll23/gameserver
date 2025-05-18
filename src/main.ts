@@ -19,4 +19,4 @@ const kvService = container.get(KVService);
 await kvService.init();
 
 const httpService = container.get(HTTPService);
-await httpService.listen();
+httpService.listen();
