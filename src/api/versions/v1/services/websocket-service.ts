@@ -107,6 +107,8 @@ export class WebSocketService {
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
     const userId = user.getId();
     const userName = user.getName();
+    const userToken = user.getToken();
+
     console.log(`User ${userName} disconnected from server`);
 
     const result: Deno.KvCommitResult | Deno.KvCommitError =
@@ -114,7 +116,7 @@ export class WebSocketService {
 
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
-      delete this.users[user.getToken()];
+      delete this.users[userToken];
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
       user.setWebSocket(null);
