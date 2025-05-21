@@ -8,7 +8,7 @@
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@wok/djwt@^3.0.2": "3.0.2",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@~0.19.6": "0.19.6_hono@4.7.10_zod@3.25.7",
+    "npm:@hono/zod-openapi@~0.19.6": "0.19.6_hono@4.7.10_zod@3.25.13",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.3.10": "2.3.16",
     "npm:@peculiar/asn1-ecc@^2.3.8": "2.3.15",
@@ -17,7 +17,7 @@
     "npm:@peculiar/asn1-x509@^2.3.8": "2.3.15",
     "npm:@scalar/hono-api-reference@~0.8.10": "0.8.10_hono@4.7.10",
     "npm:hono@^4.7.10": "4.7.10",
-    "npm:zod@^3.25.7": "3.25.7"
+    "npm:zod@^3.25.13": "3.25.13"
   },
   "jsr": {
     "@needle-di/core@1.0.0": {
@@ -52,30 +52,30 @@
     }
   },
   "npm": {
-    "@asteasolutions/zod-to-openapi@7.3.0_zod@3.25.7": {
+    "@asteasolutions/zod-to-openapi@7.3.0_zod@3.25.13": {
       "integrity": "sha512-7tE/r1gXwMIvGnXVUdIqUhCU1RevEFC4Jk6Bussa0fk1ecbnnINkZzj1EOAJyE/M3AI25DnHT/zKQL1/FPFi8Q==",
       "dependencies": [
         "openapi3-ts",
-        "zod@3.25.7"
+        "zod@3.25.13"
       ]
     },
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@0.19.6_hono@4.7.10_zod@3.25.7": {
+    "@hono/zod-openapi@0.19.6_hono@4.7.10_zod@3.25.13": {
       "integrity": "sha512-qD2I0i5Ksry8gf47rXR6tuUAfv5S/wRZPRUNn+y8vOkgArDtIs30Ha3KGHeuGhcMk773D197IlPUppSCbHt6iQ==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
         "@hono/zod-validator",
         "hono",
-        "zod@3.25.7"
+        "zod@3.25.13"
       ]
     },
-    "@hono/zod-validator@0.5.0_hono@4.7.10_zod@3.25.7": {
+    "@hono/zod-validator@0.5.0_hono@4.7.10_zod@3.25.13": {
       "integrity": "sha512-ds5bW6DCgAnNHP33E3ieSbaZFd5dkV52ZjyaXtGoR06APFrCtzAsKZxTHwOrJNBdXsi0e5wNwo5L4nVEVnJUdg==",
       "dependencies": [
         "hono",
-        "zod@3.25.7"
+        "zod@3.25.13"
       ]
     },
     "@levischuck/tiny-cbor@0.2.11": {
@@ -191,8 +191,8 @@
     "zod@3.24.1": {
       "integrity": "sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A=="
     },
-    "zod@3.25.7": {
-      "integrity": "sha512-YGdT1cVRmKkOg6Sq7vY7IkxdphySKnXhaUmFI4r4FcuFVNgpCb9tZfNwXbT6BPjD5oz0nubFsoo9pIqKrDcCvg=="
+    "zod@3.25.13": {
+      "integrity": "sha512-Q8mvk2iWi7rTDfpQBsu4ziE7A6AxgzJ5hzRyRYQkoV3A3niYsXVwDaP1Kbz3nWav6S+VZ6k2OznFn8ZyDHvIrg=="
     }
   },
   "workspace": {
@@ -205,7 +205,7 @@
       "npm:@hono/zod-openapi@~0.19.6",
       "npm:@scalar/hono-api-reference@~0.8.10",
       "npm:hono@^4.7.10",
-      "npm:zod@^3.25.7"
+      "npm:zod@^3.25.13"
     ]
   }
 }
