@@ -178,20 +178,13 @@ export class WebSocketService {
     payload: ArrayBuffer | null,
     broadcasted: boolean
   ): void {
-    if (payload === null) {
-      console.warn("Received empty tunnel message, dropping...");
-      return;
-    }
-
-    if (payload.byteLength < 32) {
-      console.warn(
-        "Received tunnel message with invalid payload size, dropping..."
-      );
+    if (payload === null || payload.byteLength < 32) {
+      ("Received tunnel message with invalid payload size, dropping...");
       return;
     }
 
     const destinationTokenBytes = payload.slice(0, 32);
-    const webrtcDataBytes = payload.slice(32);
+    const tunnelDataBytes = payload.slice(32);
 
     const destinationToken = encodeBase64(destinationTokenBytes);
     const destinationUser = this.users[destinationToken];
@@ -209,7 +202,7 @@ export class WebSocketService {
     const originTokenBytes = decodeBase64(originUser.getToken());
     const tunnelPayload = new Uint8Array([
       ...originTokenBytes,
-      ...new Uint8Array(webrtcDataBytes),
+      ...new Uint8Array(tunnelDataBytes),
     ]);
 
     console.log(
