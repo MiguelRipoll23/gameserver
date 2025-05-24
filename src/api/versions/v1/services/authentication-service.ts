@@ -91,19 +91,19 @@ export class AuthenticationService {
     const userId = user.user_id;
     const userDisplayName = user.display_name;
 
-    // create JWT
+    // Create JWT for client authentication
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
       { id: userId, name: userDisplayName },
       key
     );
 
-    // add AES key
-    const sessionKey: string = encodeBase64(
+    // Add user key for encryption/decryption
+    const userKey: string = encodeBase64(
       crypto.getRandomValues(new Uint8Array(32)).buffer
     );
 
-    await this.kvService.setKey(userId, sessionKey);
+    await this.kvService.setKey(userId, userKey);
 
     // ICE servers
     const iceServers = await this.iceService.getServers();
@@ -112,7 +112,7 @@ export class AuthenticationService {
       user_id: userId,
       display_name: userDisplayName,
       authentication_token: authenticationToken,
-      session_key: sessionKey,
+      session_key: userKey,
       public_ip: publicIp,
       rtc_ice_servers: iceServers,
     };
@@ -220,6 +220,9 @@ export class AuthenticationService {
       throw new ServerError("USER_NOT_FOUND", "User not found", 400);
     }
 
-    return user;
+    return {
+      ...user,
+      user_id: userId.substring(0, 36), // Patch for old identifiers
+    };
   }
 }

@@ -36,13 +36,12 @@ export class RegistrationService {
 
     await this.ensureUserDoesNotExist(displayName);
 
-    const userId = new TextEncoder().encode(crypto.randomUUID());
     const options = await generateRegistrationOptions({
       rpName: WebAuthnUtils.getRelayPartyName(),
       rpID: WebAuthnUtils.getRelayPartyID(),
       userName: displayName,
-      userID: userId,
       userDisplayName: displayName,
+      userID: new TextEncoder().encode(crypto.randomUUID()),
       authenticatorSelection: {
         authenticatorAttachment: "platform",
         residentKey: "required",
@@ -169,7 +168,7 @@ export class RegistrationService {
     }
 
     return {
-      user_id: registrationOptions.user.id,
+      user_id: atob(registrationOptions.user.id),
       id: registrationInfo.credential.id,
       public_key: registrationInfo.credential.publicKey,
       counter: registrationInfo.credential.counter,
@@ -182,12 +181,9 @@ export class RegistrationService {
   private createUser(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON
   ): UserKV {
-    const userId = registrationOptions.user.id;
-    const userDisplayName = registrationOptions.user.name;
-
     return {
-      user_id: userId,
-      display_name: userDisplayName,
+      user_id: atob(registrationOptions.user.id),
+      display_name: registrationOptions.user.name,
       created_at: Date.now(),
     };
   }
