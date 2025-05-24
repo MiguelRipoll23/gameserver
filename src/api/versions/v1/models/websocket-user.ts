@@ -10,10 +10,10 @@ export class WebSocketUser {
 
   private webSocket: WSContext<WebSocket> | null = null;
 
-  constructor(id: string, name: string, token?: string) {
+  constructor(id: string, name: string, token = this.generateToken()) {
     this.id = id;
-    this.token = token ?? this.generateToken();
     this.name = name;
+    this.token = token;
     this.connectedTimestamp = Date.now();
     this.messageTimestamps = [];
   }
@@ -58,12 +58,6 @@ export class WebSocketUser {
       connectedTimestamp: this.connectedTimestamp,
       messageTimestamps: this.messageTimestamps,
     });
-  }
-
-  public static deserialize(data: string): WebSocketUser {
-    const parsedData = JSON.parse(data);
-
-    return new WebSocketUser(parsedData.id, parsedData.name, parsedData.token);
   }
 
   private generateToken(): string {

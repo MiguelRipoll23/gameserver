@@ -222,7 +222,7 @@ export class AuthenticationService {
 
     return {
       ...user,
-      user_id: userId.substring(0, 36), // Patch for old identifiers
+      user_id: userId.length === 32 ? userId : userId.substring(0, 32), // for older format
     };
   }
 }

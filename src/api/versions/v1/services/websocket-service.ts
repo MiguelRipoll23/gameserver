@@ -202,7 +202,7 @@ export class WebSocketService {
 
     const destinationTokenBytes = payload.slice(0, 32);
 
-    const originUserId = originUser.getId().substring(0, 32);
+    const originUserId = originUser.getId();
     const originUserIdBytes = new TextEncoder().encode(originUserId);
     const originUserName = originUser.getName();
     const originUserNameBytes = new TextEncoder().encode(originUserName);
