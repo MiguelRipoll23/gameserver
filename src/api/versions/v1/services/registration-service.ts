@@ -40,6 +40,7 @@ export class RegistrationService {
       rpName: WebAuthnUtils.getRelayPartyName(),
       rpID: WebAuthnUtils.getRelayPartyID(),
       userName: displayName,
+      userID: new TextEncoder().encode(crypto.randomUUID()),
       userDisplayName: displayName,
       authenticatorSelection: {
         authenticatorAttachment: "platform",
