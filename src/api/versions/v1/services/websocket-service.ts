@@ -71,9 +71,7 @@ export class WebSocketService {
     const destinationUser = this.users.get(destinationToken) ?? null;
 
     if (destinationUser === null) {
-      console.debug(
-        `Token ${destinationToken} not found in this server, dropping message`
-      );
+      console.info(`No user found for token ${destinationToken}`);
       return;
     }
 
@@ -127,6 +125,10 @@ export class WebSocketService {
     const payload = data.byteLength > 1 ? data.slice(1) : null;
 
     switch (typeId) {
+      case WebSocketType.PlayerIdentity: {
+        return this.handlePlayerIdentityMessage(user, payload);
+      }
+
       case WebSocketType.Tunnel: {
         return this.handleTunnelMessage(user, payload);
       }
@@ -143,8 +145,8 @@ export class WebSocketService {
   ): void {
     const webSocket = user.getWebSocket();
 
-    // If the WebSocket is null, the user is likely disconnected
-    if (webSocket === null) {
+    // Check if the WebSocket is null or closed
+    if (webSocket === undefined || webSocket?.readyState !== WebSocket.OPEN) {
       return;
     }
 
@@ -174,6 +176,7 @@ export class WebSocketService {
     if (destinationUser) {
       this.sendMessage(destinationUser, typeId, payload);
     } else {
+      console.log(`Token not found, broadcasting message...`, destinationToken);
       this.broadcastChannel.postMessage({ destinationToken, typeId, payload });
     }
   }
@@ -184,6 +187,42 @@ export class WebSocketService {
       const payload = encoded.slice().buffer;
       this.sendMessage(user, WebSocketType.Notification, payload);
     }
+  }
+
+  private handlePlayerIdentityMessage(
+    originUser: WebSocketUser,
+    payload: ArrayBuffer | null
+  ): void {
+    if (payload === null || payload.byteLength < 32) {
+      console.warn(
+        "Received player identity message with invalid payload size, dropping..."
+      );
+      return;
+    }
+
+    const destinationTokenBytes = payload.slice(0, 32);
+
+    const originUserId = originUser.getId().substring(0, 32);
+    const originUserIdBytes = new TextEncoder().encode(originUserId);
+    const originUserName = originUser.getName();
+    const originUserNameBytes = new TextEncoder().encode(originUserName);
+
+    console.log(
+      "Received player identity message for",
+      encodeBase64(destinationTokenBytes)
+    );
+
+    const playerIdentityPayload = new Uint8Array([
+      ...decodeBase64(originUser.getToken()),
+      ...originUserIdBytes,
+      ...originUserNameBytes,
+    ]);
+
+    this.sendMessageToOtherUser(
+      encodeBase64(destinationTokenBytes),
+      WebSocketType.PlayerIdentity,
+      playerIdentityPayload.buffer
+    );
   }
 
   private handleTunnelMessage(
