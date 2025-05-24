@@ -36,10 +36,12 @@ export class RegistrationService {
 
     await this.ensureUserDoesNotExist(displayName);
 
+    const userId = new TextEncoder().encode(crypto.randomUUID());
     const options = await generateRegistrationOptions({
       rpName: WebAuthnUtils.getRelayPartyName(),
       rpID: WebAuthnUtils.getRelayPartyID(),
       userName: displayName,
+      userID: userId,
       userDisplayName: displayName,
       authenticatorSelection: {
         authenticatorAttachment: "platform",
