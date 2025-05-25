@@ -11,6 +11,8 @@ import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
+import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
+import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 
 @injectable()
 export class WebSocketService {
@@ -67,7 +69,7 @@ export class WebSocketService {
   }
 
   private handleBroadcastChannelMessage(event: MessageEvent): void {
-    const { destinationToken, typeId, payload } = event.data;
+    const { destinationToken, payload } = event.data;
     const destinationUser = this.users.get(destinationToken) ?? null;
 
     if (destinationUser === null) {
@@ -75,7 +77,7 @@ export class WebSocketService {
       return;
     }
 
-    this.sendMessage(destinationUser, typeId, payload);
+    this.sendMessage(destinationUser, payload);
   }
 
   private addEventListeners(): void {
@@ -138,11 +140,7 @@ export class WebSocketService {
     }
   }
 
-  public sendMessage(
-    user: WebSocketUser,
-    typeId: number,
-    payload: ArrayBuffer
-  ): void {
+  public sendMessage(user: WebSocketUser, payload: ArrayBuffer): void {
     const webSocket = user.getWebSocket();
 
     // Check if the WebSocket is null or closed
@@ -150,17 +148,9 @@ export class WebSocketService {
       return;
     }
 
-    const messageBuffer = new Uint8Array(1 + payload.byteLength);
-    messageBuffer[0] = typeId;
-    messageBuffer.set(new Uint8Array(payload), 1);
-
     try {
-      webSocket.send(messageBuffer.buffer);
-      console.debug(
-        "Sent message to user",
-        user.getName(),
-        messageBuffer.buffer
-      );
+      webSocket.send(payload);
+      console.debug("Sent message to user", user.getName(), payload);
     } catch (error) {
       console.error("Failed to send message to user", user.getName(), error);
     }
@@ -168,24 +158,27 @@ export class WebSocketService {
 
   private sendMessageToOtherUser(
     destinationToken: string,
-    typeId: number,
     payload: ArrayBuffer
   ): void {
     const destinationUser = this.users.get(destinationToken);
 
     if (destinationUser) {
-      this.sendMessage(destinationUser, typeId, payload);
+      this.sendMessage(destinationUser, payload);
     } else {
       console.log(`Token not found, broadcasting message...`, destinationToken);
-      this.broadcastChannel.postMessage({ destinationToken, typeId, payload });
+      this.broadcastChannel.postMessage({ destinationToken, payload });
     }
   }
 
   private sendNotificationToUsers(text: string): void {
     for (const user of this.users.values()) {
-      const encoded = new TextEncoder().encode(text);
-      const payload = encoded.slice().buffer;
-      this.sendMessage(user, WebSocketType.Notification, payload);
+      const textBytes = new TextEncoder().encode(text);
+      const payload = BinaryWriter.build()
+        .unsignedInt8(WebSocketType.Notification)
+        .bytes(textBytes)
+        .toArrayBuffer();
+
+      this.sendMessage(user, payload);
     }
   }
 
@@ -200,29 +193,20 @@ export class WebSocketService {
       return;
     }
 
-    const destinationTokenBytes = payload.slice(0, 32);
+    const binaryReader = BinaryReader.fromArrayBuffer(payload);
+    const destinationTokenBytes = binaryReader.bytes(32);
+    const destinationToken = encodeBase64(destinationTokenBytes);
 
-    const originUserId = originUser.getId();
-    const originUserIdBytes = new TextEncoder().encode(originUserId);
-    const originUserName = originUser.getName();
-    const originUserNameBytes = new TextEncoder().encode(originUserName);
+    console.log("Received player identity message for", destinationToken);
 
-    console.log(
-      "Received player identity message for",
-      encodeBase64(destinationTokenBytes)
-    );
+    const playerIdentityPayload = BinaryWriter.build()
+      .unsignedInt8(WebSocketType.PlayerIdentity)
+      .bytes(decodeBase64(originUser.getToken()), 32)
+      .fixedLengthString(originUser.getId(), 32)
+      .fixedLengthString(originUser.getName(), 16)
+      .toArrayBuffer();
 
-    const playerIdentityPayload = new Uint8Array([
-      ...decodeBase64(originUser.getToken()),
-      ...originUserIdBytes,
-      ...originUserNameBytes,
-    ]);
-
-    this.sendMessageToOtherUser(
-      encodeBase64(destinationTokenBytes),
-      WebSocketType.PlayerIdentity,
-      playerIdentityPayload.buffer
-    );
+    this.sendMessageToOtherUser(destinationToken, playerIdentityPayload);
   }
 
   private handleTunnelMessage(
@@ -236,18 +220,19 @@ export class WebSocketService {
       return;
     }
 
-    const destinationTokenBytes = payload.slice(0, 32);
-    const dataBytes = payload.slice(32);
+    const binaryReader = BinaryReader.fromArrayBuffer(payload);
+    const destinationTokenBytes = binaryReader.bytes(32);
+    const dataBytes = binaryReader.bytesAsUint8Array();
 
-    const combinedUserTokenData = new Uint8Array([
-      ...decodeBase64(originUser.getToken()),
-      ...new Uint8Array(dataBytes),
-    ]);
+    const tunnelPayload = BinaryWriter.build()
+      .unsignedInt8(WebSocketType.Tunnel)
+      .bytes(decodeBase64(originUser.getToken()), 32)
+      .bytes(dataBytes)
+      .toArrayBuffer();
 
     this.sendMessageToOtherUser(
       encodeBase64(destinationTokenBytes),
-      WebSocketType.Tunnel,
-      combinedUserTokenData.buffer
+      tunnelPayload
     );
   }
 }
