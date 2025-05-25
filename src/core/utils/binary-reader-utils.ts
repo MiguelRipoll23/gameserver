@@ -1,3 +1,5 @@
+import { DebugUtils } from "./debug-utils.ts";
+
 export class BinaryReader {
   private readonly buffer: ArrayBuffer;
   private readonly dataView: DataView;
@@ -108,5 +110,9 @@ export class BinaryReader {
     const bytes = this.uint8.subarray(this.position, this.position + length);
     this.position += length;
     return this.decoder.decode(bytes);
+  }
+
+  public preview(bytesPerLine: number = 24): string {
+    return DebugUtils.getHexDump(this.uint8, bytesPerLine);
   }
 }

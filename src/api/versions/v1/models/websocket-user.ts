@@ -1,5 +1,5 @@
 import { WSContext } from "hono/ws";
-import { encodeBase64 } from "@std/encoding/base64";
+import { AuthenticationUtils } from "../../../utils/authentication-utils.ts";
 
 export class WebSocketUser {
   private id: string;
@@ -10,10 +10,10 @@ export class WebSocketUser {
 
   private webSocket: WSContext<WebSocket> | null = null;
 
-  constructor(id: string, name: string, token = this.generateToken()) {
+  constructor(id: string, name: string) {
     this.id = id;
     this.name = name;
-    this.token = token;
+    this.token = AuthenticationUtils.generateToken();
     this.connectedTimestamp = Date.now();
     this.messageTimestamps = [];
   }
@@ -58,11 +58,5 @@ export class WebSocketUser {
       connectedTimestamp: this.connectedTimestamp,
       messageTimestamps: this.messageTimestamps,
     });
-  }
-
-  private generateToken(): string {
-    const tokenBytes: Uint8Array = crypto.getRandomValues(new Uint8Array(32));
-
-    return encodeBase64(tokenBytes);
   }
 }

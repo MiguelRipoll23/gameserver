@@ -1,3 +1,5 @@
+import { DebugUtils } from "./debug-utils.ts";
+
 export class BinaryWriter {
   private buffer: ArrayBuffer;
   private dataView: DataView;
@@ -142,5 +144,12 @@ export class BinaryWriter {
 
   public toArrayBuffer(): ArrayBuffer {
     return this.buffer.slice(0, this.position);
+  }
+
+  public static preview(
+    arrayBuffer: ArrayBuffer,
+    bytesPerLine: number = 24
+  ): string {
+    return DebugUtils.getHexDump(new Uint8Array(arrayBuffer), bytesPerLine);
   }
 }

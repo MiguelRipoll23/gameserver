@@ -119,20 +119,26 @@ export class WebSocketService {
     }
   }
 
-  private handleMessage(user: WebSocketUser, data: ArrayBuffer): void {
-    console.debug("Received message from user", user.getName(), data);
+  private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
+    const binaryReader = BinaryReader.fromArrayBuffer(arrayBuffer);
 
-    const dataView = new DataView(data);
-    const typeId = dataView.getUint8(0);
-    const payload = data.byteLength > 1 ? data.slice(1) : null;
+    console.debug(
+      `%cReceived message from user ${user.getName()}:\n` +
+        binaryReader.preview(),
+      "color: green;"
+    );
+
+    const typeId = binaryReader.unsignedInt8();
 
     switch (typeId) {
       case WebSocketType.PlayerIdentity: {
-        return this.handlePlayerIdentityMessage(user, payload);
+        this.handlePlayerIdentityMessage(user, binaryReader);
+        break;
       }
 
       case WebSocketType.Tunnel: {
-        return this.handleTunnelMessage(user, payload);
+        this.handleTunnelMessage(user, binaryReader);
+        break;
       }
 
       default:
@@ -140,7 +146,7 @@ export class WebSocketService {
     }
   }
 
-  public sendMessage(user: WebSocketUser, payload: ArrayBuffer): void {
+  public sendMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
     const webSocket = user.getWebSocket();
 
     // Check if the WebSocket is null or closed
@@ -149,8 +155,12 @@ export class WebSocketService {
     }
 
     try {
-      webSocket.send(payload);
-      console.debug("Sent message to user", user.getName(), payload);
+      webSocket.send(arrayBuffer);
+      console.debug(
+        `%cSent message to ${user.getName()}:\n` +
+          BinaryWriter.preview(arrayBuffer),
+        "color: purple"
+      );
     } catch (error) {
       console.error("Failed to send message to user", user.getName(), error);
     }
@@ -184,16 +194,8 @@ export class WebSocketService {
 
   private handlePlayerIdentityMessage(
     originUser: WebSocketUser,
-    payload: ArrayBuffer | null
+    binaryReader: BinaryReader
   ): void {
-    if (payload === null || payload.byteLength < 32) {
-      console.warn(
-        "Received player identity message with invalid payload size, dropping..."
-      );
-      return;
-    }
-
-    const binaryReader = BinaryReader.fromArrayBuffer(payload);
     const destinationTokenBytes = binaryReader.bytes(32);
     const destinationToken = encodeBase64(destinationTokenBytes);
 
@@ -211,16 +213,8 @@ export class WebSocketService {
 
   private handleTunnelMessage(
     originUser: WebSocketUser,
-    payload: ArrayBuffer | null
+    binaryReader: BinaryReader
   ): void {
-    if (payload === null || payload.byteLength < 32) {
-      console.warn(
-        "Received tunnel message with invalid payload size, dropping..."
-      );
-      return;
-    }
-
-    const binaryReader = BinaryReader.fromArrayBuffer(payload);
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
 
