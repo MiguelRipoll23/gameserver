@@ -1,5 +1,5 @@
 import { create, Payload, verify } from "@wok/djwt";
-import { CryptoUtils } from "../utils/authentication-utils.ts";
+import { CryptoUtils } from "../utils/crypto-utils.ts";
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/env-constants.ts";
@@ -27,7 +27,7 @@ export class JWTService {
         name: "HMAC",
         hash: "SHA-512",
       },
-      ["sign", "verify"],
+      ["sign", "verify"]
     );
 
     return this.key;
@@ -55,7 +55,7 @@ export class JWTService {
     return await create(
       { alg: "HS512", typ: "JWT" },
       { id: "management", name: "management", roles: ["management"] },
-      await this.getKey(),
+      await this.getKey()
     );
   }
 }
