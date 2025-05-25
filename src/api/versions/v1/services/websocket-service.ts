@@ -132,11 +132,13 @@ export class WebSocketService {
 
     switch (typeId) {
       case WebSocketType.PlayerIdentity: {
-        return this.handlePlayerIdentityMessage(user, binaryReader);
+        this.handlePlayerIdentityMessage(user, binaryReader);
+        break;
       }
 
       case WebSocketType.Tunnel: {
-        return this.handleTunnelMessage(user, binaryReader);
+        this.handleTunnelMessage(user, binaryReader);
+        break;
       }
 
       default:
