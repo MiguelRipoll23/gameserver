@@ -26,6 +26,10 @@ export class WebSocketService {
     this.addEventListeners();
   }
 
+  public getTotalSessions(): number {
+    return this.users.size;
+  }
+
   public handleOpenEvent(_event: Event, user: WebSocketUser): void {
     this.handleConnection(user);
   }
@@ -157,7 +161,7 @@ export class WebSocketService {
     try {
       webSocket.send(arrayBuffer);
       console.debug(
-        `%cSent message to ${user.getName()}:\n` +
+        `%cSent message to user ${user.getName()}:\n` +
           BinaryWriter.preview(arrayBuffer),
         "color: purple"
       );
