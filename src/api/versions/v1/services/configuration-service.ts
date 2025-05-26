@@ -11,7 +11,7 @@ import {
 export class ConfigurationService {
   constructor(
     private kvService = inject(KVService),
-    private cryptoService = inject(CryptoService),
+    private cryptoService = inject(CryptoService)
   ) {}
 
   public async getData(): Promise<GetConfigurationResponse> {
@@ -21,7 +21,7 @@ export class ConfigurationService {
       throw new ServerError(
         "CONFIGURATION_NOT_FOUND",
         "Configuration not found",
-        404,
+        404
       );
     }
 
@@ -29,7 +29,7 @@ export class ConfigurationService {
   }
 
   public async setData(
-    configurationRequest: UpdateConfigurationRequest,
+    configurationRequest: UpdateConfigurationRequest
   ): Promise<void> {
     await this.kvService.setConfiguration(configurationRequest);
   }
@@ -41,7 +41,7 @@ export class ConfigurationService {
       throw new ServerError(
         "CONFIGURATION_NOT_FOUND",
         "Configuration not found",
-        404,
+        404
       );
     }
 
@@ -50,7 +50,7 @@ export class ConfigurationService {
     const rawData = encoded.slice().buffer;
     const encryptedData = await this.cryptoService.encryptForUser(
       userId,
-      rawData,
+      rawData
     );
 
     return encryptedData;

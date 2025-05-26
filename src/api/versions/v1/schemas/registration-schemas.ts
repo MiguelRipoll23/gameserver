@@ -1,14 +1,14 @@
 import { z } from "@hono/zod-openapi";
 
 export const GetRegistrationOptionsRequestSchema = z.object({
-  transaction_id: z
+  transactionId: z
     .string()
     .uuid()
     .describe("The transaction ID for the registration request")
     .openapi({
       example: "123e4567-e89b-12d3-a456-426614174000",
     }),
-  display_name: z
+  displayName: z
     .string()
     .min(1)
     .max(16)
@@ -70,14 +70,14 @@ export type GetRegistrationOptionsResponse = z.infer<
 >;
 
 export const VerifyRegistrationRequestSchema = z.object({
-  transaction_id: z
+  transactionId: z
     .string()
     .uuid()
     .describe("The transaction ID for the registration request")
     .openapi({
       example: "123e4567-e89b-12d3-a456-426614174000",
     }),
-  registration_response: z
+  registrationResponse: z
     .object({})
     .passthrough()
     .describe("The registration response from the authenticator"),

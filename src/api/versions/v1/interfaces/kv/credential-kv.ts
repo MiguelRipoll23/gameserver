@@ -5,10 +5,10 @@ import {
 
 export interface CredentialKV {
   id: string;
-  public_key: Uint8Array;
-  user_id: string;
+  publicKey: Uint8Array;
+  userId: string;
   counter: number;
-  device_type: CredentialDeviceType;
-  backup_status: boolean;
+  deviceType: CredentialDeviceType;
+  backupStatus: boolean;
   transports: AuthenticatorTransportFuture[] | undefined;
 }

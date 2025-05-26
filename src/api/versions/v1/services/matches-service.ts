@@ -15,7 +15,7 @@ export class MatchesService {
 
   public async advertise(
     userId: string,
-    body: AdvertiseMatchRequest,
+    body: AdvertiseMatchRequest
   ): Promise<void> {
     // Get the user session
     const session: SessionKV | null = await this.kvService.getSession(userId);
@@ -25,22 +25,24 @@ export class MatchesService {
     }
 
     const { token } = session;
+    const { version, totalSlots, availableSlots, attributes } = body;
+
     const match: MatchKV = {
-      version: body.version,
+      version: version,
       token,
-      total_slots: body.total_slots,
-      available_slots: body.available_slots,
-      attributes: body.attributes ?? {},
+      totalSlots: totalSlots,
+      availableSlots: availableSlots,
+      attributes: attributes ?? {},
     };
 
-    const response: Deno.KvCommitResult | Deno.KvCommitError = await this
-      .kvService.setMatch(userId, match);
+    const response: Deno.KvCommitResult | Deno.KvCommitError =
+      await this.kvService.setMatch(userId, match);
 
     if (response.ok === false) {
       throw new ServerError(
         "MATCH_CREATION_FAILED",
         "Match creation failed",
-        500,
+        500
       );
     }
   }
@@ -58,21 +60,21 @@ export class MatchesService {
   }
 
   public async delete(userId: string): Promise<void> {
-    const response: Deno.KvCommitResult | Deno.KvCommitError = await this
-      .kvService.deleteMatch(userId);
+    const response: Deno.KvCommitResult | Deno.KvCommitError =
+      await this.kvService.deleteMatch(userId);
 
     if (response.ok === false) {
       throw new ServerError(
         "MATCH_DELETION_FAILED",
         "Match deletion failed",
-        500,
+        500
       );
     }
   }
 
   private filter(
     matches: MatchKV[],
-    body: FindMatchesRequest,
+    body: FindMatchesRequest
   ): FindMatchesResponse {
     const results: FindMatchesResponse = [];
 
@@ -89,8 +91,10 @@ export class MatchesService {
         continue;
       }
 
+      const { token } = match;
+
       results.push({
-        token: match.token,
+        token,
       });
     }
 
@@ -102,7 +106,7 @@ export class MatchesService {
   }
 
   private hasAvailableSlots(body: FindMatchesRequest, match: MatchKV): boolean {
-    return body.total_slots <= match.available_slots;
+    return body.totalSlots <= match.availableSlots;
   }
 
   private hasAttributes(body: FindMatchesRequest, match: MatchKV): boolean {

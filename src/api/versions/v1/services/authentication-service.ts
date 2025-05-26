@@ -34,8 +34,7 @@ export class AuthenticationService {
   public async getOptions(
     authenticationRequest: GetAuthenticationOptionsRequest
   ): Promise<object> {
-    const transactionId = authenticationRequest.transaction_id;
-
+    const { transactionId } = authenticationRequest;
     const options = await generateAuthenticationOptions({
       rpID: WebAuthnUtils.getRelayPartyID(),
       userVerification: "preferred",
@@ -43,7 +42,7 @@ export class AuthenticationService {
 
     await this.kvService.setAuthenticationOptions(transactionId, {
       data: options,
-      created_at: Date.now(),
+      createdAt: Date.now(),
     });
 
     return options;
@@ -53,9 +52,9 @@ export class AuthenticationService {
     connectionInfo: ConnInfo,
     authenticationRequest: VerifyAuthenticationRequest
   ): Promise<AuthenticationResponse> {
-    const transactionId = authenticationRequest.transaction_id;
+    const { transactionId } = authenticationRequest;
     const authenticationResponse =
-      authenticationRequest.authentication_response as object as AuthenticationResponseJSON;
+      authenticationRequest.authenticationResponse as object as AuthenticationResponseJSON;
 
     const authenticationOptions = await this.getAuthenticationOptionsOrThrow(
       transactionId
@@ -77,7 +76,7 @@ export class AuthenticationService {
 
     await this.updateCredentialCounter(credentialKV, verification);
 
-    const userKV = await this.getUserOrThrow(credentialKV);
+    const userKV = await this.getUserOrThrowError(credentialKV);
 
     return await this.getResponseForUser(connectionInfo, userKV);
   }
@@ -88,33 +87,33 @@ export class AuthenticationService {
   ): Promise<AuthenticationResponse> {
     const key = await this.jwtService.getKey();
     const publicIp = connectionInfo.remote.address ?? null;
-    const userId = user.user_id;
-    const userDisplayName = user.display_name;
+    const userId = user.userId;
+    const displayName = user.displayName;
 
     // Create JWT for client authentication
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
-      { id: userId, name: userDisplayName },
+      { id: userId, name: displayName },
       key
     );
 
-    // Add user key for encryption/decryption
-    const userKey: string = encodeBase64(
+    // Add session key for encryption/decryption
+    const sessionKey: string = encodeBase64(
       crypto.getRandomValues(new Uint8Array(32)).buffer
     );
 
-    await this.kvService.setKey(userId, userKey);
+    await this.kvService.setKey(userId, sessionKey);
 
     // ICE servers
     const iceServers = await this.iceService.getServers();
 
     const response: AuthenticationResponse = {
-      user_id: userId,
-      display_name: userDisplayName,
-      authentication_token: authenticationToken,
-      session_key: userKey,
-      public_ip: publicIp,
-      rtc_ice_servers: iceServers,
+      userId,
+      displayName,
+      authenticationToken,
+      sessionKey,
+      publicIp: publicIp,
+      rtcIceServers: iceServers,
     };
 
     return response;
@@ -137,7 +136,7 @@ export class AuthenticationService {
     }
 
     // Check if the authentication options are expired
-    const createdAt = authenticationOptions.created_at;
+    const createdAt = authenticationOptions.createdAt;
 
     if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
@@ -177,7 +176,7 @@ export class AuthenticationService {
         expectedRPID: WebAuthnUtils.getRelayPartyID(),
         credential: {
           id: credentialKV.id,
-          publicKey: credentialKV.public_key,
+          publicKey: credentialKV.publicKey,
           counter: credentialKV.counter,
           transports: credentialKV.transports,
         },
@@ -212,8 +211,10 @@ export class AuthenticationService {
     await this.kvService.setCredential(credential.id, credential);
   }
 
-  private async getUserOrThrow(credentialKV: CredentialKV): Promise<UserKV> {
-    const userId = credentialKV.user_id;
+  private async getUserOrThrowError(
+    credentialKV: CredentialKV
+  ): Promise<UserKV> {
+    const userId = credentialKV.userId;
     const user = await this.kvService.getUser(userId);
 
     if (user === null) {
@@ -222,7 +223,7 @@ export class AuthenticationService {
 
     return {
       ...user,
-      user_id: userId.length === 32 ? userId : userId.substring(0, 32), // for older format
+      userId: userId.length === 32 ? userId : userId.substring(0, 32), // for older format
     };
   }
 }

@@ -8,9 +8,8 @@ export class StatsService {
 
   public get(): GetStatsResponse {
     const totalSessions = this.webSocketService.getTotalSessions();
-
     const stats: GetStatsResponse = {
-      total_sessions: totalSessions,
+      totalSessions,
     };
 
     return stats;

@@ -13,7 +13,7 @@ import { ServerError } from "../models/server-error.ts";
 export class ScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
-    private kvService = inject(KVService),
+    private kvService = inject(KVService)
   ) {}
 
   public async list(): Promise<GetScoresResponse> {
@@ -21,9 +21,8 @@ export class ScoresService {
     const scores: GetScoresResponse = [];
 
     for await (const entry of entries) {
-      const playerName = entry.value.player_name;
-      const score = entry.value.score;
-      scores.push({ player_name: playerName, score });
+      const { playerName, score } = entry.value;
+      scores.push({ playerName: playerName, score });
     }
 
     scores.sort((a: ScoreKV, b: ScoreKV) => b.score - a.score);
@@ -34,7 +33,7 @@ export class ScoresService {
   public async save(
     userId: string,
     userName: string,
-    body: ArrayBuffer,
+    body: ArrayBuffer
   ): Promise<void> {
     const decryptedBody = await this.cryptoService.decryptForUser(userId, body);
 
@@ -42,7 +41,7 @@ export class ScoresService {
 
     try {
       request = SaveScoreRequestSchema.parse(
-        JSON.parse(new TextDecoder().decode(decryptedBody)),
+        JSON.parse(new TextDecoder().decode(decryptedBody))
       );
     } catch (error) {
       console.error(error);
@@ -52,7 +51,7 @@ export class ScoresService {
     const { score } = request;
 
     const scoreKV: ScoreKV = {
-      player_name: userName,
+      playerName: userName,
       score,
     };
 

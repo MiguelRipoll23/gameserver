@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
 export const GetStatsResponseSchema = z.object({
-  total_sessions: z
+  totalSessions: z
     .number()
     .min(0)
     .describe("The total number of sessions")
