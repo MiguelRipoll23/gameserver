@@ -168,8 +168,9 @@ export class RegistrationService {
     }
 
     return {
-      userId: atob(registrationOptions.user.id),
       id: registrationInfo.credential.id,
+      userId: atob(registrationOptions.user.id),
+      userDisplayName: registrationOptions.user.name,
       publicKey: registrationInfo.credential.publicKey,
       counter: registrationInfo.credential.counter,
       transports: registrationInfo.credential.transports,
