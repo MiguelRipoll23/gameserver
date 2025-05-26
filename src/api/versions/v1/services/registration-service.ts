@@ -19,6 +19,7 @@ import {
   VerifyRegistrationRequest,
 } from "../schemas/registration-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
+import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 
 @injectable()
 export class RegistrationService {
@@ -167,9 +168,11 @@ export class RegistrationService {
       throw new Error("Registration info not found");
     }
 
+    const userId = Base64Utils.decodeBase64URL(registrationOptions.user.id);
+
     return {
       id: registrationInfo.credential.id,
-      userId: atob(registrationOptions.user.id),
+      userId,
       userDisplayName: registrationOptions.user.name,
       publicKey: registrationInfo.credential.publicKey,
       counter: registrationInfo.credential.counter,
@@ -182,8 +185,10 @@ export class RegistrationService {
   private createUser(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON
   ): UserKV {
+    const userId = Base64Utils.decodeBase64URL(registrationOptions.user.id);
+
     return {
-      userId: atob(registrationOptions.user.id),
+      userId,
       displayName: registrationOptions.user.name,
       createdAt: Date.now(),
     };
