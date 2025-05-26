@@ -5,8 +5,9 @@ import {
 
 export interface CredentialKV {
   id: string;
-  publicKey: Uint8Array;
   userId: string;
+  userDisplayName: string;
+  publicKey: Uint8Array;
   counter: number;
   deviceType: CredentialDeviceType;
   backupStatus: boolean;
