@@ -7,6 +7,7 @@ import { AuthenticatedWebSocketRouter } from "./authenticated/authenticated-webs
 import { AuthenticatedMessagesRouter } from "./authenticated/authenticated-messages-router.ts";
 import { AuthenticatedMatchesRouter } from "./authenticated/authenticated-matches-router.ts";
 import { AuthenticatedScoresRouter } from "./authenticated/authenticated-scores-router.ts";
+import { AuthenticatedStatsRouter } from "./authenticated/authenticated-stats-router.ts";
 
 @injectable()
 export class V1AuthenticatedRouter {
@@ -17,8 +18,9 @@ export class V1AuthenticatedRouter {
     private configurationRouter = inject(AuthenticatedConfigurationRouter),
     private webSocketRouter = inject(AuthenticatedWebSocketRouter),
     private messagesRouter = inject(AuthenticatedMessagesRouter),
+    private statsRouter = inject(AuthenticatedStatsRouter),
     private matchesRouter = inject(AuthenticatedMatchesRouter),
-    private scoresRouter = inject(AuthenticatedScoresRouter),
+    private scoresRouter = inject(AuthenticatedScoresRouter)
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();
@@ -41,6 +43,7 @@ export class V1AuthenticatedRouter {
     this.app.route("/game-configuration", this.configurationRouter.getRouter());
     this.app.route("/websocket", this.webSocketRouter.getRouter());
     this.app.route("/server-messages", this.messagesRouter.getRouter());
+    this.app.route("/server-stats", this.statsRouter.getRouter());
     this.app.route("/matches", this.matchesRouter.getRouter());
     this.app.route("/player-scores", this.scoresRouter.getRouter());
   }
