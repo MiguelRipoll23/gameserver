@@ -172,7 +172,7 @@ export class KVService {
       .check({ key: displayNameKey, versionstamp: null })
       .set([KV_CREDENTIALS, credential.id], credential)
       .set([KV_USERS, user.userId], user)
-      .set([KV_USERS_BY_DISPLAY_NAME, user.displayName], user)
+      .set(displayNameKey, user)
       .commit();
   }
 
