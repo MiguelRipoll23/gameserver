@@ -165,14 +165,14 @@ export class KVService {
     credential: CredentialKV,
     user: UserKV
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
-    const displayNameKey = [KV_USERS_BY_DISPLAY_NAME, user.display_name];
+    const displayNameKey = [KV_USERS_BY_DISPLAY_NAME, user.displayName];
 
     return await this.getKv()
       .atomic()
       .check({ key: displayNameKey, versionstamp: null })
       .set([KV_CREDENTIALS, credential.id], credential)
-      .set([KV_USERS, user.user_id], user)
-      .set([KV_USERS_BY_DISPLAY_NAME, user.display_name], user)
+      .set([KV_USERS, user.userId], user)
+      .set([KV_USERS_BY_DISPLAY_NAME, user.displayName], user)
       .commit();
   }
 

@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
 export const GetVersionResponseSchema = z.object({
-  minimum_version: z
+  minimumVersion: z
     .string()
     .describe("The minimum version of the game client")
     .openapi({
@@ -12,7 +12,7 @@ export const GetVersionResponseSchema = z.object({
 export type GetVersionResponse = z.infer<typeof GetVersionResponseSchema>;
 
 export const UpdateVersionRequestSchema = z.object({
-  minimum_version: z
+  minimumVersion: z
     .string()
     .describe("The minimum version of the game client")
     .openapi({

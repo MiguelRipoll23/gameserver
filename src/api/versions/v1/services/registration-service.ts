@@ -30,8 +30,7 @@ export class RegistrationService {
   public async getOptions(
     registrationOptionsRequest: GetRegistrationOptionsRequest
   ): Promise<object> {
-    const transactionId = registrationOptionsRequest.transaction_id;
-    const displayName = registrationOptionsRequest.display_name;
+    const { transactionId, displayName } = registrationOptionsRequest;
     console.log("Registration options for display name", displayName);
 
     await this.ensureUserDoesNotExist(displayName);
@@ -52,7 +51,7 @@ export class RegistrationService {
 
     await this.kvService.setRegistrationOptions(transactionId, {
       data: options,
-      created_at: Date.now(),
+      createdAt: Date.now(),
     });
 
     return options;
@@ -62,7 +61,7 @@ export class RegistrationService {
     connectionInfo: ConnInfo,
     registrationRequest: VerifyRegistrationRequest
   ): Promise<AuthenticationResponse> {
-    const transactionId = registrationRequest.transaction_id;
+    const { transactionId } = registrationRequest;
     const registrationOptions = await this.getRegistrationOptionsOrThrow(
       transactionId
     );
@@ -72,7 +71,7 @@ export class RegistrationService {
     );
 
     const registrationResponse =
-      registrationRequest.registration_response as object as RegistrationResponseJSON;
+      registrationRequest.registrationResponse as object as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
@@ -114,7 +113,7 @@ export class RegistrationService {
     }
 
     // Check if the registration options are expired
-    const createdAt = registrationOptions.created_at;
+    const createdAt = registrationOptions.createdAt;
 
     if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
@@ -169,13 +168,13 @@ export class RegistrationService {
     }
 
     return {
-      user_id: atob(registrationOptions.user.id),
+      userId: atob(registrationOptions.user.id),
       id: registrationInfo.credential.id,
-      public_key: registrationInfo.credential.publicKey,
+      publicKey: registrationInfo.credential.publicKey,
       counter: registrationInfo.credential.counter,
       transports: registrationInfo.credential.transports,
-      device_type: registrationInfo.credentialDeviceType,
-      backup_status: registrationInfo.credentialBackedUp,
+      deviceType: registrationInfo.credentialDeviceType,
+      backupStatus: registrationInfo.credentialBackedUp,
     };
   }
 
@@ -183,9 +182,9 @@ export class RegistrationService {
     registrationOptions: PublicKeyCredentialCreationOptionsJSON
   ): UserKV {
     return {
-      user_id: atob(registrationOptions.user.id),
-      display_name: registrationOptions.user.name,
-      created_at: Date.now(),
+      userId: atob(registrationOptions.user.id),
+      displayName: registrationOptions.user.name,
+      createdAt: Date.now(),
     };
   }
 
@@ -203,6 +202,6 @@ export class RegistrationService {
       );
     }
 
-    console.log(`Added credential and user for ${user.display_name}`);
+    console.log(`Added credential and user for ${user.displayName}`);
   }
 }

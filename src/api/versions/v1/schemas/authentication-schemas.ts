@@ -12,7 +12,7 @@ export const RTCIceServerSchema = z.object({
 export type RTCIceServer = z.infer<typeof RTCIceServerSchema>;
 
 export const GetAuthenticationOptionsRequestSchema = z.object({
-  transaction_id: z
+  transactionId: z
     .string()
     .uuid()
     .describe("The transaction ID for the authentication request")
@@ -43,14 +43,14 @@ export type GetAuthenticationOptionsResponse = z.infer<
 >;
 
 export const VerifyAuthenticationRequestSchema = z.object({
-  transaction_id: z
+  transactionId: z
     .string()
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
       example: "123e4567-e89b-12d3-a456-426614174000",
     }),
-  authentication_response: z
+  authenticationResponse: z
     .object({})
     .passthrough()
     .describe("The authentication response from the authenticator"),
@@ -61,19 +61,19 @@ export type VerifyAuthenticationRequest = z.infer<
 >;
 
 export const VerifyAuthenticationResponseSchema = z.object({
-  user_id: z.string().describe("The user ID"),
-  display_name: z.string().describe("The display name of the user"),
-  authentication_token: z
+  userId: z.string().describe("The user ID"),
+  displayName: z.string().describe("The display name of the user"),
+  authenticationToken: z
     .string()
     .describe("The authentication token of the user"),
-  session_key: z.string().describe("The session key of the user"),
-  public_ip: z
+  sessionKey: z.string().describe("The session key of the user"),
+  publicIp: z
     .string()
     .ip()
     .nullable()
     .describe("The public IP of the user")
     .openapi({ example: "…" }),
-  rtc_ice_servers: z
+  rtcIceServers: z
     .array(RTCIceServerSchema)
     .describe("The RTC ICE servers for the user"),
 });

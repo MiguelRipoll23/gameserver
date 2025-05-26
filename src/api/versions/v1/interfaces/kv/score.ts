@@ -1,4 +1,4 @@
 export interface ScoreKV {
-  player_name: string;
+  playerName: string;
   score: number;
 }
