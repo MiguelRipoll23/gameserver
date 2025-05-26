@@ -25,7 +25,7 @@ export class AuthenticatedStatsRouter {
     this.app.openapi(
       createRoute({
         method: "get",
-        path: "/server-stats",
+        path: "/",
         summary: "Get server stats",
         description: "Obtains the current server stats",
         tags: ["Server stats"],
@@ -37,8 +37,8 @@ export class AuthenticatedStatsRouter {
                 schema: GetStatsResponseSchema,
               },
             },
-            ...ServerResponse.Unauthorized,
           },
+          ...ServerResponse.Unauthorized,
         },
       }),
       (c) => {

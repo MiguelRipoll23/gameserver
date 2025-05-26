@@ -4,13 +4,13 @@ import { WebSocketService } from "./websocket-service.ts";
 
 @injectable()
 export class StatsService {
-  constructor(private webSocketService = inject(WebSocketService)) {}
+  constructor(private readonly webSocketService = inject(WebSocketService)) {}
 
   public get(): GetStatsResponse {
-    const totalOnlineUsers = this.webSocketService.getTotalSessions();
+    const totalSessions = this.webSocketService.getTotalSessions();
 
     const stats: GetStatsResponse = {
-      total_sessions: totalOnlineUsers,
+      total_sessions: totalSessions,
     };
 
     return stats;
