@@ -1,26 +1,38 @@
 export class Base64Utils {
-  public static encodeBase64URL(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer);
+  public static arrayBufferToBase64Url(
+    arrayBuffer: ArrayBuffer | ArrayBufferLike
+  ): string {
+    const bytes = new Uint8Array(arrayBuffer);
+
     let binary = "";
-    for (const byte of bytes) {
-      binary += String.fromCharCode(byte);
+
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
     }
     const base64 = btoa(binary);
 
-    // Convert to Base64URL: replace +/ with -_, remove padding
     return base64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   }
 
-  public static decodeBase64URL(base64url: string): string {
-    // Convert from Base64URL to standard Base64
-    let base64 = base64url.replace(/-/g, "+").replace(/_/g, "/");
-    // Pad with '=' to make length a multiple of 4
-    const pad = base64.length % 4;
-    if (pad !== 0) {
-      base64 += "=".repeat(4 - pad);
-    }
-    const binary = atob(base64);
+  public static base64UrlToArrayBuffer(base64url: string): ArrayBuffer {
+    base64url = base64url.replace(/-/g, "+").replace(/_/g, "/");
+    base64url += "=".repeat((4 - (base64url.length % 4)) % 4);
 
-    return binary;
+    const binary = atob(base64url);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes.buffer;
+  }
+
+  public static stringToBase64Url(str: string): string {
+    return this.arrayBufferToBase64Url(new TextEncoder().encode(str).buffer);
+  }
+
+  public static base64UrlToString(base64url: string): string {
+    return new TextDecoder().decode(this.base64UrlToArrayBuffer(base64url));
   }
 }

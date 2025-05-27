@@ -80,7 +80,7 @@ export class RegistrationService {
     );
 
     const credential = this.createCredential(registrationOptions, verification);
-    const user = this.createUser(registrationOptions);
+    const user = this.createUser(credential, registrationOptions);
 
     await this.addCredentialAndUserOrThrow(credential, user);
 
@@ -168,7 +168,7 @@ export class RegistrationService {
       throw new Error("Registration info not found");
     }
 
-    const userId = Base64Utils.decodeBase64URL(registrationOptions.user.id);
+    const userId = Base64Utils.base64UrlToString(registrationOptions.user.id);
 
     return {
       id: registrationInfo.credential.id,
@@ -183,9 +183,10 @@ export class RegistrationService {
   }
 
   private createUser(
+    credential: CredentialKV,
     registrationOptions: PublicKeyCredentialCreationOptionsJSON
   ): UserKV {
-    const userId = Base64Utils.decodeBase64URL(registrationOptions.user.id);
+    const { userId } = credential;
 
     return {
       userId,
