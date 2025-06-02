@@ -50,6 +50,13 @@ export class ScoresService {
 
     const { score } = request;
 
+    // Sum old score if it exists
+    const oldScoreKV = await this.kvService.getScore(userName);
+
+    if (oldScoreKV) {
+      score += oldScoreKV.score;
+    }
+
     const scoreKV: ScoreKV = {
       playerName: userName,
       score,
