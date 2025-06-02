@@ -48,7 +48,14 @@ export class ScoresService {
       throw new ServerError("BAD_REQUEST", "Invalid body", 400);
     }
 
-    const { score } = request;
+    let { score } = request;
+
+    // Sum old score if it exists
+    const oldScoreKV = await this.kvService.getScore(userName);
+
+    if (oldScoreKV) {
+      score += oldScoreKV.score;
+    }
 
     const scoreKV: ScoreKV = {
       playerName: userName,
