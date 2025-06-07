@@ -2,13 +2,13 @@
   "imports": {
     "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.19.8",
     "@needle-di/core": "jsr:@needle-di/core@^1.0.0",
-    "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.9.2",
+    "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.9.3",
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.1.1",
     "@simplewebauthn/types": "jsr:@simplewebauthn/types@^12.0.0",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
     "hono": "npm:hono@^4.7.11",
-    "zod": "npm:zod@^3.25.51"
+    "zod": "npm:zod@^3.25.56"
   },
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-cron --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
