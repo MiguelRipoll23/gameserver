@@ -7,7 +7,7 @@
     "@simplewebauthn/types": "jsr:@simplewebauthn/types@^12.0.0",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
-    "hono": "npm:hono@^4.7.11",
+    "hono": "npm:hono@^4.8.0",
     "zod": "npm:zod@^3.25.67"
   },
   "tasks": {
