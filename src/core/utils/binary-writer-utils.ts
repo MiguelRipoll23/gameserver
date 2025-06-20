@@ -43,8 +43,9 @@ export class BinaryWriter {
   }
 
   public bytes(values: number[] | Uint8Array, size?: number): this {
-    const array =
-      values instanceof Uint8Array ? values : Uint8Array.from(values);
+    const array = values instanceof Uint8Array
+      ? values
+      : Uint8Array.from(values);
     const writeSize = size ?? array.length;
     this.ensureCapacity(writeSize);
     this.uint8View.set(array.subarray(0, writeSize), this.position);
@@ -148,7 +149,7 @@ export class BinaryWriter {
 
   public static preview(
     arrayBuffer: ArrayBuffer,
-    bytesPerLine: number = 24
+    bytesPerLine: number = 24,
   ): string {
     return DebugUtils.getHexDump(new Uint8Array(arrayBuffer), bytesPerLine);
   }

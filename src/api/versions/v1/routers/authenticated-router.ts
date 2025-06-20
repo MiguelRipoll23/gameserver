@@ -20,7 +20,7 @@ export class V1AuthenticatedRouter {
     private messagesRouter = inject(AuthenticatedMessagesRouter),
     private statsRouter = inject(AuthenticatedStatsRouter),
     private matchesRouter = inject(AuthenticatedMatchesRouter),
-    private scoresRouter = inject(AuthenticatedScoresRouter)
+    private scoresRouter = inject(AuthenticatedScoresRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();

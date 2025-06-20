@@ -17,7 +17,7 @@ export class VersionService {
       throw new ServerError(
         "MISSING_VERSION",
         "Missing version information on the server",
-        404
+        404,
       );
     }
 

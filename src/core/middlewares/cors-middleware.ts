@@ -13,7 +13,7 @@ export class CORSMiddleware {
       c.res.headers.set("Access-Control-Allow-Methods", "*");
       c.res.headers.set(
         "Access-Control-Allow-Headers",
-        "Content-Type, Authorization"
+        "Content-Type, Authorization",
       );
 
       // Handle preflight requests (OPTIONS)

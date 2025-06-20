@@ -1,13 +1,14 @@
-import { inject, injectable } from "@needle-di/core";
-import { ScoreKV } from "../interfaces/kv/score.ts";
+import { inject } from "https://jsr.io/@needle-di/core/1.0.0/src/context.ts";
+import { injectable } from "https://jsr.io/@needle-di/core/1.0.0/src/decorators.ts";
 import { CryptoService } from "../../../../core/services/crypto-service.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
+import { ScoreKV } from "../interfaces/kv/score.ts";
+import { ServerError } from "../models/server-error.ts";
 import {
   GetScoresResponse,
-  SaveScoreRequest,
-  SaveScoreRequestSchema,
+  SaveScoresRequest,
+  SaveScoresRequestSchema,
 } from "../schemas/scores-schemas.ts";
-import { ServerError } from "../models/server-error.ts";
 
 @injectable()
 export class ScoresService {
@@ -17,51 +18,68 @@ export class ScoresService {
   ) {}
 
   public async list(): Promise<GetScoresResponse> {
-    const entries: Deno.KvListIterator<ScoreKV> = this.kvService.listScores();
+    const entries = this.kvService.listScores();
     const scores: GetScoresResponse = [];
 
     for await (const entry of entries) {
       const { playerName, score } = entry.value;
-      scores.push({ playerName: playerName, score });
+      scores.push({ playerName, score });
     }
 
-    scores.sort((a: ScoreKV, b: ScoreKV) => b.score - a.score);
+    scores.sort((a, b) => b.score - a.score);
 
     return scores.slice(0, 10);
   }
 
-  public async save(
-    userId: string,
-    userName: string,
-    body: ArrayBuffer
-  ): Promise<void> {
-    const decryptedBody = await this.cryptoService.decryptForUser(userId, body);
+  public async save(userId: string, body: ArrayBuffer): Promise<void> {
+    const match = await this.kvService.getMatch(userId);
 
-    let request: SaveScoreRequest | null = null;
-
-    try {
-      request = SaveScoreRequestSchema.parse(
-        JSON.parse(new TextDecoder().decode(decryptedBody))
+    if (match === null) {
+      throw new ServerError(
+        "NO_MATCH_FOUND",
+        "User is not hosting a match",
+        400
       );
+    }
+
+    const request = await this.parseAndValidateSaveRequest(userId, body);
+
+    const results = await Promise.allSettled(
+      request.map((playerScore) => this.updatePlayerScore(playerScore))
+    );
+
+    const failures = results.filter((r) => r.status === "rejected");
+
+    if (failures.length > 0) {
+      console.error(`Failed to update ${failures.length} scores`);
+    }
+  }
+
+  private async parseAndValidateSaveRequest(
+    userId: string,
+    body: ArrayBuffer
+  ): Promise<SaveScoresRequest> {
+    try {
+      const decrypted = await this.cryptoService.decryptForUser(userId, body);
+      const json = new TextDecoder().decode(decrypted);
+
+      return SaveScoresRequestSchema.parse(JSON.parse(json));
     } catch (error) {
-      console.error(error);
-      throw new ServerError("BAD_REQUEST", "Invalid body", 400);
+      console.error("Failed to parse and validate SaveScoresRequest:", error);
+      throw new ServerError("BAD_REQUEST", "Invalid request body", 400);
     }
+  }
 
-    let { score } = request;
+  private async updatePlayerScore(entry: {
+    playerId: string;
+    playerName: string;
+    score: number;
+  }): Promise<void> {
+    const { playerId, playerName, score } = entry;
+    const existing = await this.kvService.getScore(playerId);
+    const totalScore = score + (existing?.score ?? 0);
 
-    // Sum old score if it exists
-    const oldScoreKV = await this.kvService.getScore(userName);
-
-    if (oldScoreKV) {
-      score += oldScoreKV.score;
-    }
-
-    const scoreKV: ScoreKV = {
-      playerName: userName,
-      score,
-    };
-
-    await this.kvService.setScore(userName, scoreKV);
+    const newScore: ScoreKV = { playerId, playerName, score: totalScore };
+    await this.kvService.setScore(playerId, newScore);
   }
 }

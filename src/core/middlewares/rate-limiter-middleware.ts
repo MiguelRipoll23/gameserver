@@ -18,18 +18,16 @@ export class RateLimiterMiddleware {
       const storedTimestamps = await kvService.getRateLimit(address);
 
       // Filter out timestamps that are older than the rate window
-      const validTimestamps =
-        storedTimestamps?.filter(
-          (timestamp) =>
-            currentTime - timestamp < RATE_LIMIT_WINDOW_MILLISECONDS
-        ) || [];
+      const validTimestamps = storedTimestamps?.filter(
+        (timestamp) => currentTime - timestamp < RATE_LIMIT_WINDOW_MILLISECONDS,
+      ) || [];
 
       // Check if rate limit has been exceeded
       if (validTimestamps.length >= RATE_LIMIT_REQUESTS_PER_WINDOW) {
         throw new ServerError(
           "RATE_LIMIT_EXCEEDED",
           `Rate limit exceeded (${address})`,
-          429
+          429,
         );
       }
 

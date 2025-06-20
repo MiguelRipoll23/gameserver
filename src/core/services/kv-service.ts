@@ -37,7 +37,7 @@ export class KVService {
 
   public async getRateLimit(ipAddress: string): Promise<number[] | null> {
     const entry: Deno.KvEntryMaybe<number[]> = await this.getKv().get<number[]>(
-      [KV_RATE_LIMIT, ipAddress]
+      [KV_RATE_LIMIT, ipAddress],
     );
 
     return entry.value;
@@ -45,7 +45,7 @@ export class KVService {
 
   public async setRateLimit(
     ipAddress: string,
-    timestamps: number[]
+    timestamps: number[],
   ): Promise<void> {
     await this.getKv().set([KV_RATE_LIMIT, ipAddress], timestamps, {
       expireIn: RATE_LIMIT_WINDOW_MILLISECONDS,
@@ -53,8 +53,9 @@ export class KVService {
   }
 
   public async getVersion(): Promise<VersionKV | null> {
-    const entry: Deno.KvEntryMaybe<VersionKV> =
-      await this.getKv().get<VersionKV>([KV_VERSION]);
+    const entry: Deno.KvEntryMaybe<VersionKV> = await this.getKv().get<
+      VersionKV
+    >([KV_VERSION]);
 
     return entry.value;
   }
@@ -64,10 +65,10 @@ export class KVService {
   }
 
   public async getRegistrationOptionsByTransactionId(
-    transactionId: string
+    transactionId: string,
   ): Promise<RegistrationOptionsKV | null> {
-    const entry: Deno.KvEntryMaybe<RegistrationOptionsKV> =
-      await this.getKv().get<RegistrationOptionsKV>([
+    const entry: Deno.KvEntryMaybe<RegistrationOptionsKV> = await this.getKv()
+      .get<RegistrationOptionsKV>([
         KV_REGISTRATION_OPTIONS,
         transactionId,
       ]);
@@ -77,28 +78,28 @@ export class KVService {
 
   public async setRegistrationOptions(
     transactionId: string,
-    registrationOptions: RegistrationOptionsKV
+    registrationOptions: RegistrationOptionsKV,
   ): Promise<void> {
     await this.getKv().set(
       [KV_REGISTRATION_OPTIONS, transactionId],
       registrationOptions,
       {
         expireIn: 60 * 1_000,
-      }
+      },
     );
   }
 
   public async deleteRegistrationOptionsByTransactionId(
-    transactionId: string
+    transactionId: string,
   ): Promise<void> {
     await this.getKv().delete([KV_REGISTRATION_OPTIONS, transactionId]);
   }
 
   public async getAuthenticationOptionsByTransactionId(
-    transactionId: string
+    transactionId: string,
   ): Promise<AuthenticationOptionsKV | null> {
-    const entry: Deno.KvEntryMaybe<AuthenticationOptionsKV> =
-      await this.getKv().get<AuthenticationOptionsKV>([
+    const entry: Deno.KvEntryMaybe<AuthenticationOptionsKV> = await this.getKv()
+      .get<AuthenticationOptionsKV>([
         KV_AUTHENTICATION_OPTIONS,
         transactionId,
       ]);
@@ -108,35 +109,36 @@ export class KVService {
 
   public async setAuthenticationOptions(
     requestId: string,
-    authenticationOptions: AuthenticationOptionsKV
+    authenticationOptions: AuthenticationOptionsKV,
   ): Promise<void> {
     await this.getKv().set(
       [KV_AUTHENTICATION_OPTIONS, requestId],
       authenticationOptions,
       {
         expireIn: 60 * 1_000,
-      }
+      },
     );
   }
 
   public async deleteAuthenticationOptionsByTransactionId(
-    transactionId: string
+    transactionId: string,
   ): Promise<void> {
     await this.getKv().delete([KV_AUTHENTICATION_OPTIONS, transactionId]);
   }
 
   public async getCredential(
-    credentialId: string
+    credentialId: string,
   ): Promise<CredentialKV | null> {
-    const entry: Deno.KvEntryMaybe<CredentialKV> =
-      await this.getKv().get<CredentialKV>([KV_CREDENTIALS, credentialId]);
+    const entry: Deno.KvEntryMaybe<CredentialKV> = await this.getKv().get<
+      CredentialKV
+    >([KV_CREDENTIALS, credentialId]);
 
     return entry.value;
   }
 
   public async setCredential(
     credentialId: string,
-    credential: CredentialKV
+    credential: CredentialKV,
   ): Promise<void> {
     await this.getKv().set([KV_CREDENTIALS, credentialId], credential);
   }
@@ -151,7 +153,7 @@ export class KVService {
   }
 
   public async getUserByDisplayName(
-    displayName: string
+    displayName: string,
   ): Promise<UserKV | null> {
     const entry: Deno.KvEntryMaybe<UserKV> = await this.getKv().get<UserKV>([
       KV_USERS_BY_DISPLAY_NAME,
@@ -163,7 +165,7 @@ export class KVService {
 
   public async setCredentialAndUser(
     credential: CredentialKV,
-    user: UserKV
+    user: UserKV,
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     const displayNameKey = [KV_USERS_BY_DISPLAY_NAME, user.displayName];
 
@@ -177,14 +179,15 @@ export class KVService {
   }
 
   public async getConfiguration(): Promise<ConfigurationType | null> {
-    const entry: Deno.KvEntryMaybe<ConfigurationType> =
-      await this.getKv().get<ConfigurationType>([KV_CONFIGURATION]);
+    const entry: Deno.KvEntryMaybe<ConfigurationType> = await this.getKv().get<
+      ConfigurationType
+    >([KV_CONFIGURATION]);
 
     return entry.value;
   }
 
   public async setConfiguration(
-    configuration: ConfigurationType
+    configuration: ConfigurationType,
   ): Promise<void> {
     await this.getKv().set([KV_CONFIGURATION], configuration);
   }
@@ -205,8 +208,9 @@ export class KVService {
   }
 
   public async getSession(token: string): Promise<SessionKV | null> {
-    const entry: Deno.KvEntryMaybe<SessionKV> =
-      await this.getKv().get<SessionKV>([KV_SESSIONS, token]);
+    const entry: Deno.KvEntryMaybe<SessionKV> = await this.getKv().get<
+      SessionKV
+    >([KV_SESSIONS, token]);
 
     return entry.value;
   }
@@ -237,9 +241,18 @@ export class KVService {
     });
   }
 
+  public async getMatch(userId: string): Promise<MatchKV | null> {
+    const entry: Deno.KvEntryMaybe<MatchKV> = await this.getKv().get<MatchKV>([
+      KV_MATCHES,
+      userId,
+    ]);
+
+    return entry.value;
+  }
+
   public async setMatch(
     userId: string,
-    match: MatchKV
+    match: MatchKV,
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv()
       .atomic()
@@ -250,7 +263,7 @@ export class KVService {
   }
 
   public async deleteMatch(
-    userId: string
+    userId: string,
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv().atomic().delete([KV_MATCHES, userId]).commit();
   }
@@ -261,24 +274,21 @@ export class KVService {
     });
   }
 
-  public async getScore(playerName: string): Promise<ScoreKV | null> {
+  public async getScore(playerId: string): Promise<ScoreKV | null> {
     const entry: Deno.KvEntryMaybe<ScoreKV> = await this.getKv().get<ScoreKV>([
       KV_SCORES,
-      playerName,
+      playerId,
     ]);
 
     return entry.value;
   }
 
-  public async setScore(
-    playerName: string,
-    scoreboard: ScoreKV
-  ): Promise<void> {
-    await this.getKv().set([KV_SCORES, playerName], scoreboard);
+  public async setScore(playerId: string, scoreKV: ScoreKV): Promise<void> {
+    await this.getKv().set([KV_SCORES, playerId], scoreKV);
   }
 
   public async deleteUserTemporaryData(
-    userId: string
+    userId: string,
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv()
       .atomic()

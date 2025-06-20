@@ -27,7 +27,7 @@ export class JWTService {
         name: "HMAC",
         hash: "SHA-512",
       },
-      ["sign", "verify"]
+      ["sign", "verify"],
     );
 
     return this.key;
@@ -55,7 +55,7 @@ export class JWTService {
     return await create(
       { alg: "HS512", typ: "JWT" },
       { id: "management", name: "management", roles: ["management"] },
-      await this.getKey()
+      await this.getKey(),
     );
   }
 }

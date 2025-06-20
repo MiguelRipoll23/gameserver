@@ -35,7 +35,7 @@ export class RootRouter {
       }),
       (c) => {
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -54,7 +54,7 @@ export class RootRouter {
       }),
       (c) => {
         return c.redirect(GameUtils.getURL(), 307);
-      }
+      },
     );
   }
 }

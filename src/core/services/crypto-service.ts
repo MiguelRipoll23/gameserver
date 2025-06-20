@@ -9,7 +9,7 @@ export class CryptoService {
 
   public async encryptForUser(
     userId: string,
-    data: ArrayBuffer
+    data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
     const key: string | null = await this.kvService.getKey(userId);
 
@@ -17,7 +17,7 @@ export class CryptoService {
       throw new ServerError(
         "NO_SESSION_KEY",
         "No session found for this user",
-        400
+        400,
       );
     }
 
@@ -27,7 +27,7 @@ export class CryptoService {
         name: "AES-GCM",
         length: 256,
       },
-      ["encrypt", "decrypt"]
+      ["encrypt", "decrypt"],
     );
 
     return this.encryptData(cryptoKey, data);
@@ -35,7 +35,7 @@ export class CryptoService {
 
   public async decryptForUser(
     userId: string,
-    encryptedData: ArrayBuffer
+    encryptedData: ArrayBuffer,
   ): Promise<ArrayBuffer> {
     const key: string | null = await this.kvService.getKey(userId);
 
@@ -43,7 +43,7 @@ export class CryptoService {
       throw new ServerError(
         "NO_SESSION_KEY",
         "No session found for this user",
-        400
+        400,
       );
     }
 
@@ -53,7 +53,7 @@ export class CryptoService {
         name: "AES-GCM",
         length: 256,
       },
-      ["encrypt", "decrypt"]
+      ["encrypt", "decrypt"],
     );
 
     return this.decryptData(cryptoKey, encryptedData);
@@ -61,7 +61,7 @@ export class CryptoService {
 
   private async encryptData(
     cryptoKey: CryptoKey,
-    data: ArrayBuffer
+    data: ArrayBuffer,
   ): Promise<ArrayBuffer> {
     const iv = crypto.getRandomValues(new Uint8Array(12)); // IV remains Uint8Array
 
@@ -72,7 +72,7 @@ export class CryptoService {
         iv,
       },
       cryptoKey,
-      data
+      data,
     );
 
     // Combine IV and encrypted data into a single ArrayBuffer
@@ -85,7 +85,7 @@ export class CryptoService {
 
   private async decryptData(
     cryptoKey: CryptoKey,
-    encryptedData: ArrayBuffer
+    encryptedData: ArrayBuffer,
   ): Promise<ArrayBuffer> {
     const encryptedArray = new Uint8Array(encryptedData);
 
@@ -100,7 +100,7 @@ export class CryptoService {
         iv,
       },
       cryptoKey,
-      data
+      data,
     );
 
     return decryptedData;
