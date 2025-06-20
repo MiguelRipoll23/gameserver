@@ -237,6 +237,15 @@ export class KVService {
     });
   }
 
+  public async getMatch(userId: string): Promise<MatchKV | null> {
+    const entry: Deno.KvEntryMaybe<MatchKV> = await this.getKv().get<MatchKV>([
+      KV_MATCHES,
+      userId,
+    ]);
+
+    return entry.value;
+  }
+
   public async setMatch(
     userId: string,
     match: MatchKV
@@ -261,20 +270,17 @@ export class KVService {
     });
   }
 
-  public async getScore(playerName: string): Promise<ScoreKV | null> {
+  public async getScore(playerId: string): Promise<ScoreKV | null> {
     const entry: Deno.KvEntryMaybe<ScoreKV> = await this.getKv().get<ScoreKV>([
       KV_SCORES,
-      playerName,
+      playerId,
     ]);
 
     return entry.value;
   }
 
-  public async setScore(
-    playerName: string,
-    scoreboard: ScoreKV
-  ): Promise<void> {
-    await this.getKv().set([KV_SCORES, playerName], scoreboard);
+  public async setScore(playerId: string, scoreKV: ScoreKV): Promise<void> {
+    await this.getKv().set([KV_SCORES, playerId], scoreKV);
   }
 
   public async deleteUserTemporaryData(

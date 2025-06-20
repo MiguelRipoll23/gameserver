@@ -61,7 +61,7 @@ export type VerifyAuthenticationRequest = z.infer<
 >;
 
 export const VerifyAuthenticationResponseSchema = z.object({
-  userId: z.string().describe("The user ID"),
+  userId: z.string().length(32).describe("The user ID"),
   displayName: z.string().describe("The display name of the user"),
   authenticationToken: z
     .string()
