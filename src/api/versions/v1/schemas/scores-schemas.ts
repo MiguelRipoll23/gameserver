@@ -17,7 +17,7 @@ export const SaveScoresRequestSchema = z.array(
       .min(0)
       .describe("The score of the player")
       .openapi({ example: 4 }),
-  })
+  }),
 );
 
 export type SaveScoresRequest = z.infer<typeof SaveScoresRequestSchema>;
@@ -35,7 +35,7 @@ export const GetScoresResponseSchema = z.array(
     score: z.number().min(0).describe("The score of the player").openapi({
       example: 4,
     }),
-  })
+  }),
 );
 
 export type GetScoresResponse = z.infer<typeof GetScoresResponseSchema>;

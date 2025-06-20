@@ -12,7 +12,7 @@ export class NotificationService {
       throw new ServerError(
         "EMPTY_NOTIFICATION_MESSAGE",
         "Notification message cannot be empty",
-        400
+        400,
       );
     }
 

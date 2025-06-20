@@ -50,7 +50,7 @@ export type FindMatchesRequest = z.infer<typeof FindMatchesRequestSchema>;
 export const FindMatchesResponseSchema = z.array(
   z.object({
     token: z.string().describe("Token used to join the match"),
-  })
+  }),
 );
 
 export type FindMatchesResponse = z.infer<typeof FindMatchesResponseSchema>;

@@ -25,11 +25,11 @@ import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 export class RegistrationService {
   constructor(
     private kvService = inject(KVService),
-    private authenticationService = inject(AuthenticationService)
+    private authenticationService = inject(AuthenticationService),
   ) {}
 
   public async getOptions(
-    registrationOptionsRequest: GetRegistrationOptionsRequest
+    registrationOptionsRequest: GetRegistrationOptionsRequest,
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
     console.log("Registration options for display name", displayName);
@@ -60,23 +60,23 @@ export class RegistrationService {
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    registrationRequest: VerifyRegistrationRequest
+    registrationRequest: VerifyRegistrationRequest,
   ): Promise<AuthenticationResponse> {
     const { transactionId } = registrationRequest;
     const registrationOptions = await this.getRegistrationOptionsOrThrow(
-      transactionId
+      transactionId,
     );
 
     await this.kvService.deleteRegistrationOptionsByTransactionId(
-      transactionId
+      transactionId,
     );
 
-    const registrationResponse =
-      registrationRequest.registrationResponse as object as RegistrationResponseJSON;
+    const registrationResponse = registrationRequest
+      .registrationResponse as object as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
-      registrationOptions
+      registrationOptions,
     );
 
     const credential = this.createCredential(registrationOptions, verification);
@@ -94,22 +94,22 @@ export class RegistrationService {
       throw new ServerError(
         "DISPLAY_NAME_TAKEN",
         "Display name already exists",
-        409
+        409,
       );
     }
   }
 
   private async getRegistrationOptionsOrThrow(
-    transactionId: string
+    transactionId: string,
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const registrationOptions =
-      await this.kvService.getRegistrationOptionsByTransactionId(transactionId);
+    const registrationOptions = await this.kvService
+      .getRegistrationOptionsByTransactionId(transactionId);
 
     if (registrationOptions === null) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
         "Registration options not found",
-        400
+        400,
       );
     }
 
@@ -120,7 +120,7 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
         "Registration options expired",
-        400
+        400,
       );
     }
 
@@ -129,7 +129,7 @@ export class RegistrationService {
 
   private async verifyRegistrationResponse(
     registrationResponse: RegistrationResponseJSON,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
   ): Promise<VerifiedRegistrationResponse> {
     try {
       const verification = await verifyRegistrationResponse({
@@ -153,14 +153,14 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_VERIFICATION_FAILED",
         "Registration verification failed",
-        400
+        400,
       );
     }
   }
 
   private createCredential(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
-    verification: VerifiedRegistrationResponse
+    verification: VerifiedRegistrationResponse,
   ): CredentialKV {
     const { registrationInfo } = verification;
 
@@ -184,7 +184,7 @@ export class RegistrationService {
 
   private createUser(
     credential: CredentialKV,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
   ): UserKV {
     const { userId } = credential;
 
@@ -197,7 +197,7 @@ export class RegistrationService {
 
   private async addCredentialAndUserOrThrow(
     credential: CredentialKV,
-    user: UserKV
+    user: UserKV,
   ): Promise<void> {
     const result = await this.kvService.setCredentialAndUser(credential, user);
 
@@ -205,7 +205,7 @@ export class RegistrationService {
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
         "Failed to add credential and user",
-        500
+        500,
       );
     }
 

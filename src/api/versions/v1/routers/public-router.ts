@@ -11,7 +11,7 @@ export class V1PublicRouter {
   constructor(
     private versionRouter = inject(PublicVersionRouter),
     private registrationRouter = inject(PublicRegistrationRouter),
-    private authenticationRouter = inject(PublicAuthenticationRouter)
+    private authenticationRouter = inject(PublicAuthenticationRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setRoutes();

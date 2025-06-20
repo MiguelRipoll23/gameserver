@@ -50,7 +50,7 @@ export class ManagementNotificationRouter {
         this.notificationService.notify(text);
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

@@ -6,7 +6,7 @@ export class CryptoUtils {
       | AlgorithmIdentifier
       | RsaHashedImportParams
       | EcKeyImportParams,
-    keyUsages: KeyUsage[]
+    keyUsages: KeyUsage[],
   ): Promise<CryptoKey> {
     const rawKey = Uint8Array.from(atob(key), (char) => char.charCodeAt(0));
 
@@ -15,7 +15,7 @@ export class CryptoUtils {
       rawKey,
       algorithm,
       true,
-      keyUsages
+      keyUsages,
     );
   }
 }

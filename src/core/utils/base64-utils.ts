@@ -1,6 +1,6 @@
 export class Base64Utils {
   public static arrayBufferToBase64Url(
-    arrayBuffer: ArrayBuffer | ArrayBufferLike
+    arrayBuffer: ArrayBuffer | ArrayBufferLike,
   ): string {
     const bytes = new Uint8Array(arrayBuffer);
 

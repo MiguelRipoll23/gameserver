@@ -1,7 +1,7 @@
 export class DebugUtils {
   public static getHexDump(
     uint8: Uint8Array,
-    bytesPerLine: number = 24
+    bytesPerLine: number = 24,
   ): string {
     const lines: string[] = [];
     for (let i = 0; i < uint8.length; i += bytesPerLine) {
@@ -9,7 +9,7 @@ export class DebugUtils {
       const hex = chunk
         .map(
           (b, j) =>
-            b.toString(16).padStart(2, "0") + ((j + 1) % 8 === 0 ? "  " : " ")
+            b.toString(16).padStart(2, "0") + ((j + 1) % 8 === 0 ? "  " : " "),
         )
         .join("")
         .padEnd(bytesPerLine * 3 + Math.floor(bytesPerLine / 8), " ");

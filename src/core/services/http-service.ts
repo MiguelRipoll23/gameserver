@@ -20,7 +20,7 @@ export class HTTPService {
   constructor(
     private kvService = inject(KVService),
     private rootRooter = inject(RootRouter),
-    private apiRouter = inject(APIRouter)
+    private apiRouter = inject(APIRouter),
   ) {
     this.app = new OpenAPIHono();
     this.configure();
@@ -54,10 +54,10 @@ export class HTTPService {
           throw new ServerError(
             "BODY_SIZE_LIMIT_EXCEEDED",
             "Request body size limit exceeded",
-            413
+            413,
           );
         },
-      })
+      }),
     );
   }
 

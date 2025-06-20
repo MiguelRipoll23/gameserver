@@ -47,7 +47,7 @@ export class AuthenticatedScoresRouter {
         const response = await this.scoresService.list();
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 
@@ -83,7 +83,7 @@ export class AuthenticatedScoresRouter {
         await this.scoresService.save(userId, validated);
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

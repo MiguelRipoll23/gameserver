@@ -14,7 +14,7 @@ import {
 export class ScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
-    private kvService = inject(KVService)
+    private kvService = inject(KVService),
   ) {}
 
   public async list(): Promise<GetScoresResponse> {
@@ -38,20 +38,20 @@ export class ScoresService {
       throw new ServerError(
         "NO_MATCH_FOUND",
         "User is not hosting a match",
-        400
+        400,
       );
     }
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
 
     await Promise.all(
-      request.map((playerScore) => this.updatePlayerScore(playerScore))
+      request.map((playerScore) => this.updatePlayerScore(playerScore)),
     );
   }
 
   private async parseAndValidateSaveRequest(
     userId: string,
-    body: ArrayBuffer
+    body: ArrayBuffer,
   ): Promise<SaveScoresRequest> {
     try {
       const decrypted = await this.cryptoService.decryptForUser(userId, body);

@@ -19,14 +19,14 @@ export class BinaryReader {
 
   public static fromArrayBuffer(
     buffer: ArrayBuffer,
-    littleEndian = true
+    littleEndian = true,
   ): BinaryReader {
     return new BinaryReader(buffer, littleEndian);
   }
 
   public static fromUint8Array(
     array: Uint8Array,
-    littleEndian = true
+    littleEndian = true,
   ): BinaryReader {
     const subArray = array.subarray(0, array.byteLength);
     return new BinaryReader(subArray.buffer as ArrayBuffer, littleEndian);

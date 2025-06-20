@@ -9,7 +9,7 @@ Deno.cron("Test server notification", "*/10 * * * *", () => {
       detail: {
         message: `This is a server notification at ${new Date().toISOString()}`,
       },
-    })
+    }),
   );
 });
 
