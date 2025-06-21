@@ -1,10 +1,6 @@
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
-import {
-  RATE_LIMIT_MESSAGES_PER_WINDOW,
-  RATE_LIMIT_WINDOW_MILLISECONDS,
-  TUNNEL_CHANNEL,
-} from "../constants/websocket-constants.ts";
+import { TUNNEL_CHANNEL } from "../constants/websocket-constants.ts";
 import { SessionKV } from "../interfaces/kv/session-kv.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
@@ -36,29 +32,16 @@ export class WebSocketService {
 
   public async handleCloseEvent(
     _event: CloseEvent,
-    user: WebSocketUser,
+    user: WebSocketUser
   ): Promise<void> {
     await this.handleDisconnection(user);
   }
 
   public handleMessageEvent(
     event: MessageEvent<WSMessageReceive>,
-    user: WebSocketUser,
+    user: WebSocketUser
   ): void {
     if (!(event.data instanceof ArrayBuffer)) return;
-
-    const messageTimestamps = user.getMessageTimestamps();
-    const currentTime = Date.now();
-    const validTimestamps = messageTimestamps.filter(
-      (timestamp) => currentTime - timestamp < RATE_LIMIT_WINDOW_MILLISECONDS,
-    );
-
-    if (validTimestamps.length >= RATE_LIMIT_MESSAGES_PER_WINDOW) {
-      console.warn(`WebSocket rate limit exceeded for user ${user.getName()}`);
-      return;
-    }
-
-    user.setMessageTimestamps([...validTimestamps, currentTime]);
 
     try {
       this.handleMessage(user, event.data);
@@ -68,9 +51,8 @@ export class WebSocketService {
   }
 
   private addBroadcastChannelListeners(): void {
-    this.broadcastChannel.onmessage = this.handleBroadcastChannelMessage.bind(
-      this,
-    );
+    this.broadcastChannel.onmessage =
+      this.handleBroadcastChannelMessage.bind(this);
   }
 
   private handleBroadcastChannelMessage(event: MessageEvent): void {
@@ -112,8 +94,8 @@ export class WebSocketService {
 
     console.log(`User ${userName} disconnected from server`);
 
-    const result: Deno.KvCommitResult | Deno.KvCommitError = await this
-      .kvService.deleteUserTemporaryData(userId);
+    const result: Deno.KvCommitResult | Deno.KvCommitError =
+      await this.kvService.deleteUserTemporaryData(userId);
 
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
@@ -130,7 +112,7 @@ export class WebSocketService {
     console.debug(
       `%cReceived message from user ${user.getName()}:\n` +
         binaryReader.preview(),
-      "color: green;",
+      "color: green;"
     );
 
     const typeId = binaryReader.unsignedInt8();
@@ -164,7 +146,7 @@ export class WebSocketService {
       console.debug(
         `%cSent message to user ${user.getName()}:\n` +
           BinaryWriter.preview(arrayBuffer),
-        "color: purple",
+        "color: purple"
       );
     } catch (error) {
       console.error("Failed to send message to user", user.getName(), error);
@@ -173,7 +155,7 @@ export class WebSocketService {
 
   private sendMessageToOtherUser(
     destinationToken: string,
-    payload: ArrayBuffer,
+    payload: ArrayBuffer
   ): void {
     const destinationUser = this.users.get(destinationToken);
 
@@ -199,7 +181,7 @@ export class WebSocketService {
 
   private handlePlayerIdentityMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader,
+    binaryReader: BinaryReader
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const destinationToken = encodeBase64(destinationTokenBytes);
@@ -218,7 +200,7 @@ export class WebSocketService {
 
   private handleTunnelMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader,
+    binaryReader: BinaryReader
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
@@ -231,7 +213,7 @@ export class WebSocketService {
 
     this.sendMessageToOtherUser(
       encodeBase64(destinationTokenBytes),
-      tunnelPayload,
+      tunnelPayload
     );
   }
 }
