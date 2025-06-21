@@ -115,9 +115,9 @@ export class WebSocketService {
       "color: green;"
     );
 
-    const typeId = binaryReader.unsignedInt8();
+    const commandId = binaryReader.unsignedInt8();
 
-    switch (typeId) {
+    switch (commandId) {
       case WebSocketType.PlayerIdentity: {
         this.handlePlayerIdentityMessage(user, binaryReader);
         break;
@@ -129,7 +129,7 @@ export class WebSocketService {
       }
 
       default:
-        console.warn("Received unknown type identifier", typeId);
+        console.warn("Received unknown command identifier", commandId);
     }
   }
 
