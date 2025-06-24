@@ -47,6 +47,6 @@ export class ICEService {
 
     const data = await response.json();
 
-    return [data.iceServers];
+    return data.iceServers;
   }
 }
