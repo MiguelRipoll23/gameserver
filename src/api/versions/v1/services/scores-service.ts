@@ -1,5 +1,4 @@
-import { inject } from "https://jsr.io/@needle-di/core/1.0.0/src/context.ts";
-import { injectable } from "https://jsr.io/@needle-di/core/1.0.0/src/decorators.ts";
+import { inject, injectable } from "@needle-di/core";
 import { CryptoService } from "../../../../core/services/crypto-service.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { ScoreKV } from "../interfaces/kv/score.ts";
