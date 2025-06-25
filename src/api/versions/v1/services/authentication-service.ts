@@ -36,7 +36,7 @@ export class AuthenticationService {
   ): Promise<object> {
     const { transactionId } = authenticationRequest;
     const options = await generateAuthenticationOptions({
-      rpID: WebAuthnUtils.getRelayPartyID(),
+      rpID: WebAuthnUtils.getRelyingPartyID(),
       userVerification: "preferred",
     });
 
@@ -172,8 +172,8 @@ export class AuthenticationService {
       const verification = await verifyAuthenticationResponse({
         response: authenticationResponse,
         expectedChallenge: authenticationOptions.challenge,
-        expectedOrigin: WebAuthnUtils.getRelayPartyOrigin(),
-        expectedRPID: WebAuthnUtils.getRelayPartyID(),
+        expectedOrigin: WebAuthnUtils.getRelyingPartyOrigin(),
+        expectedRPID: WebAuthnUtils.getRelyingPartyID(),
         credential: {
           id: credentialKV.id,
           publicKey: credentialKV.publicKey,

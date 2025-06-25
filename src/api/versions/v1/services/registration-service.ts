@@ -38,8 +38,8 @@ export class RegistrationService {
 
     const userId = crypto.randomUUID().replaceAll("-", "");
     const options = await generateRegistrationOptions({
-      rpName: WebAuthnUtils.getRelayPartyName(),
-      rpID: WebAuthnUtils.getRelayPartyID(),
+      rpName: WebAuthnUtils.getRelyingPartyName(),
+      rpID: WebAuthnUtils.getRelyingPartyID(),
       userName: displayName,
       userDisplayName: displayName,
       userID: new TextEncoder().encode(userId),
@@ -135,8 +135,8 @@ export class RegistrationService {
       const verification = await verifyRegistrationResponse({
         response: registrationResponse,
         expectedChallenge: registrationOptions.challenge,
-        expectedOrigin: WebAuthnUtils.getRelayPartyOrigin(),
-        expectedRPID: WebAuthnUtils.getRelayPartyID(),
+        expectedOrigin: WebAuthnUtils.getRelyingPartyOrigin(),
+        expectedRPID: WebAuthnUtils.getRelyingPartyID(),
       });
 
       if (

@@ -41,7 +41,7 @@ export class ICEService {
 
     if (response.ok === false) {
       throw new Error(
-        `Failed to fetch Cloudflare ICE servers: ${response.statusText}`,
+        `Failed to fetch Cloudflare ICE servers: ${response.statusText}`
       );
     }
 
