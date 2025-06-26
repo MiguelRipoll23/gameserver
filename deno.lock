@@ -15,7 +15,7 @@
     "npm:@peculiar/asn1-rsa@^2.3.8": "2.3.15",
     "npm:@peculiar/asn1-schema@^2.3.8": "2.3.15",
     "npm:@peculiar/asn1-x509@^2.3.8": "2.3.15",
-    "npm:@scalar/hono-api-reference@~0.9.6": "0.9.6_hono@4.8.3",
+    "npm:@scalar/hono-api-reference@~0.9.7": "0.9.7_hono@4.8.3",
     "npm:hono@^4.8.3": "4.8.3",
     "npm:zod@^3.25.67": "3.25.67"
   },
@@ -124,27 +124,27 @@
         "tslib"
       ]
     },
-    "@scalar/core@0.3.4": {
-      "integrity": "sha512-5MHmi7TbMXBlR2TcrGh7SIxNzGABf5IxiV7R8h4kyaSwlvc+tg8uo/qwDdTK/psql764VieRHaH7gdL9tu+8+w==",
+    "@scalar/core@0.3.5": {
+      "integrity": "sha512-tcLLaGT/otQuEZzTtWUlnBMtcs95gcqwJSQCHqDui2v/+2ctV3FKjGJFoZLutICmQaSGLk0zNt14w39/VAsEqw==",
       "dependencies": [
         "@scalar/types"
       ]
     },
-    "@scalar/hono-api-reference@0.9.6_hono@4.8.3": {
-      "integrity": "sha512-P/dG41l+shL8lv7GcOpygkG6QqWl+lKHmfidBtXA22QMioSR9G1JT4Hyaxj0FOAdoLKCaMqzGk3ouJ438JeUkA==",
+    "@scalar/hono-api-reference@0.9.7_hono@4.8.3": {
+      "integrity": "sha512-IJngqUlvIEZ7e4VrUUdviNbGQIx6NoHb7XrkTAUMLYvcTw1J3TcdFY4i7hWiD4bp2z+pVbi3UFStlt7y6KzdUA==",
       "dependencies": [
         "@scalar/core",
         "hono"
       ]
     },
-    "@scalar/openapi-types@0.3.3": {
-      "integrity": "sha512-mr3OvbCyvuzSDgv9gR9D3pJAsl82BRNBp1P8ldgRgKF4Wiswfa7nQeKibpX0kHSGXLgiyvxWJULUFwgdWMXNNA==",
+    "@scalar/openapi-types@0.3.4": {
+      "integrity": "sha512-MfHRX1jqLcf6kwDDeXSYENywZXJLZx9Jn8r7DCQApw2QJW/yxb4GnCU0vygCh5KBk1GVJ4x6pyXiWNozb+fGAw==",
       "dependencies": [
         "zod@3.24.1"
       ]
     },
-    "@scalar/types@0.2.4": {
-      "integrity": "sha512-OpsNJN0r3hVVR8mF1YDO+YioeRmva/7pPravDh3GsWNQOSBOaFzLac8IkRLI+gBMpsIcJq1s+lisqPg+GHNiaA==",
+    "@scalar/types@0.2.5": {
+      "integrity": "sha512-kXulR6peh+zzP9DFqhncUKtvnV59e6Cf/y3N5Q8RQIa8huRB+901MbXewUEXV4MXYzMMBKJXRgc1LwwbAZUtRA==",
       "dependencies": [
         "@scalar/openapi-types",
         "nanoid",
@@ -203,7 +203,7 @@
       "jsr:@std/encoding@^1.0.10",
       "jsr:@wok/djwt@^3.0.2",
       "npm:@hono/zod-openapi@~0.19.8",
-      "npm:@scalar/hono-api-reference@~0.9.6",
+      "npm:@scalar/hono-api-reference@~0.9.7",
       "npm:hono@^4.8.3",
       "npm:zod@^3.25.67"
     ]
