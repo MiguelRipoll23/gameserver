@@ -2,6 +2,7 @@ import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
 import {
   ONLINE_USERS_CHANNEL,
+  ONLINE_USERS_SERVER_TTL,
   TUNNEL_CHANNEL,
 } from "../constants/websocket-constants.ts";
 import { SessionKV } from "../interfaces/kv/session-kv.ts";
@@ -18,7 +19,7 @@ export class WebSocketService {
   private broadcastChannel: BroadcastChannel;
   private onlineUsersChannel: BroadcastChannel;
   private serverId: string;
-  private serversUserCount: Map<string, number>;
+  private serversUserCount: Map<string, { count: number; timestamp: number }>;
   private users: Map<string, WebSocketUser>;
 
   constructor(private kvService = inject(KVService)) {
@@ -27,7 +28,11 @@ export class WebSocketService {
     this.broadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
     this.onlineUsersChannel = new BroadcastChannel(ONLINE_USERS_CHANNEL);
     this.serversUserCount = new Map();
-    this.serversUserCount.set(this.serverId, 0);
+    this.serversUserCount.set(this.serverId, {
+      count: 0,
+      timestamp: Date.now(),
+    });
+    setInterval(this.cleanupOldServers.bind(this), ONLINE_USERS_SERVER_TTL);
     this.addBroadcastChannelListeners();
     this.addOnlineUsersChannelListeners();
     this.addEventListeners();
@@ -35,8 +40,8 @@ export class WebSocketService {
 
   public getTotalSessions(): number {
     let total = 0;
-    for (const count of this.serversUserCount.values()) {
-      total += count;
+    for (const data of this.serversUserCount.values()) {
+      total += data.count;
     }
     return total;
   }
@@ -93,7 +98,8 @@ export class WebSocketService {
       serverId: string;
       count: number;
     };
-    this.serversUserCount.set(serverId, count);
+    this.serversUserCount.set(serverId, { count, timestamp: Date.now() });
+    this.cleanupOldServers();
     this.notifyOnlinePlayers();
   }
 
@@ -213,11 +219,13 @@ export class WebSocketService {
 
   private updateAndBroadcastOnlineUsers(): void {
     const count = this.users.size;
-    this.serversUserCount.set(this.serverId, count);
+    this.serversUserCount.set(this.serverId, { count, timestamp: Date.now() });
+    this.cleanupOldServers();
     this.onlineUsersChannel.postMessage({ serverId: this.serverId, count });
   }
 
   private notifyOnlinePlayers(): void {
+    this.cleanupOldServers();
     const total = this.getTotalSessions();
     const payload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.OnlinePlayers)
@@ -226,6 +234,16 @@ export class WebSocketService {
 
     for (const user of this.users.values()) {
       this.sendMessage(user, payload);
+    }
+  }
+
+  private cleanupOldServers(): void {
+    const now = Date.now();
+    for (const [serverId, data] of this.serversUserCount.entries()) {
+      if (serverId === this.serverId) continue;
+      if (now - data.timestamp > ONLINE_USERS_SERVER_TTL) {
+        this.serversUserCount.delete(serverId);
+      }
     }
   }
 
