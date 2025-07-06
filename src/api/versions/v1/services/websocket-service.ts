@@ -1,6 +1,9 @@
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
-import { TUNNEL_CHANNEL } from "../constants/websocket-constants.ts";
+import {
+  ONLINE_USERS_CHANNEL,
+  TUNNEL_CHANNEL,
+} from "../constants/websocket-constants.ts";
 import { SessionKV } from "../interfaces/kv/session-kv.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
@@ -13,17 +16,29 @@ import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 @injectable()
 export class WebSocketService {
   private broadcastChannel: BroadcastChannel;
+  private onlineUsersChannel: BroadcastChannel;
+  private serverId: string;
+  private serversUserCount: Map<string, number>;
   private users: Map<string, WebSocketUser>;
 
   constructor(private kvService = inject(KVService)) {
     this.users = new Map();
+    this.serverId = crypto.randomUUID();
     this.broadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
+    this.onlineUsersChannel = new BroadcastChannel(ONLINE_USERS_CHANNEL);
+    this.serversUserCount = new Map();
+    this.serversUserCount.set(this.serverId, 0);
     this.addBroadcastChannelListeners();
+    this.addOnlineUsersChannelListeners();
     this.addEventListeners();
   }
 
   public getTotalSessions(): number {
-    return this.users.size;
+    let total = 0;
+    for (const count of this.serversUserCount.values()) {
+      total += count;
+    }
+    return total;
   }
 
   public handleOpenEvent(_event: Event, user: WebSocketUser): void {
@@ -32,14 +47,14 @@ export class WebSocketService {
 
   public async handleCloseEvent(
     _event: CloseEvent,
-    user: WebSocketUser
+    user: WebSocketUser,
   ): Promise<void> {
     await this.handleDisconnection(user);
   }
 
   public handleMessageEvent(
     event: MessageEvent<WSMessageReceive>,
-    user: WebSocketUser
+    user: WebSocketUser,
   ): void {
     if (!(event.data instanceof ArrayBuffer)) return;
 
@@ -51,8 +66,14 @@ export class WebSocketService {
   }
 
   private addBroadcastChannelListeners(): void {
-    this.broadcastChannel.onmessage =
-      this.handleBroadcastChannelMessage.bind(this);
+    this.broadcastChannel.onmessage = this.handleBroadcastChannelMessage.bind(
+      this,
+    );
+  }
+
+  private addOnlineUsersChannelListeners(): void {
+    this.onlineUsersChannel.onmessage = this.handleOnlineUsersChannelMessage
+      .bind(this);
   }
 
   private handleBroadcastChannelMessage(event: MessageEvent): void {
@@ -65,6 +86,15 @@ export class WebSocketService {
     }
 
     this.sendMessage(destinationUser, payload);
+  }
+
+  private handleOnlineUsersChannelMessage(event: MessageEvent): void {
+    const { serverId, count } = event.data as {
+      serverId: string;
+      count: number;
+    };
+    this.serversUserCount.set(serverId, count);
+    this.notifyOnlinePlayers();
   }
 
   private addEventListeners(): void {
@@ -85,7 +115,7 @@ export class WebSocketService {
 
     await this.kvService.setSession(userId, session);
     this.users.set(userToken, webSocketUser);
-    this.notifyOnlinePlayers();
+    this.updateAndBroadcastOnlineUsers();
   }
 
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
@@ -95,13 +125,13 @@ export class WebSocketService {
 
     console.log(`User ${userName} disconnected from server`);
 
-    const result: Deno.KvCommitResult | Deno.KvCommitError =
-      await this.kvService.deleteUserTemporaryData(userId);
+    const result: Deno.KvCommitResult | Deno.KvCommitError = await this
+      .kvService.deleteUserTemporaryData(userId);
 
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
       this.users.delete(userToken);
-      this.notifyOnlinePlayers();
+      this.updateAndBroadcastOnlineUsers();
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
       user.setWebSocket(null);
@@ -114,7 +144,7 @@ export class WebSocketService {
     console.debug(
       `%cReceived message from user ${user.getName()}:\n` +
         binaryReader.preview(),
-      "color: green;"
+      "color: green;",
     );
 
     const commandId = binaryReader.unsignedInt8();
@@ -148,7 +178,7 @@ export class WebSocketService {
       console.debug(
         `%cSent message to user ${user.getName()}:\n` +
           BinaryWriter.preview(arrayBuffer),
-        "color: purple"
+        "color: purple",
       );
     } catch (error) {
       console.error("Failed to send message to user", user.getName(), error);
@@ -157,7 +187,7 @@ export class WebSocketService {
 
   private sendMessageToOtherUser(
     destinationToken: string,
-    payload: ArrayBuffer
+    payload: ArrayBuffer,
   ): void {
     const destinationUser = this.users.get(destinationToken);
 
@@ -181,6 +211,12 @@ export class WebSocketService {
     }
   }
 
+  private updateAndBroadcastOnlineUsers(): void {
+    const count = this.users.size;
+    this.serversUserCount.set(this.serverId, count);
+    this.onlineUsersChannel.postMessage({ serverId: this.serverId, count });
+  }
+
   private notifyOnlinePlayers(): void {
     const total = this.getTotalSessions();
     const payload = BinaryWriter.build()
@@ -195,7 +231,7 @@ export class WebSocketService {
 
   private handlePlayerIdentityMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const destinationToken = encodeBase64(destinationTokenBytes);
@@ -214,7 +250,7 @@ export class WebSocketService {
 
   private handleTunnelMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
@@ -227,7 +263,7 @@ export class WebSocketService {
 
     this.sendMessageToOtherUser(
       encodeBase64(destinationTokenBytes),
-      tunnelPayload
+      tunnelPayload,
     );
   }
 }
