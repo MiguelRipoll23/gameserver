@@ -85,6 +85,7 @@ export class WebSocketService {
 
     await this.kvService.setSession(userId, session);
     this.users.set(userToken, webSocketUser);
+    this.notifyOnlinePlayers();
   }
 
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
@@ -100,6 +101,7 @@ export class WebSocketService {
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
       this.users.delete(userToken);
+      this.notifyOnlinePlayers();
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
       user.setWebSocket(null);
@@ -175,6 +177,18 @@ export class WebSocketService {
         .bytes(textBytes)
         .toArrayBuffer();
 
+      this.sendMessage(user, payload);
+    }
+  }
+
+  private notifyOnlinePlayers(): void {
+    const total = this.getTotalSessions();
+    const payload = BinaryWriter.build()
+      .unsignedInt8(WebSocketType.OnlinePlayers)
+      .unsignedInt16(total)
+      .toArrayBuffer();
+
+    for (const user of this.users.values()) {
       this.sendMessage(user, payload);
     }
   }
