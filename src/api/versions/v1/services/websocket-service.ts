@@ -1,5 +1,8 @@
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
-import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
+import {
+  GLOBAL_NOTIFICATION_EVENT,
+  USER_NOTIFICATION_EVENT,
+} from "../constants/event-constants.ts";
 import {
   ONLINE_USERS_CHANNEL,
   ONLINE_USERS_SERVER_TTL,
@@ -104,9 +107,14 @@ export class WebSocketService {
   }
 
   private addEventListeners(): void {
-    addEventListener(NOTIFICATION_EVENT, (event): void => {
+    addEventListener(GLOBAL_NOTIFICATION_EVENT, (event): void => {
       // deno-lint-ignore no-explicit-any
       this.sendNotificationToUsers((event as CustomEvent<any>).detail.message);
+    });
+    addEventListener(USER_NOTIFICATION_EVENT, (event): void => {
+      // deno-lint-ignore no-explicit-any
+      const { userId, message } = (event as CustomEvent<any>).detail;
+      this.sendNotificationToUser(userId, message);
     });
   }
 
@@ -214,6 +222,21 @@ export class WebSocketService {
         .toArrayBuffer();
 
       this.sendMessage(user, payload);
+    }
+  }
+
+  public sendNotificationToUser(userId: string, text: string): void {
+    for (const user of this.users.values()) {
+      if (user.getId() === userId) {
+        const textBytes = new TextEncoder().encode(text);
+        const payload = BinaryWriter.build()
+          .unsignedInt8(WebSocketType.Notification)
+          .bytes(textBytes)
+          .toArrayBuffer();
+
+        this.sendMessage(user, payload);
+        break;
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { CryptoService } from "../../../../core/services/crypto-service.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
+import { NotificationService } from "./notification-service.ts";
 import { ScoreKV } from "../interfaces/kv/score.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
@@ -13,7 +14,8 @@ import {
 export class ScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
-    private kvService = inject(KVService)
+    private kvService = inject(KVService),
+    private notificationService = inject(NotificationService)
   ) {}
 
   public async list(): Promise<GetScoresResponse> {
@@ -78,7 +80,32 @@ export class ScoresService {
     const existing = await this.kvService.getScore(playerId);
     const totalScore = score + (existing?.score ?? 0);
 
+    const highestBefore = await this.getHighestScore();
+
     const newScore: ScoreKV = { playerId, playerName, score: totalScore };
     await this.kvService.setScore(playerId, newScore);
+
+    if (
+      (highestBefore === null || highestBefore.playerId !== playerId) &&
+      (highestBefore === null || totalScore > highestBefore.score)
+    ) {
+      this.notificationService.notifyUser(
+        playerId,
+        "You have the highest score!",
+      );
+    }
+  }
+
+  private async getHighestScore(): Promise<ScoreKV | null> {
+    let highest: ScoreKV | null = null;
+    const entries = this.kvService.listScores();
+
+    for await (const entry of entries) {
+      if (highest === null || entry.value.score > highest.score) {
+        highest = entry.value;
+      }
+    }
+
+    return highest;
   }
 }
