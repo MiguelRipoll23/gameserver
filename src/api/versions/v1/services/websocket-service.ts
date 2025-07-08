@@ -222,6 +222,7 @@ export class WebSocketService {
     this.serversUserCount.set(this.serverId, { count, timestamp: Date.now() });
     this.cleanupOldServers();
     this.onlineUsersChannel.postMessage({ serverId: this.serverId, count });
+    this.notifyOnlinePlayers();
   }
 
   private notifyOnlinePlayers(): void {
