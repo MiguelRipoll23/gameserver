@@ -2,7 +2,6 @@ import { z } from "@hono/zod-openapi";
 
 export const GetRegistrationOptionsRequestSchema = z.object({
   transactionId: z
-    .string()
     .uuid()
     .describe("The transaction ID for the registration request")
     .openapi({
@@ -21,8 +20,7 @@ export type GetRegistrationOptionsRequest = z.infer<
 >;
 
 export const GetRegistrationOptionsResponseSchema = z
-  .object({})
-  .passthrough()
+  .looseObject({})
   .describe("The registration options required by the server")
   .openapi({
     example: {
@@ -71,15 +69,13 @@ export type GetRegistrationOptionsResponse = z.infer<
 
 export const VerifyRegistrationRequestSchema = z.object({
   transactionId: z
-    .string()
     .uuid()
     .describe("The transaction ID for the registration request")
     .openapi({
       example: "123e4567-e89b-12d3-a456-426614174000",
     }),
   registrationResponse: z
-    .object({})
-    .passthrough()
+    .looseObject({})
     .describe("The registration response from the authenticator"),
 });
 
