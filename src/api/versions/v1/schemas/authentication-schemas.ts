@@ -13,7 +13,6 @@ export type RTCIceServer = z.infer<typeof RTCIceServerSchema>;
 
 export const GetAuthenticationOptionsRequestSchema = z.object({
   transactionId: z
-    .string()
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
@@ -26,8 +25,7 @@ export type GetAuthenticationOptionsRequest = z.infer<
 >;
 
 export const GetAuthenticationOptionsResponseSchema = z
-  .object({})
-  .passthrough()
+  .looseObject({})
   .describe("The authentication options required by the server")
   .openapi({
     example: {
@@ -44,15 +42,13 @@ export type GetAuthenticationOptionsResponse = z.infer<
 
 export const VerifyAuthenticationRequestSchema = z.object({
   transactionId: z
-    .string()
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
       example: "123e4567-e89b-12d3-a456-426614174000",
     }),
   authenticationResponse: z
-    .object({})
-    .passthrough()
+    .looseObject({})
     .describe("The authentication response from the authenticator"),
 });
 
@@ -68,8 +64,7 @@ export const VerifyAuthenticationResponseSchema = z.object({
     .describe("The authentication token of the user"),
   sessionKey: z.string().describe("The session key of the user"),
   publicIp: z
-    .string()
-    .ip()
+    .union([z.ipv4(), z.ipv6()])
     .nullable()
     .describe("The public IP of the user")
     .openapi({ example: "…" }),
