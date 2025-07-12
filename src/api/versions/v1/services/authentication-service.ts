@@ -230,7 +230,7 @@ export class AuthenticationService {
       const { expiresAt, reason } = user.ban;
 
       if (expiresAt !== null && expiresAt < Date.now()) {
-        delete user.ban;
+        user.ban = undefined;
         await this.kvService.setUser(user.userId, user);
       } else {
         throw new ServerError("USER_BANNED", reason, 403);

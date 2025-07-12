@@ -34,7 +34,7 @@ export class ModerationService {
     }
 
     if (user.ban) {
-      delete user.ban;
+      user.ban = undefined;
       await this.kvService.setUser(userId, user);
     }
   }
