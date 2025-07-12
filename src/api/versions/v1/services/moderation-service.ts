@@ -1,6 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { ServerError } from "../models/server-error.ts";
+import { USER_NOT_FOUND_MESSAGE } from "../constants/api-constants.ts";
 import { BanInformation } from "../interfaces/kv/user-kv.ts";
 import { BanUserRequest } from "../schemas/moderation-schemas.ts";
 
@@ -13,7 +14,7 @@ export class ModerationService {
     const user = await this.kvService.getUser(userId);
 
     if (user === null) {
-      throw new ServerError("USER_NOT_FOUND", "User not found", 404);
+      throw new ServerError("USER_NOT_FOUND", USER_NOT_FOUND_MESSAGE, 404);
     }
 
     const ban: BanInformation = {
@@ -30,7 +31,7 @@ export class ModerationService {
     const user = await this.kvService.getUser(userId);
 
     if (user === null) {
-      throw new ServerError("USER_NOT_FOUND", "User not found", 404);
+      throw new ServerError("USER_NOT_FOUND", USER_NOT_FOUND_MESSAGE, 404);
     }
 
     if (user.ban) {

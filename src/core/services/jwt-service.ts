@@ -3,6 +3,9 @@ import { CryptoUtils } from "../utils/crypto-utils.ts";
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/env-constants.ts";
+import {
+  INVALID_TOKEN_MESSAGE,
+} from "../../api/versions/v1/constants/api-constants.ts";
 
 @injectable()
 export class JWTService {
@@ -45,7 +48,7 @@ export class JWTService {
     }
 
     if (payload === null) {
-      throw new ServerError("INVALID_TOKEN", "Invalid token", 401);
+      throw new ServerError("INVALID_TOKEN", INVALID_TOKEN_MESSAGE, 401);
     }
 
     return payload;

@@ -2,6 +2,9 @@ import { createMiddleware } from "hono/factory";
 import { inject, injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
 import { JWTService } from "../../core/services/jwt-service.ts";
+import {
+  NO_TOKEN_PROVIDED_MESSAGE,
+} from "../versions/v1/constants/api-constants.ts";
 
 @injectable()
 export class AuthenticationMiddleware {
@@ -33,7 +36,11 @@ export class AuthenticationMiddleware {
       : authorization.replace("Bearer", "").trim();
 
     if (token === null || token.length === 0) {
-      throw new ServerError("NO_TOKEN_PROVIDED", "No token provided", 401);
+      throw new ServerError(
+        "NO_TOKEN_PROVIDED",
+        NO_TOKEN_PROVIDED_MESSAGE,
+        401,
+      );
     }
 
     return token;

@@ -1,6 +1,7 @@
 import { injectable } from "@needle-di/core";
 import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
 import { ServerError } from "../models/server-error.ts";
+import { EMPTY_NOTIFICATION_MESSAGE } from "../constants/api-constants.ts";
 
 @injectable()
 export class NotificationService {
@@ -11,7 +12,7 @@ export class NotificationService {
     if (message.length === 0) {
       throw new ServerError(
         "EMPTY_NOTIFICATION_MESSAGE",
-        "Notification message cannot be empty",
+        EMPTY_NOTIFICATION_MESSAGE,
         400,
       );
     }

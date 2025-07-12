@@ -22,7 +22,14 @@ import {
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
-import { BAN_MESSAGE_TEMPLATE } from "../constants/api-constants.ts";
+import {
+  AUTHENTICATION_FAILED_MESSAGE,
+  AUTHENTICATION_OPTIONS_EXPIRED_MESSAGE,
+  AUTHENTICATION_OPTIONS_NOT_FOUND_MESSAGE,
+  BAN_MESSAGE_TEMPLATE,
+  CREDENTIAL_NOT_FOUND_MESSAGE,
+  USER_NOT_FOUND_MESSAGE,
+} from "../constants/api-constants.ts";
 
 @injectable()
 export class AuthenticationService {
@@ -132,7 +139,7 @@ export class AuthenticationService {
     if (authenticationOptions === null) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_NOT_FOUND",
-        "Authentication options not found",
+        AUTHENTICATION_OPTIONS_NOT_FOUND_MESSAGE,
         400,
       );
     }
@@ -143,7 +150,7 @@ export class AuthenticationService {
     if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_EXPIRED",
-        "Authentication options expired",
+        AUTHENTICATION_OPTIONS_EXPIRED_MESSAGE,
         400,
       );
     }
@@ -157,7 +164,7 @@ export class AuthenticationService {
     if (credential === null) {
       throw new ServerError(
         "CREDENTIAL_NOT_FOUND",
-        "Credential not found",
+        CREDENTIAL_NOT_FOUND_MESSAGE,
         400,
       );
     }
@@ -187,7 +194,7 @@ export class AuthenticationService {
       if (verification.verified === false) {
         throw new ServerError(
           "AUTHENTICATION_FAILED",
-          "Authentication failed",
+          AUTHENTICATION_FAILED_MESSAGE,
           400,
         );
       }
@@ -197,7 +204,7 @@ export class AuthenticationService {
       console.error(error);
       throw new ServerError(
         "AUTHENTICATION_FAILED",
-        "Authentication failed",
+        AUTHENTICATION_FAILED_MESSAGE,
         400,
       );
     }
@@ -220,7 +227,7 @@ export class AuthenticationService {
     const user = await this.kvService.getUser(userId);
 
     if (user === null) {
-      throw new ServerError("USER_NOT_FOUND", "User not found", 400);
+      throw new ServerError("USER_NOT_FOUND", USER_NOT_FOUND_MESSAGE, 400);
     }
 
     return user;

@@ -8,6 +8,11 @@ import { KVService } from "../../../../core/services/kv-service.ts";
 import { SessionKV } from "../interfaces/kv/session-kv.ts";
 import { MatchKV } from "../interfaces/kv/match_kv.ts";
 import { ServerError } from "../models/server-error.ts";
+import {
+  MATCH_CREATION_FAILED_MESSAGE,
+  MATCH_DELETION_FAILED_MESSAGE,
+  NO_SESSION_FOUND_MESSAGE,
+} from "../constants/api-constants.ts";
 
 @injectable()
 export class MatchesService {
@@ -21,7 +26,11 @@ export class MatchesService {
     const session: SessionKV | null = await this.kvService.getSession(userId);
 
     if (session === null) {
-      throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
+      throw new ServerError(
+        "NO_SESSION_FOUND",
+        NO_SESSION_FOUND_MESSAGE,
+        400,
+      );
     }
 
     const { token } = session;
@@ -41,7 +50,7 @@ export class MatchesService {
     if (response.ok === false) {
       throw new ServerError(
         "MATCH_CREATION_FAILED",
-        "Match creation failed",
+        MATCH_CREATION_FAILED_MESSAGE,
         500,
       );
     }
@@ -66,7 +75,7 @@ export class MatchesService {
     if (response.ok === false) {
       throw new ServerError(
         "MATCH_DELETION_FAILED",
-        "Match deletion failed",
+        MATCH_DELETION_FAILED_MESSAGE,
         500,
       );
     }

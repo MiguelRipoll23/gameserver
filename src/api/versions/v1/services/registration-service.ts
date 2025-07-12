@@ -2,6 +2,13 @@ import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
+  CREDENTIAL_USER_ADD_FAILED_MESSAGE,
+  DISPLAY_NAME_TAKEN_MESSAGE,
+  REGISTRATION_OPTIONS_EXPIRED_MESSAGE,
+  REGISTRATION_OPTIONS_NOT_FOUND_MESSAGE,
+  REGISTRATION_VERIFICATION_FAILED_MESSAGE,
+} from "../constants/api-constants.ts";
+import {
   generateRegistrationOptions,
   PublicKeyCredentialCreationOptionsJSON,
   VerifiedRegistrationResponse,
@@ -93,7 +100,7 @@ export class RegistrationService {
     if (existingUser !== null) {
       throw new ServerError(
         "DISPLAY_NAME_TAKEN",
-        "Display name is already taken",
+        DISPLAY_NAME_TAKEN_MESSAGE,
         409,
       );
     }
@@ -108,7 +115,7 @@ export class RegistrationService {
     if (registrationOptions === null) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
-        "Registration options not found",
+        REGISTRATION_OPTIONS_NOT_FOUND_MESSAGE,
         400,
       );
     }
@@ -119,7 +126,7 @@ export class RegistrationService {
     if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
-        "Registration options expired",
+        REGISTRATION_OPTIONS_EXPIRED_MESSAGE,
         400,
       );
     }
@@ -152,7 +159,7 @@ export class RegistrationService {
 
       throw new ServerError(
         "REGISTRATION_VERIFICATION_FAILED",
-        "Registration verification failed",
+        REGISTRATION_VERIFICATION_FAILED_MESSAGE,
         400,
       );
     }
@@ -204,7 +211,7 @@ export class RegistrationService {
     if (result.ok === false) {
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
-        "Failed to add credential and user",
+        CREDENTIAL_USER_ADD_FAILED_MESSAGE,
         500,
       );
     }

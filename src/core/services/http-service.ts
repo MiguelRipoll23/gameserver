@@ -7,6 +7,9 @@ import { OpenAPIService } from "./openapi-service.ts";
 import { APIRouter } from "../../api/routers/api-router.ts";
 import { RootRouter } from "../routers/root_rooter.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
+import {
+  BODY_SIZE_LIMIT_EXCEEDED_MESSAGE,
+} from "../../api/versions/v1/constants/api-constants.ts";
 import { HonoVariablesType } from "../types/hono-variables-type.ts";
 import { CORSMiddleware } from "../middlewares/cors-middleware.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
@@ -19,7 +22,7 @@ export class HTTPService {
   constructor(
     private kvService = inject(KVService),
     private rootRooter = inject(RootRouter),
-    private apiRouter = inject(APIRouter)
+    private apiRouter = inject(APIRouter),
   ) {
     this.app = new OpenAPIHono();
     this.configure();
@@ -51,11 +54,11 @@ export class HTTPService {
         onError: () => {
           throw new ServerError(
             "BODY_SIZE_LIMIT_EXCEEDED",
-            "Request body size limit exceeded",
-            413
+            BODY_SIZE_LIMIT_EXCEEDED_MESSAGE,
+            413,
           );
         },
-      })
+      }),
     );
   }
 

@@ -4,6 +4,10 @@ import { KVService } from "../../../../core/services/kv-service.ts";
 import { ScoreKV } from "../interfaces/kv/score.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
+  BAD_REQUEST_MESSAGE,
+  NO_MATCH_FOUND_MESSAGE,
+} from "../constants/api-constants.ts";
+import {
   GetScoresResponse,
   SaveScoresRequest,
   SaveScoresRequestSchema,
@@ -13,7 +17,7 @@ import {
 export class ScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
-    private kvService = inject(KVService)
+    private kvService = inject(KVService),
   ) {}
 
   public async list(): Promise<GetScoresResponse> {
@@ -36,15 +40,15 @@ export class ScoresService {
     if (match === null) {
       throw new ServerError(
         "NO_MATCH_FOUND",
-        "User is not hosting a match",
-        400
+        NO_MATCH_FOUND_MESSAGE,
+        400,
       );
     }
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
 
     const results = await Promise.allSettled(
-      request.map((playerScore) => this.updatePlayerScore(playerScore))
+      request.map((playerScore) => this.updatePlayerScore(playerScore)),
     );
 
     const failures = results.filter((r) => r.status === "rejected");
@@ -56,7 +60,7 @@ export class ScoresService {
 
   private async parseAndValidateSaveRequest(
     userId: string,
-    body: ArrayBuffer
+    body: ArrayBuffer,
   ): Promise<SaveScoresRequest> {
     try {
       const decrypted = await this.cryptoService.decryptForUser(userId, body);
@@ -65,7 +69,7 @@ export class ScoresService {
       return SaveScoresRequestSchema.parse(JSON.parse(json));
     } catch (error) {
       console.error("Failed to parse and validate SaveScoresRequest:", error);
-      throw new ServerError("BAD_REQUEST", "Invalid request body", 400);
+      throw new ServerError("BAD_REQUEST", BAD_REQUEST_MESSAGE, 400);
     }
   }
 

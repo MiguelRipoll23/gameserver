@@ -1,6 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { ServerError } from "../models/server-error.ts";
+import { CONFIGURATION_NOT_FOUND_MESSAGE } from "../constants/api-constants.ts";
 import { CryptoService } from "../../../../core/services/crypto-service.ts";
 import {
   GetConfigurationResponse,
@@ -20,7 +21,7 @@ export class ConfigurationService {
     if (configuration === null) {
       throw new ServerError(
         "CONFIGURATION_NOT_FOUND",
-        "Configuration not found",
+        CONFIGURATION_NOT_FOUND_MESSAGE,
         404,
       );
     }
@@ -40,7 +41,7 @@ export class ConfigurationService {
     if (configuration === null) {
       throw new ServerError(
         "CONFIGURATION_NOT_FOUND",
-        "Configuration not found",
+        CONFIGURATION_NOT_FOUND_MESSAGE,
         404,
       );
     }

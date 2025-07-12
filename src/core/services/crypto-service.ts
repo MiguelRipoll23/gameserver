@@ -1,5 +1,8 @@
 import { inject, injectable } from "@needle-di/core";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
+import {
+  NO_SESSION_KEY_MESSAGE,
+} from "../../api/versions/v1/constants/api-constants.ts";
 import { CryptoUtils } from "../utils/crypto-utils.ts";
 import { KVService } from "./kv-service.ts";
 
@@ -16,7 +19,7 @@ export class CryptoService {
     if (key === null) {
       throw new ServerError(
         "NO_SESSION_KEY",
-        "No session found for this user",
+        NO_SESSION_KEY_MESSAGE,
         400,
       );
     }
@@ -42,7 +45,7 @@ export class CryptoService {
     if (key === null) {
       throw new ServerError(
         "NO_SESSION_KEY",
-        "No session found for this user",
+        NO_SESSION_KEY_MESSAGE,
         400,
       );
     }

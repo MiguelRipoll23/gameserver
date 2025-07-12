@@ -1,6 +1,9 @@
 import { createMiddleware } from "hono/factory";
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
+import {
+  MISSING_MANAGEMENT_ROLE_MESSAGE,
+} from "../versions/v1/constants/api-constants.ts";
 
 @injectable()
 export class AuthorizationMiddleware {
@@ -16,7 +19,7 @@ export class AuthorizationMiddleware {
     if (roles.includes("management") === false) {
       throw new ServerError(
         "NO_MANAGEMENT_ROLE",
-        "Missing management role",
+        MISSING_MANAGEMENT_ROLE_MESSAGE,
         403,
       );
     }
