@@ -11,12 +11,12 @@ export class TimeUtils {
   public static parseRelativeTime(value: string): number {
     const match = value.match(/^([1-9]\d*)(min|h|d|w|m|y)$/);
     if (!match) {
-      throw new Error("Invalid relative time format");
+      throw new Error(`Invalid relative time format: ${value}`);
     }
 
     const amount = Number(match[1]);
     const unit = match[2];
-    const multiplier = this.unitMap[unit];
+    const multiplier = TimeUtils.unitMap[unit];
 
     return Date.now() + amount * multiplier;
   }
