@@ -11,6 +11,16 @@ export class OpenAPIService {
       scheme: "bearer",
       bearerFormat: "JWT",
     });
+
+    app.openAPIRegistry.registerTag("Root", {
+      name: "Root",
+      description: "Server root endpoints",
+    });
+
+    app.openAPIRegistry.registerTag("Moderation", {
+      name: "Moderation",
+      description: "User banning and unbanning",
+    });
   }
 
   public static setRoutes(
