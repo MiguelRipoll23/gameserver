@@ -22,6 +22,7 @@ import {
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
+import { BAN_MESSAGE_TEMPLATE } from "../constants/api-constants.ts";
 
 @injectable()
 export class AuthenticationService {
@@ -233,7 +234,10 @@ export class AuthenticationService {
         user.ban = undefined;
         await this.kvService.setUser(user.userId, user);
       } else {
-        throw new ServerError("USER_BANNED", reason, 403);
+        const banType = expiresAt === null ? "permanently" : "temporarily";
+        const message = BAN_MESSAGE_TEMPLATE.replace("{type}", banType)
+          .replace("{reason}", reason.toLowerCase());
+        throw new ServerError("USER_BANNED", message, 403);
       }
     }
   }
