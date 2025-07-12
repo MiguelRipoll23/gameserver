@@ -17,7 +17,16 @@ export class TimeUtils {
     const amount = Number(match[1]);
     const unit = match[2];
     const multiplier = TimeUtils.unitMap[unit];
+    const relativeMs = amount * multiplier;
+    if (relativeMs > Number.MAX_SAFE_INTEGER) {
+      throw new Error(`Relative time overflow: ${value}`);
+    }
 
-    return Date.now() + amount * multiplier;
+    const timestamp = Date.now() + relativeMs;
+    if (timestamp > Number.MAX_SAFE_INTEGER) {
+      throw new Error(`Relative time overflow: ${value}`);
+    }
+
+    return timestamp;
   }
 }
