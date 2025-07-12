@@ -57,7 +57,7 @@ export class PublicRegistrationRouter {
           },
           409: {
             description:
-              "Responds with an error due to display name being already taken",
+              "Responds with an error when the chosen display name is already taken",
             content: {
               "application/json": {
                 schema: ErrorResponseSchema,
