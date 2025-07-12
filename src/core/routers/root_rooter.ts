@@ -27,6 +27,7 @@ export class RootRouter {
         path: "/health",
         summary: "Get health",
         description: "Obtains health related to this server",
+        tags: ["Default"],
         responses: {
           204: {
             description: "Responds with no content",
@@ -35,7 +36,7 @@ export class RootRouter {
       }),
       (c) => {
         return c.body(null, 204);
-      },
+      }
     );
   }
 
@@ -46,6 +47,7 @@ export class RootRouter {
         path: "/game",
         summary: "Get game",
         description: "Obtains game associated with this server",
+        tags: ["Default"],
         responses: {
           307: {
             description: "Responds with temporary redirect",
@@ -54,7 +56,7 @@ export class RootRouter {
       }),
       (c) => {
         return c.redirect(GameUtils.getURL(), 307);
-      },
+      }
     );
   }
 }

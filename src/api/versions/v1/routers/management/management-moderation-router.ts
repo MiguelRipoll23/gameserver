@@ -32,7 +32,7 @@ export class ManagementModerationRouter {
         path: "/ban",
         summary: "Ban user",
         description: "Temporarily or permanently bans a user",
-        tags: ["Moderation"],
+        tags: ["Player moderation"],
         request: {
           body: {
             content: {
@@ -54,7 +54,7 @@ export class ManagementModerationRouter {
         const validated = c.req.valid("json");
         await this.moderationService.banUser(validated);
         return c.body(null, 204);
-      },
+      }
     );
   }
 
@@ -65,7 +65,7 @@ export class ManagementModerationRouter {
         path: "/ban/:userId",
         summary: "Unban user",
         description: "Removes the ban for the specified user",
-        tags: ["Moderation"],
+        tags: ["Player moderation"],
         request: {
           params: UnbanUserRequestSchema,
         },
@@ -80,7 +80,7 @@ export class ManagementModerationRouter {
         const userId = c.req.param("userId");
         await this.moderationService.unbanUser(userId);
         return c.body(null, 204);
-      },
+      }
     );
   }
 }
