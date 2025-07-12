@@ -93,7 +93,7 @@ export class RegistrationService {
     if (existingUser !== null) {
       throw new ServerError(
         "DISPLAY_NAME_TAKEN",
-        "Display name already exists",
+        "Display name is already taken",
         409,
       );
     }
