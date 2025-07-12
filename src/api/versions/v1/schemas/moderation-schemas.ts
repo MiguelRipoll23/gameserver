@@ -9,14 +9,14 @@ export const BanUserRequestSchema = z.object({
   reason: z.string().min(1).describe("Reason for the ban").openapi({
     example: "Toxic behaviour",
   }),
-  expiresAt: z
-    .number()
-    .int()
-    .positive()
-    .nullable()
+  duration: z
+    .string()
+    .regex(/^[1-9]\d*(min|h|d|w|m|y)$/)
     .optional()
-    .describe("Timestamp when the ban expires or null for permanent")
-    .openapi({ example: 1740325296918 }),
+    .describe(
+      "Relative ban duration. Use 'min' for minutes, 'h' for hours, 'd' for days, 'w' for weeks, 'm' for months and 'y' for years",
+    )
+    .openapi({ example: "1h" }),
 });
 
 export type BanUserRequest = z.infer<typeof BanUserRequestSchema>;
