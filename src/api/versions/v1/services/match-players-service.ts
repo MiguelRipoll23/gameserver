@@ -1,5 +1,4 @@
-import { inject, injectable } from "@needle-di/core";
-import { KVService } from "../../../../core/services/kv-service.ts";
+import { injectable } from "@needle-di/core";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
 
@@ -7,7 +6,7 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 export class MatchPlayersService {
   private matchPlayers: Map<string, Set<string>>;
 
-  constructor(private kvService = inject(KVService)) {
+  constructor() {
     this.matchPlayers = new Map();
   }
 
@@ -15,10 +14,10 @@ export class MatchPlayersService {
     this.matchPlayers.delete(token);
   }
 
-  public async handleMatchPlayerMessage(
+  public handleMatchPlayerMessage(
     originUser: WebSocketUser,
     binaryReader: BinaryReader,
-  ): Promise<void> {
+  ): void {
     const isConnected = binaryReader.boolean();
     const playerId = binaryReader.fixedLengthString(32);
 
@@ -35,16 +34,15 @@ export class MatchPlayersService {
       players.delete(playerId);
     }
 
-    await this.logPlayerStatus(isConnected, playerId);
+    this.logPlayerStatus(isConnected, playerId, token);
   }
 
-  private async logPlayerStatus(
+  private logPlayerStatus(
     isConnected: boolean,
     playerId: string,
-  ): Promise<void> {
-    const user = await this.kvService.getUser(playerId);
-    const playerName = user?.displayName ?? playerId;
+    token: string,
+  ): void {
     const action = isConnected ? "joined" : "left";
-    console.log(`Player ${playerName} ${action} match`);
+    console.log(`Player ${playerId} ${action} match ${token}`);
   }
 }
