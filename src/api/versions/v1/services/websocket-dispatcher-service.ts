@@ -3,7 +3,9 @@ import { getCommandHandlers } from "../decorators/command-handler.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { CommandHandlerFunction } from "../types/command-handler-function-type.ts";
+import { injectable } from "@needle-di/core";
 
+@injectable()
 export class WebSocketDispatcherService {
   private commandHandlers = new Map<WebSocketType, CommandHandlerFunction>();
 
