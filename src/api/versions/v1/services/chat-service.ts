@@ -5,7 +5,7 @@ import { WebSocketType } from "../enums/websocket-enum.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
 import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
-import blockWords from "../../v4/data/block-words.json" assert { type: "json" };
+import blockWords from "../data/block-words.json" with { type: "json" };
 
 const MAX_CHAT_MESSAGE_LENGTH = 256;
 
