@@ -16,6 +16,8 @@ import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
+import { CommandHandler } from "../decorators/command-handler.ts";
+import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
 
 @injectable()
 export class WebSocketService implements IWebSocketService {
@@ -30,6 +32,7 @@ export class WebSocketService implements IWebSocketService {
     private kvService = inject(KVService),
     private matchPlayersService = inject(MatchPlayersService),
     private chatService = inject(ChatService),
+    private dispatcher = inject(WebSocketDispatcherService),
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
@@ -45,6 +48,7 @@ export class WebSocketService implements IWebSocketService {
     this.addBroadcastChannelListeners();
     this.addOnlineUsersChannelListeners();
     this.addEventListeners();
+    this.dispatcher.registerCommandHandlers(this);
   }
 
   public getTotalSessions(): number {
@@ -183,42 +187,11 @@ export class WebSocketService implements IWebSocketService {
 
     const commandId = binaryReader.unsignedInt8();
 
-    switch (commandId) {
-      case WebSocketType.PlayerIdentity: {
-        this.handlePlayerIdentityMessage(user, binaryReader);
-        break;
-      }
-
-      case WebSocketType.Tunnel: {
-        this.handleTunnelMessage(user, binaryReader);
-        break;
-      }
-
-      case WebSocketType.MatchPlayer: {
-        const isConnected = binaryReader.boolean();
-        const playerId = binaryReader.fixedLengthString(32);
-
-        const playerUser = this.usersById.get(playerId);
-        if (playerUser) {
-          playerUser.setHostToken(isConnected ? user.getUserToken() : null);
-        }
-
-        this.matchPlayersService.handleMatchPlayerMessage(
-          user,
-          isConnected,
-          playerId,
-        );
-        break;
-      }
-
-      case WebSocketType.ChatMessage: {
-        this.chatService.handleChatMessage(this, user, binaryReader);
-        break;
-      }
-
-      default:
-        console.warn("Received unknown command identifier", commandId);
-    }
+    this.dispatcher.dispatchCommand(
+      user,
+      commandId,
+      binaryReader,
+    );
   }
 
   public sendMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -298,6 +271,7 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
+  @CommandHandler(WebSocketType.PlayerIdentity)
   private handlePlayerIdentityMessage(
     originUser: WebSocketUser,
     binaryReader: BinaryReader,
@@ -317,7 +291,7 @@ export class WebSocketService implements IWebSocketService {
     this.sendMessageToOtherUser(destinationToken, playerIdentityPayload);
   }
 
-
+  @CommandHandler(WebSocketType.Tunnel)
   private handleTunnelMessage(
     originUser: WebSocketUser,
     binaryReader: BinaryReader,
@@ -335,5 +309,33 @@ export class WebSocketService implements IWebSocketService {
       encodeBase64(destinationTokenBytes),
       tunnelPayload,
     );
+  }
+
+  @CommandHandler(WebSocketType.MatchPlayer)
+  private handleMatchPlayerMessage(
+    user: WebSocketUser,
+    binaryReader: BinaryReader,
+  ): void {
+    const isConnected = binaryReader.boolean();
+    const playerId = binaryReader.fixedLengthString(32);
+
+    const playerUser = this.usersById.get(playerId);
+    if (playerUser) {
+      playerUser.setHostToken(isConnected ? user.getUserToken() : null);
+    }
+
+    this.matchPlayersService.handleMatchPlayerMessage(
+      user,
+      isConnected,
+      playerId,
+    );
+  }
+
+  @CommandHandler(WebSocketType.ChatMessage)
+  private handleChatMessage(
+    user: WebSocketUser,
+    binaryReader: BinaryReader,
+  ): void {
+    this.chatService.handleChatMessage(this, user, binaryReader);
   }
 }
