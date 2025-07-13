@@ -10,6 +10,7 @@ import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
+import { ChatService } from "./chat-service.ts";
 import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
@@ -27,6 +28,7 @@ export class WebSocketService {
   constructor(
     private kvService = inject(KVService),
     private matchPlayersService = inject(MatchPlayersService),
+    private chatService = inject(ChatService),
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
@@ -184,7 +186,17 @@ export class WebSocketService {
       }
 
       case WebSocketType.MatchPlayer: {
-        this.matchPlayersService.handleMatchPlayerMessage(user, binaryReader);
+        this.handleMatchPlayerMessage(user, binaryReader);
+        break;
+      }
+
+      case WebSocketType.ChatMessage: {
+        this.chatService.handleChatMessage(
+          user,
+          binaryReader,
+          this.usersById,
+          this.sendMessage.bind(this),
+        );
         break;
       }
 
@@ -307,5 +319,28 @@ export class WebSocketService {
       encodeBase64(destinationTokenBytes),
       tunnelPayload,
     );
+  }
+
+  private handleMatchPlayerMessage(
+    originUser: WebSocketUser,
+    binaryReader: BinaryReader,
+  ): void {
+    const isConnected = binaryReader.boolean();
+    const playerId = binaryReader.fixedLengthString(32);
+
+    const matchId = originUser.getToken();
+    const player = this.usersById.get(playerId);
+    if (player) {
+      player.setMatchId(isConnected ? matchId : null);
+    }
+
+    this.matchPlayersService.updateMatchPlayers(
+      matchId,
+      playerId,
+      isConnected,
+    );
+
+    const action = isConnected ? "joined" : "left";
+    console.log(`Player ${playerId} ${action} match ${matchId}`);
   }
 }

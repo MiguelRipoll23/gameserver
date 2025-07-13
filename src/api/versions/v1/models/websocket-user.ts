@@ -7,6 +7,7 @@ export class WebSocketUser {
   private name: string;
   private connectedTimestamp: number;
   private webSocket: WSContext<WebSocket> | null = null;
+  private matchId: string | null = null;
 
   constructor(id: string, name: string) {
     this.id = id;
@@ -33,6 +34,14 @@ export class WebSocketUser {
 
   public getWebSocket(): WSContext<WebSocket> | null {
     return this.webSocket;
+  }
+
+  public getMatchId(): string | null {
+    return this.matchId;
+  }
+
+  public setMatchId(matchId: string | null): void {
+    this.matchId = matchId;
   }
 
   public setWebSocket(webSocket: WSContext<WebSocket> | null): void {

@@ -14,18 +14,19 @@ export class MatchPlayersService {
     this.matchPlayers.delete(token);
   }
 
-  public handleMatchPlayerMessage(
-    originUser: WebSocketUser,
-    binaryReader: BinaryReader,
-  ): void {
-    const isConnected = binaryReader.boolean();
-    const playerId = binaryReader.fixedLengthString(32);
+  public getPlayers(matchId: string): Set<string> | undefined {
+    return this.matchPlayers.get(matchId);
+  }
 
-    const token = originUser.getToken();
-    let players = this.matchPlayers.get(token);
+  public updateMatchPlayers(
+    matchId: string,
+    playerId: string,
+    isConnected: boolean,
+  ): void {
+    let players = this.matchPlayers.get(matchId);
     if (players === undefined) {
       players = new Set<string>();
-      this.matchPlayers.set(token, players);
+      this.matchPlayers.set(matchId, players);
     }
 
     if (isConnected) {
@@ -33,11 +34,22 @@ export class MatchPlayersService {
     } else {
       players.delete(playerId);
       if (players.size === 0) {
-        this.matchPlayers.delete(token);
+        this.matchPlayers.delete(matchId);
       }
     }
+  }
+
+  public handleMatchPlayerMessage(
+    originUser: WebSocketUser,
+    binaryReader: BinaryReader,
+  ): void {
+    const isConnected = binaryReader.boolean();
+    const playerId = binaryReader.fixedLengthString(32);
+
+    const matchId = originUser.getToken();
+    this.updateMatchPlayers(matchId, playerId, isConnected);
 
     const action = isConnected ? "joined" : "left";
-    console.log(`Player ${playerId} ${action} match ${token}`);
+    console.log(`Player ${playerId} ${action} match ${matchId}`);
   }
 }
