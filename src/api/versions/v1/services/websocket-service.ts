@@ -10,6 +10,7 @@ import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
+import { ChatService } from "./chat-service.ts";
 import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
@@ -27,6 +28,7 @@ export class WebSocketService {
   constructor(
     private kvService = inject(KVService),
     private matchPlayersService = inject(MatchPlayersService),
+    private chatService = inject(ChatService),
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
@@ -161,6 +163,14 @@ export class WebSocketService {
     this.usersByToken.delete(user.getUserToken());
   }
 
+  public getUserById(id: string): WebSocketUser | undefined {
+    return this.usersById.get(id);
+  }
+
+  public getUserByToken(token: string): WebSocketUser | undefined {
+    return this.usersByToken.get(token);
+  }
+
   private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
     const binaryReader = BinaryReader.fromArrayBuffer(arrayBuffer);
 
@@ -197,6 +207,11 @@ export class WebSocketService {
           isConnected,
           playerId,
         );
+        break;
+      }
+
+      case WebSocketType.ChatMessage: {
+        this.chatService.handleChatMessage(user, binaryReader);
         break;
       }
 
