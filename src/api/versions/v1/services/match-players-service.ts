@@ -13,6 +13,14 @@ export class MatchPlayersService {
     this.matchPlayers.delete(token);
   }
 
+  public getPlayersByToken(token: string): string[] {
+    const players = this.matchPlayers.get(token);
+    if (players === undefined) {
+      return [];
+    }
+    return Array.from(players);
+  }
+
   public handleMatchPlayerMessage(
     originUser: WebSocketUser,
     isConnected: boolean,

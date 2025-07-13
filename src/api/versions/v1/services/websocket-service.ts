@@ -10,13 +10,15 @@ import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
+import { ChatService } from "./chat-service.ts";
+import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
 import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 
 @injectable()
-export class WebSocketService {
+export class WebSocketService implements IWebSocketService {
   private broadcastChannel: BroadcastChannel;
   private onlineUsersChannel: BroadcastChannel;
   private serverId: string;
@@ -27,6 +29,7 @@ export class WebSocketService {
   constructor(
     private kvService = inject(KVService),
     private matchPlayersService = inject(MatchPlayersService),
+    private chatService = inject(ChatService),
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
@@ -161,6 +164,14 @@ export class WebSocketService {
     this.usersByToken.delete(user.getUserToken());
   }
 
+  public getUserById(id: string): WebSocketUser | undefined {
+    return this.usersById.get(id);
+  }
+
+  public getUserByToken(token: string): WebSocketUser | undefined {
+    return this.usersByToken.get(token);
+  }
+
   private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
     const binaryReader = BinaryReader.fromArrayBuffer(arrayBuffer);
 
@@ -197,6 +208,11 @@ export class WebSocketService {
           isConnected,
           playerId,
         );
+        break;
+      }
+
+      case WebSocketType.ChatMessage: {
+        this.chatService.handleChatMessage(this, user, binaryReader);
         break;
       }
 
