@@ -34,14 +34,6 @@ export class MatchPlayersService {
       players.delete(playerId);
     }
 
-    this.logPlayerStatus(isConnected, playerId, token);
-  }
-
-  private logPlayerStatus(
-    isConnected: boolean,
-    playerId: string,
-    token: string,
-  ): void {
     const action = isConnected ? "joined" : "left";
     console.log(`Player ${playerId} ${action} match ${token}`);
   }
