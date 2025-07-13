@@ -1,5 +1,4 @@
 import { injectable } from "@needle-di/core";
-import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
 
 @injectable()
@@ -16,12 +15,11 @@ export class MatchPlayersService {
 
   public handleMatchPlayerMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader,
+    isConnected: boolean,
+    playerId: string,
   ): void {
-    const isConnected = binaryReader.boolean();
-    const playerId = binaryReader.fixedLengthString(32);
 
-    const token = originUser.getToken();
+    const token = originUser.getUserToken();
     let players = this.matchPlayers.get(token);
     if (players === undefined) {
       players = new Set<string>();
