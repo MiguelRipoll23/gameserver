@@ -21,13 +21,15 @@ export class WebSocketService {
   private onlineUsersChannel: BroadcastChannel;
   private serverId: string;
   private serversUserCount: Map<string, { count: number; timestamp: number }>;
-  private users: Map<string, WebSocketUser>;
+  private usersById: Map<string, WebSocketUser>;
+  private usersByToken: Map<string, WebSocketUser>;
 
   constructor(
     private kvService = inject(KVService),
     private matchPlayersService = inject(MatchPlayersService),
   ) {
-    this.users = new Map();
+    this.usersById = new Map();
+    this.usersByToken = new Map();
     this.serverId = crypto.randomUUID();
     this.broadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
     this.onlineUsersChannel = new BroadcastChannel(ONLINE_USERS_CHANNEL);
@@ -87,7 +89,7 @@ export class WebSocketService {
 
   private handleBroadcastChannelMessage(event: MessageEvent): void {
     const { destinationToken, payload } = event.data;
-    const destinationUser = this.users.get(destinationToken) ?? null;
+    const destinationUser = this.usersByToken.get(destinationToken) ?? null;
 
     if (destinationUser === null) {
       console.info(`No user found for token ${destinationToken}`);
@@ -124,7 +126,7 @@ export class WebSocketService {
     };
 
     await this.kvService.setSession(userId, session);
-    this.users.set(userToken, webSocketUser);
+    this.addWebSocketUser(webSocketUser);
     this.updateAndBroadcastOnlineUsers();
   }
 
@@ -140,13 +142,23 @@ export class WebSocketService {
 
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
-      this.users.delete(userToken);
+      this.removeWebSocketUser(user);
       this.matchPlayersService.deleteByToken(userToken);
       this.updateAndBroadcastOnlineUsers();
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
       user.setWebSocket(null);
     }
+  }
+
+  private addWebSocketUser(user: WebSocketUser): void {
+    this.usersById.set(user.getId(), user);
+    this.usersByToken.set(user.getToken(), user);
+  }
+
+  private removeWebSocketUser(user: WebSocketUser): void {
+    this.usersById.delete(user.getId());
+    this.usersByToken.delete(user.getToken());
   }
 
   private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -205,7 +217,7 @@ export class WebSocketService {
     destinationToken: string,
     payload: ArrayBuffer,
   ): void {
-    const destinationUser = this.users.get(destinationToken);
+    const destinationUser = this.usersByToken.get(destinationToken);
 
     if (destinationUser) {
       this.sendMessage(destinationUser, payload);
@@ -216,7 +228,7 @@ export class WebSocketService {
   }
 
   private sendNotificationToUsers(text: string): void {
-    for (const user of this.users.values()) {
+    for (const user of this.usersByToken.values()) {
       const textBytes = new TextEncoder().encode(text);
       const payload = BinaryWriter.build()
         .unsignedInt8(WebSocketType.Notification)
@@ -228,7 +240,7 @@ export class WebSocketService {
   }
 
   private updateAndBroadcastOnlineUsers(): void {
-    const count = this.users.size;
+    const count = this.usersByToken.size;
     this.serversUserCount.set(this.serverId, { count, timestamp: Date.now() });
     this.cleanupOldServers();
     this.onlineUsersChannel.postMessage({ serverId: this.serverId, count });
@@ -243,7 +255,7 @@ export class WebSocketService {
       .unsignedInt16(total)
       .toArrayBuffer();
 
-    for (const user of this.users.values()) {
+    for (const user of this.usersByToken.values()) {
       this.sendMessage(user, payload);
     }
   }
