@@ -21,9 +21,11 @@ export class WebSocketService {
   private serverId: string;
   private serversUserCount: Map<string, { count: number; timestamp: number }>;
   private users: Map<string, WebSocketUser>;
+  private matchPlayers: Map<string, Set<string>>;
 
   constructor(private kvService = inject(KVService)) {
     this.users = new Map();
+    this.matchPlayers = new Map();
     this.serverId = crypto.randomUUID();
     this.broadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
     this.onlineUsersChannel = new BroadcastChannel(ONLINE_USERS_CHANNEL);
@@ -137,6 +139,7 @@ export class WebSocketService {
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
       this.users.delete(userToken);
+      this.matchPlayers.delete(userToken);
       this.updateAndBroadcastOnlineUsers();
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
@@ -163,6 +166,11 @@ export class WebSocketService {
 
       case WebSocketType.Tunnel: {
         this.handleTunnelMessage(user, binaryReader);
+        break;
+      }
+
+      case WebSocketType.MatchPlayer: {
+        this.handleMatchPlayerMessage(user, binaryReader);
         break;
       }
 
@@ -265,6 +273,29 @@ export class WebSocketService {
       .toArrayBuffer();
 
     this.sendMessageToOtherUser(destinationToken, playerIdentityPayload);
+  }
+
+  private handleMatchPlayerMessage(
+    originUser: WebSocketUser,
+    binaryReader: BinaryReader,
+  ): void {
+    const isConnected = binaryReader.boolean();
+    const playerId = binaryReader.fixedLengthString(32);
+
+    const token = originUser.getToken();
+    let players = this.matchPlayers.get(token);
+    if (players === undefined) {
+      players = new Set<string>();
+      this.matchPlayers.set(token, players);
+    }
+
+    if (isConnected) {
+      players.add(playerId);
+      console.log(`Player ${playerId} joined match ${token}`);
+    } else {
+      players.delete(playerId);
+      console.log(`Player ${playerId} left match ${token}`);
+    }
   }
 
   private handleTunnelMessage(
