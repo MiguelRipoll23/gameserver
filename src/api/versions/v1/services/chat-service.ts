@@ -62,10 +62,6 @@ export class ChatService {
       .variableLengthString(message)
       .toArrayBuffer();
 
-    const hostUser = wsAdapter.getUserByToken(hostToken);
-    if (hostUser) {
-      wsAdapter.sendMessage(hostUser, payload);
-    }
 
     for (const playerId of this.matchPlayersService.getPlayersByToken(hostToken)) {
       const target = wsAdapter.getUserById(playerId);
