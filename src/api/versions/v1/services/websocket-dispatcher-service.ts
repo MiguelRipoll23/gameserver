@@ -1,6 +1,7 @@
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { getCommandHandlers } from "../decorators/command-handler.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
+import { WebSocketUser } from "../models/websocket-user.ts";
 import { CommandHandlerFunction } from "../types/command-handler-function-type.ts";
 
 export class WebSocketDispatcherService {
@@ -9,7 +10,7 @@ export class WebSocketDispatcherService {
   public registerCommandHandlers(instance: any): void {
     const commandHandlers = getCommandHandlers().filter(
       (commandHandler) =>
-        commandHandler.target === Object.getPrototypeOf(instance)
+        commandHandler.target === Object.getPrototypeOf(instance),
     );
 
     for (const { commandId, methodName } of commandHandlers) {
@@ -17,7 +18,7 @@ export class WebSocketDispatcherService {
 
       if (typeof method !== "function") {
         console.error(
-          `Method "${methodName}" not found or is not a function on the instance.`
+          `Method "${methodName}" not found or is not a function on the instance.`,
         );
         continue;
       }
@@ -28,8 +29,9 @@ export class WebSocketDispatcherService {
   }
 
   public dispatchCommand(
+    user: WebSocketUser,
     commandId: WebSocketType,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): void {
     const commandHandler = this.commandHandlers.get(commandId);
 
@@ -39,18 +41,18 @@ export class WebSocketDispatcherService {
     }
 
     try {
-      commandHandler(binaryReader);
+      commandHandler(user, binaryReader);
     } catch (error) {
       console.error(
         `Error executing command handler for ${WebSocketType[commandId]}:`,
-        error
+        error,
       );
     }
   }
 
   private bindCommandHandler(
     commandId: WebSocketType,
-    commandHandler: CommandHandlerFunction
+    commandHandler: CommandHandlerFunction,
   ): void {
     this.commandHandlers.set(commandId, commandHandler);
     console.log(`Command handler bound for ${WebSocketType[commandId]}`);
