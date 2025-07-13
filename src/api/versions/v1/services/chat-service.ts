@@ -30,21 +30,22 @@ export class ChatService {
       .variableLengthString(message)
       .toArrayBuffer();
 
-    // Send to host
+    const recipients = new Set<string>();
     const hostUser = wsAdapter.getUserByToken(hostToken);
     if (hostUser) {
-      wsAdapter.sendMessage(hostUser, payload);
+      recipients.add(hostUser.getId());
     }
 
-    const players = this.matchPlayersService.getPlayersByToken(hostToken);
-    for (const playerId of players) {
-      // Skip host to avoid duplicate messages
-      if (hostUser && playerId === hostUser.getId()) {
-        continue;
-      }
-      const player = wsAdapter.getUserById(playerId);
-      if (player) {
-        wsAdapter.sendMessage(player, payload);
+    for (
+      const playerId of this.matchPlayersService.getPlayersByToken(hostToken)
+    ) {
+      recipients.add(playerId);
+    }
+
+    for (const id of recipients) {
+      const target = wsAdapter.getUserById(id);
+      if (target) {
+        wsAdapter.sendMessage(target, payload);
       }
     }
   }
