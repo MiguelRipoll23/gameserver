@@ -5,8 +5,24 @@ import { WebSocketType } from "../enums/websocket-enum.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
 import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
+import blockWords from "../../v4/data/block-words.json" assert { type: "json" };
 
 const MAX_CHAT_MESSAGE_LENGTH = 256;
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function filterMessage(message: string): string {
+  for (const word of blockWords as string[]) {
+    const regex = new RegExp(`\\b${escapeRegExp(word)}\\b`, "gi");
+    message = message.replace(
+      regex,
+      (matched: string) => "*".repeat(matched.length),
+    );
+  }
+  return message;
+}
 
 @injectable()
 export class ChatService {
@@ -26,6 +42,8 @@ export class ChatService {
       );
       return;
     }
+    message = filterMessage(message);
+
     const hostToken = user.getHostToken() ?? user.getUserToken();
 
     console.log(
@@ -38,20 +56,13 @@ export class ChatService {
       .variableLengthString(message)
       .toArrayBuffer();
 
-    const recipients = new Set<string>();
     const hostUser = wsAdapter.getUserByToken(hostToken);
     if (hostUser) {
-      recipients.add(hostUser.getId());
+      wsAdapter.sendMessage(hostUser, payload);
     }
 
-    for (
-      const playerId of this.matchPlayersService.getPlayersByToken(hostToken)
-    ) {
-      recipients.add(playerId);
-    }
-
-    for (const id of recipients) {
-      const target = wsAdapter.getUserById(id);
+    for (const playerId of this.matchPlayersService.getPlayersByToken(hostToken)) {
+      const target = wsAdapter.getUserById(playerId);
       if (target) {
         wsAdapter.sendMessage(target, payload);
       }
