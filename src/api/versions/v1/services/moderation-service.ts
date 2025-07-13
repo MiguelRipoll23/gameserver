@@ -3,7 +3,7 @@ import { KVService } from "../../../../core/services/kv-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { BanInformation } from "../interfaces/kv/user-kv.ts";
 import { BanUserRequest } from "../schemas/moderation-schemas.ts";
-import { TimeUtils } from "../../v4/utils/time-utils.ts";
+import { TimeUtils } from "../utils/time-utils.ts";
 
 @injectable()
 export class ModerationService {
