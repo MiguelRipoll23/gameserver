@@ -7,7 +7,7 @@ import { MatchPlayersService } from "./match-players-service.ts";
 import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
 import blockWords from "../data/block-words.json" with { type: "json" };
 
-const MAX_CHAT_MESSAGE_LENGTH = 256;
+const MAX_CHAT_MESSAGE_LENGTH = 35;
 
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -36,9 +36,15 @@ export class ChatService {
     reader: BinaryReader,
   ): void {
     let message = reader.variableLengthString().trim();
-    if (message.length === 0 || message.length > MAX_CHAT_MESSAGE_LENGTH) {
+    if (message.length === 0) {
       console.warn(
-        `Rejected chat message from ${user.getName()} due to invalid length`,
+        `Rejected chat message from ${user.getName()} because it is empty`,
+      );
+      return;
+    }
+    if (message.length > MAX_CHAT_MESSAGE_LENGTH) {
+      console.warn(
+        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${MAX_CHAT_MESSAGE_LENGTH} characters`,
       );
       return;
     }
