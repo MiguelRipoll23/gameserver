@@ -3,7 +3,8 @@ import { AuthenticationUtils } from "../../../utils/authentication-utils.ts";
 
 export class WebSocketUser {
   private id: string;
-  private token: string;
+  private userToken: string;
+  private hostToken: string | null = null;
   private name: string;
   private connectedTimestamp: number;
   private webSocket: WSContext<WebSocket> | null = null;
@@ -11,7 +12,7 @@ export class WebSocketUser {
   constructor(id: string, name: string) {
     this.id = id;
     this.name = name;
-    this.token = AuthenticationUtils.generateToken();
+    this.userToken = AuthenticationUtils.generateToken();
     this.connectedTimestamp = Date.now();
   }
 
@@ -19,8 +20,16 @@ export class WebSocketUser {
     return this.id;
   }
 
-  public getToken(): string {
-    return this.token;
+  public getUserToken(): string {
+    return this.userToken;
+  }
+
+  public getHostToken(): string | null {
+    return this.hostToken;
+  }
+
+  public setHostToken(token: string | null): void {
+    this.hostToken = token;
   }
 
   public getName(): string {
@@ -42,7 +51,8 @@ export class WebSocketUser {
   public serialize(): string {
     return JSON.stringify({
       id: this.id,
-      token: this.token,
+      userToken: this.userToken,
+      hostToken: this.hostToken,
       name: this.name,
       connectedTimestamp: this.connectedTimestamp,
     });

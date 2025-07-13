@@ -118,7 +118,7 @@ export class WebSocketService {
 
   private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {
     const userId = webSocketUser.getId();
-    const userToken = webSocketUser.getToken();
+    const userToken = webSocketUser.getUserToken();
 
     const session: SessionKV = {
       token: userToken,
@@ -133,7 +133,7 @@ export class WebSocketService {
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
     const userId = user.getId();
     const userName = user.getName();
-    const userToken = user.getToken();
+    const userToken = user.getUserToken();
 
     console.log(`User ${userName} disconnected from server`);
 
@@ -153,12 +153,12 @@ export class WebSocketService {
 
   private addWebSocketUser(user: WebSocketUser): void {
     this.usersById.set(user.getId(), user);
-    this.usersByToken.set(user.getToken(), user);
+    this.usersByToken.set(user.getUserToken(), user);
   }
 
   private removeWebSocketUser(user: WebSocketUser): void {
     this.usersById.delete(user.getId());
-    this.usersByToken.delete(user.getToken());
+    this.usersByToken.delete(user.getUserToken());
   }
 
   private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -184,7 +184,19 @@ export class WebSocketService {
       }
 
       case WebSocketType.MatchPlayer: {
-        this.matchPlayersService.handleMatchPlayerMessage(user, binaryReader);
+        const isConnected = binaryReader.boolean();
+        const playerId = binaryReader.fixedLengthString(32);
+
+        const playerUser = this.usersById.get(playerId);
+        if (playerUser) {
+          playerUser.setHostToken(isConnected ? user.getUserToken() : null);
+        }
+
+        this.matchPlayersService.handleMatchPlayerMessage(
+          user,
+          isConnected,
+          playerId,
+        );
         break;
       }
 
@@ -281,7 +293,7 @@ export class WebSocketService {
 
     const playerIdentityPayload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.PlayerIdentity)
-      .bytes(decodeBase64(originUser.getToken()), 32)
+      .bytes(decodeBase64(originUser.getUserToken()), 32)
       .fixedLengthString(originUser.getId(), 32)
       .fixedLengthString(originUser.getName(), 16)
       .toArrayBuffer();
@@ -299,7 +311,7 @@ export class WebSocketService {
 
     const tunnelPayload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.Tunnel)
-      .bytes(decodeBase64(originUser.getToken()), 32)
+      .bytes(decodeBase64(originUser.getUserToken()), 32)
       .bytes(dataBytes)
       .toArrayBuffer();
 
