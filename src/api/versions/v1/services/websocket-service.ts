@@ -11,14 +11,14 @@ import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
 import { ChatService } from "./chat-service.ts";
-import type { WebSocketAdapter } from "../interfaces/websocket-adapter.ts";
+import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
 import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 
 @injectable()
-export class WebSocketService implements WebSocketAdapter {
+export class WebSocketService implements IWebSocketService {
   private broadcastChannel: BroadcastChannel;
   private onlineUsersChannel: BroadcastChannel;
   private serverId: string;

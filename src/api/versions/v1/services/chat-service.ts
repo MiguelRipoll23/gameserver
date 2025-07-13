@@ -4,7 +4,7 @@ import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
-import type { WebSocketAdapter } from "../interfaces/websocket-adapter.ts";
+import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
 
 @injectable()
 export class ChatService {
@@ -13,7 +13,7 @@ export class ChatService {
   ) {}
 
   public handleChatMessage(
-    wsAdapter: WebSocketAdapter,
+    wsAdapter: IWebSocketService,
     user: WebSocketUser,
     reader: BinaryReader,
   ): void {
