@@ -9,6 +9,7 @@ import { SessionKV } from "../interfaces/kv/session-kv.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
+import { MatchPlayersService } from "./match-players-service.ts";
 import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
@@ -22,7 +23,10 @@ export class WebSocketService {
   private serversUserCount: Map<string, { count: number; timestamp: number }>;
   private users: Map<string, WebSocketUser>;
 
-  constructor(private kvService = inject(KVService)) {
+  constructor(
+    private kvService = inject(KVService),
+    private matchPlayersService = inject(MatchPlayersService),
+  ) {
     this.users = new Map();
     this.serverId = crypto.randomUUID();
     this.broadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
@@ -137,6 +141,7 @@ export class WebSocketService {
     if (result.ok) {
       console.log(`Deleted temporary data for user ${userName}`);
       this.users.delete(userToken);
+      this.matchPlayersService.deleteByToken(userToken);
       this.updateAndBroadcastOnlineUsers();
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
@@ -163,6 +168,11 @@ export class WebSocketService {
 
       case WebSocketType.Tunnel: {
         this.handleTunnelMessage(user, binaryReader);
+        break;
+      }
+
+      case WebSocketType.MatchPlayer: {
+        this.matchPlayersService.handleMatchPlayerMessage(user, binaryReader);
         break;
       }
 
@@ -266,6 +276,7 @@ export class WebSocketService {
 
     this.sendMessageToOtherUser(destinationToken, playerIdentityPayload);
   }
+
 
   private handleTunnelMessage(
     originUser: WebSocketUser,
