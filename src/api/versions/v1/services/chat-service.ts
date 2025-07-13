@@ -6,6 +6,8 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
 import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
 
+const MAX_CHAT_MESSAGE_LENGTH = 256;
+
 @injectable()
 export class ChatService {
   constructor(
@@ -17,7 +19,13 @@ export class ChatService {
     user: WebSocketUser,
     reader: BinaryReader,
   ): void {
-    const message = reader.variableLengthString();
+    let message = reader.variableLengthString().trim();
+    if (message.length === 0 || message.length > MAX_CHAT_MESSAGE_LENGTH) {
+      console.warn(
+        `Rejected chat message from ${user.getName()} due to invalid length`,
+      );
+      return;
+    }
     const hostToken = user.getHostToken() ?? user.getUserToken();
 
     console.log(
