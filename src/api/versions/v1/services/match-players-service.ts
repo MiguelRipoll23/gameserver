@@ -32,6 +32,9 @@ export class MatchPlayersService {
       players.add(playerId);
     } else {
       players.delete(playerId);
+      if (players.size === 0) {
+        this.matchPlayers.delete(token);
+      }
     }
 
     const action = isConnected ? "joined" : "left";
