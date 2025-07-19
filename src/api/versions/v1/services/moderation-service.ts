@@ -62,6 +62,13 @@ export class ModerationService {
     body: ReportUserRequest,
   ): Promise<void> {
     const { userId, reason, automatic } = body;
+    if (reporterId === userId) {
+      throw new ServerError(
+        "INVALID_REPORT",
+        "Cannot report yourself",
+        400,
+      );
+    }
     const user = await this.kvService.getUser(userId);
 
     if (user === null) {
