@@ -8,7 +8,7 @@ import {
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
-export class ManagementModerationRouter {
+export class ManagementUserModerationRouter {
   private app: OpenAPIHono;
 
   constructor(private moderationService = inject(ModerationService)) {
@@ -32,7 +32,7 @@ export class ManagementModerationRouter {
         path: "/ban",
         summary: "Ban user",
         description: "Temporarily or permanently bans a user",
-        tags: ["Player moderation"],
+        tags: ["User moderation"],
         request: {
           body: {
             content: {
@@ -65,7 +65,7 @@ export class ManagementModerationRouter {
         path: "/ban/:userId",
         summary: "Unban user",
         description: "Removes the ban for the specified user",
-        tags: ["Player moderation"],
+        tags: ["User moderation"],
         request: {
           params: UnbanUserRequestSchema,
         },
