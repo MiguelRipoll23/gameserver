@@ -19,7 +19,7 @@ export const BanDurationSchema = z
       case "minutes":
         return d.value <= 59;
       case "hours":
-        return d.value <= 24;
+        return d.value <= 23;
       case "days":
         return d.value <= 7;
       case "weeks":
