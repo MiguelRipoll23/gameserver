@@ -1,5 +1,42 @@
 import { z } from "@hono/zod-openapi";
 
+export const BanDurationSchema = z
+  .object({
+    value: z
+      .number()
+      .int()
+      .min(1)
+      .max(60)
+      .describe("Value of the ban duration")
+      .openapi({ example: 1 }),
+    unit: z
+      .enum(["minutes", "hours", "days", "weeks", "months", "years"])
+      .describe("Unit of the ban duration")
+      .openapi({ example: "hours" }),
+  })
+  .refine((d) => {
+    switch (d.unit) {
+      case "minutes":
+        return d.value <= 59;
+      case "hours":
+        return d.value <= 24;
+      case "days":
+        return d.value <= 7;
+      case "weeks":
+        return d.value <= 4;
+      case "months":
+        return d.value <= 12;
+      case "years":
+        return d.value <= 5;
+      default:
+        return true;
+    }
+  }, {
+    message: "Duration value exceeds allowed range for unit",
+  });
+
+export type BanDuration = z.infer<typeof BanDurationSchema>;
+
 export const BanUserRequestSchema = z.object({
   userId: z
     .string()
@@ -14,14 +51,9 @@ export const BanUserRequestSchema = z.object({
     .openapi({
       example: "Toxic behaviour",
     }),
-  duration: z
-    .string()
-    .regex(/^[1-9]\d*(?:mo|m|h|d|w|y)$/)
-    .optional()
-    .describe(
-      `Relative ban duration. Supported units:\n- 'm' for minutes\n- 'h' for hours\n- 'd' for days\n- 'w' for weeks\n- 'mo' for months\n- 'y' for years`,
-    )
-    .openapi({ example: "1h" }),
+  duration: BanDurationSchema.optional().describe(
+    "Duration of the ban. If omitted the ban is permanent",
+  ),
 });
 
 export type BanUserRequest = z.infer<typeof BanUserRequestSchema>;

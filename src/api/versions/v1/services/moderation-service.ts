@@ -24,7 +24,7 @@ export class ModerationService {
     let expiresAt: number | null = null;
     if (duration) {
       try {
-        expiresAt = TimeUtils.parseRelativeTime(duration);
+        expiresAt = TimeUtils.parseDuration(duration);
       } catch {
         throw new ServerError(
           "INVALID_DURATION",
