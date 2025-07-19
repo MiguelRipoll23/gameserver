@@ -17,6 +17,19 @@ export class TimeUtils {
     years: 365 * 24 * 60 * 60 * 1000,
   };
 
+  private static addRelativeMs(relativeMs: number, descriptor: string): number {
+    if (relativeMs > Number.MAX_SAFE_INTEGER) {
+      throw new Error(`Relative time overflow: ${descriptor}`);
+    }
+
+    const timestamp = Date.now() + relativeMs;
+    if (timestamp > Number.MAX_SAFE_INTEGER) {
+      throw new Error(`Relative time overflow: ${descriptor}`);
+    }
+
+    return timestamp;
+  }
+
   public static parseRelativeTime(value: string): number {
     const match = value.match(/^([1-9]\d*)(mo|m|h|d|w|y)$/);
     if (!match) {
@@ -27,16 +40,7 @@ export class TimeUtils {
     const unit = match[2];
     const multiplier = TimeUtils.unitMap[unit];
     const relativeMs = amount * multiplier;
-    if (relativeMs > Number.MAX_SAFE_INTEGER) {
-      throw new Error(`Relative time overflow: ${value}`);
-    }
-
-    const timestamp = Date.now() + relativeMs;
-    if (timestamp > Number.MAX_SAFE_INTEGER) {
-      throw new Error(`Relative time overflow: ${value}`);
-    }
-
-    return timestamp;
+    return TimeUtils.addRelativeMs(relativeMs, value);
   }
 
   public static parseDuration(
@@ -48,19 +52,9 @@ export class TimeUtils {
     }
 
     const relativeMs = duration.value * multiplier;
-    if (relativeMs > Number.MAX_SAFE_INTEGER) {
-      throw new Error(
-        `Relative time overflow: ${duration.value}${duration.unit}`,
-      );
-    }
-
-    const timestamp = Date.now() + relativeMs;
-    if (timestamp > Number.MAX_SAFE_INTEGER) {
-      throw new Error(
-        `Relative time overflow: ${duration.value}${duration.unit}`,
-      );
-    }
-
-    return timestamp;
+    return TimeUtils.addRelativeMs(
+      relativeMs,
+      `${duration.value}${duration.unit}`,
+    );
   }
 }
