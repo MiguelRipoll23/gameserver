@@ -35,3 +35,25 @@ export const UnbanUserRequestSchema = z.object({
 });
 
 export type UnbanUserRequest = z.infer<typeof UnbanUserRequestSchema>;
+
+export const ReportUserRequestSchema = z.object({
+  userId: z
+    .string()
+    .length(32)
+    .describe("The user ID to report")
+    .openapi({ example: "123e4567e89b12d3a456426614174000" }),
+  reason: z
+    .string()
+    .min(1)
+    .max(100)
+    .describe("Reason for the report")
+    .openapi({ example: "Offensive language" }),
+  automatic: z
+    .boolean()
+    .describe(
+      "Defines if the game client reported this automatically",
+    )
+    .openapi({ example: false }),
+});
+
+export type ReportUserRequest = z.infer<typeof ReportUserRequestSchema>;

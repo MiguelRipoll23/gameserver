@@ -8,6 +8,7 @@ import { AuthenticatedMessagesRouter } from "./authenticated/authenticated-messa
 import { AuthenticatedMatchesRouter } from "./authenticated/authenticated-matches-router.ts";
 import { AuthenticatedScoresRouter } from "./authenticated/authenticated-scores-router.ts";
 import { AuthenticatedStatsRouter } from "./authenticated/authenticated-stats-router.ts";
+import { AuthenticatedUserModerationRouter } from "./authenticated/authenticated-user-moderation-router.ts";
 
 @injectable()
 export class V1AuthenticatedRouter {
@@ -21,6 +22,7 @@ export class V1AuthenticatedRouter {
     private statsRouter = inject(AuthenticatedStatsRouter),
     private matchesRouter = inject(AuthenticatedMatchesRouter),
     private scoresRouter = inject(AuthenticatedScoresRouter),
+    private userModerationRouter = inject(AuthenticatedUserModerationRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();
@@ -46,5 +48,6 @@ export class V1AuthenticatedRouter {
     this.app.route("/server-stats", this.statsRouter.getRouter());
     this.app.route("/matches", this.matchesRouter.getRouter());
     this.app.route("/player-scores", this.scoresRouter.getRouter());
+    this.app.route("/user-moderation", this.userModerationRouter.getRouter());
   }
 }

@@ -10,5 +10,6 @@ export const KV_KEYS = "keys";
 export const KV_MESSAGE = "message";
 export const KV_MATCHES = "matches";
 export const KV_SCORES = "scores";
+export const KV_REPORT = "report";
 
 export const KV_OPTIONS_EXPIRATION_TIME = 5 * 60 * 1000;
