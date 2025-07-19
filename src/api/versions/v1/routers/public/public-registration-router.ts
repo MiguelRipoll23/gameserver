@@ -36,7 +36,7 @@ export class PublicRegistrationRouter {
         path: "/options",
         summary: "Get registration options",
         description: "Registration options for a new credential",
-        tags: ["Registration"],
+        tags: ["User registration"],
         request: {
           body: {
             content: {
@@ -72,7 +72,7 @@ export class PublicRegistrationRouter {
         const response = await this.registrationService.getOptions(validated);
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 
@@ -83,7 +83,7 @@ export class PublicRegistrationRouter {
         path: "/response",
         summary: "Verify registration response",
         description: "Result of a registration attempt for a new credential",
-        tags: ["Registration"],
+        tags: ["User registration"],
         request: {
           body: {
             content: {
@@ -110,11 +110,11 @@ export class PublicRegistrationRouter {
         const validated = c.req.valid("json");
         const response = await this.registrationService.verifyResponse(
           connInfo,
-          validated,
+          validated
         );
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 }

@@ -35,7 +35,7 @@ export class PublicAuthenticationRouter {
         path: "/options",
         summary: "Get authentication options",
         description: "Authentication options for a new credential",
-        tags: ["Authentication"],
+        tags: ["User authentication"],
         request: {
           body: {
             content: {
@@ -62,7 +62,7 @@ export class PublicAuthenticationRouter {
         const response = await this.authenticationService.getOptions(validated);
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 
@@ -74,7 +74,7 @@ export class PublicAuthenticationRouter {
         summary: "Verify authentication response",
         description:
           "Result of an authentication attempt for an existing credential",
-        tags: ["Authentication"],
+        tags: ["User authentication"],
         request: {
           body: {
             content: {
@@ -101,11 +101,11 @@ export class PublicAuthenticationRouter {
         const validated = c.req.valid("json");
         const response = await this.authenticationService.verifyResponse(
           connInfo,
-          validated,
+          validated
         );
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 }
