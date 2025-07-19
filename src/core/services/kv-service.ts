@@ -7,6 +7,7 @@ import {
   KV_MESSAGE,
   KV_REGISTRATION_OPTIONS,
   KV_SCORES,
+  KV_REPORT,
   KV_SESSIONS,
   KV_USERS,
   KV_USERS_BY_DISPLAY_NAME,
@@ -22,6 +23,7 @@ import { SessionKV } from "../../api/versions/v1/interfaces/kv/session-kv.ts";
 import { MessageKV } from "../../api/versions/v1/interfaces/kv/message-kv.ts";
 import { MatchKV } from "../../api/versions/v1/interfaces/kv/match_kv.ts";
 import { ScoreKV } from "../../api/versions/v1/interfaces/kv/score.ts";
+import { ReportKV } from "../../api/versions/v1/interfaces/kv/report-kv.ts";
 import { ConfigurationType } from "../types/configuration-type.ts";
 
 @injectable()
@@ -219,6 +221,17 @@ export class KVService {
 
   public async deleteMessage(timestamp: number): Promise<void> {
     await this.getKv().delete([KV_MESSAGE, timestamp]);
+  }
+
+  public async setReport(
+    reporterId: string,
+    reportedUserId: string,
+    report: ReportKV,
+  ): Promise<void> {
+    await this.getKv().set(
+      [KV_REPORT, reporterId, reportedUserId, Date.now()],
+      report,
+    );
   }
 
   public listMatches(): Deno.KvListIterator<MatchKV> {
