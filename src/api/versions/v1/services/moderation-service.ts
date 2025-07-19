@@ -10,7 +10,7 @@ export class ModerationService {
   constructor(private kvService = inject(KVService)) {}
 
   public async banUser(body: BanUserRequest): Promise<void> {
-    const { userId, reason, duration } = body;
+    const { userId, reason, durationValue, durationUnit } = body;
     const user = await this.kvService.getUser(userId);
 
     if (user === null) {
@@ -18,9 +18,9 @@ export class ModerationService {
     }
 
     let expiresAt: number | null = null;
-    if (duration) {
+    if (durationValue !== undefined && durationUnit !== undefined) {
       try {
-        expiresAt = TimeUtils.parseRelativeTime(duration);
+        expiresAt = TimeUtils.getRelativeTimestamp(durationValue, durationUnit);
       } catch {
         throw new ServerError(
           "INVALID_DURATION",
