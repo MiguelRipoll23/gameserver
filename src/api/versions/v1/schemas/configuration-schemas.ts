@@ -1,8 +1,7 @@
 import { z } from "@hono/zod-openapi";
 
 export const UpdateConfigurationRequestSchema = z
-  .object({})
-  .passthrough()
+  .looseObject({})
   .describe("The cloud game configuration from the server")
   .openapi({
     example: {
@@ -16,8 +15,7 @@ export type UpdateConfigurationRequest = z.infer<
 >;
 
 export const GetConfigurationResponseSchema = z
-  .object({})
-  .passthrough()
+  .looseObject({})
   .describe("The cloud game configuration from the server")
   .openapi({
     example: {
