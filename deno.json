@@ -8,7 +8,7 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
     "hono": "npm:hono@^4.8.5",
-    "zod": "npm:zod@^4.0.5"
+    "zod": "npm:zod@^4.0.8"
   },
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
