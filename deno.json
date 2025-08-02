@@ -13,8 +13,5 @@
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
     "check": "deno check src/main.ts"
-  },
-  "compilerOptions": {
-    "experimentalDecorators": true
   }
 }
