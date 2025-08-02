@@ -1,4 +1,4 @@
-export interface MessageKV {
+export interface ServerMessageKV {
   title: string;
   content: string;
   timestamp: number;

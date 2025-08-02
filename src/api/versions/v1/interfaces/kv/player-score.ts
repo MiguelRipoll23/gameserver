@@ -1,4 +1,4 @@
-export interface ScoreKV {
+export interface PlayerScoreKV {
   playerId: string;
   playerName: string;
   score: number;

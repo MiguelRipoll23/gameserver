@@ -1,7 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { CryptoService } from "../../../../core/services/crypto-service.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
-import { ScoreKV } from "../interfaces/kv/score.ts";
+import { PlayerScoreKV } from "../interfaces/kv/player-score.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   GetScoresResponse,
@@ -78,7 +78,7 @@ export class ScoresService {
     const existing = await this.kvService.getScore(playerId);
     const totalScore = score + (existing?.score ?? 0);
 
-    const newScore: ScoreKV = { playerId, playerName, score: totalScore };
+    const newScore: PlayerScoreKV = { playerId, playerName, score: totalScore };
     await this.kvService.setScore(playerId, newScore);
   }
 }
