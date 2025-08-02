@@ -6,7 +6,7 @@ import {
   BanUserRequest,
   ReportUserRequest,
 } from "../schemas/moderation-schemas.ts";
-import { ReportKV } from "../interfaces/kv/report-kv.ts";
+import { PlayerReportKV } from "../interfaces/kv/player-report-kv.ts";
 import { TimeUtils } from "../utils/time-utils.ts";
 
 @injectable()
@@ -29,7 +29,7 @@ export class ModerationService {
         throw new ServerError(
           "INVALID_DURATION",
           "Invalid ban duration format",
-          400,
+          400
         );
       }
     }
@@ -59,15 +59,11 @@ export class ModerationService {
 
   public async reportUser(
     reporterId: string,
-    body: ReportUserRequest,
+    body: ReportUserRequest
   ): Promise<void> {
     const { userId, reason, automatic } = body;
     if (reporterId === userId) {
-      throw new ServerError(
-        "INVALID_REPORT",
-        "Cannot report yourself",
-        400,
-      );
+      throw new ServerError("INVALID_REPORT", "Cannot report yourself", 400);
     }
     const user = await this.kvService.getUser(userId);
 
@@ -75,7 +71,7 @@ export class ModerationService {
       throw new ServerError("USER_NOT_FOUND", "User not found", 404);
     }
 
-    const report: ReportKV = { userId, reason, automatic };
+    const report: PlayerReportKV = { userId, reason, automatic };
     await this.kvService.setReport(reporterId, userId, report);
   }
 }

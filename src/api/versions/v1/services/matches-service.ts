@@ -6,7 +6,7 @@ import {
 } from "../schemas/matches-schemas.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { SessionKV } from "../interfaces/kv/session-kv.ts";
-import { MatchKV } from "../interfaces/kv/match_kv.ts";
+import { MatchKV } from "../interfaces/kv/match-kv.ts";
 import { ServerError } from "../models/server-error.ts";
 
 @injectable()
@@ -15,7 +15,7 @@ export class MatchesService {
 
   public async advertise(
     userId: string,
-    body: AdvertiseMatchRequest,
+    body: AdvertiseMatchRequest
   ): Promise<void> {
     // Get the user session
     const session: SessionKV | null = await this.kvService.getSession(userId);
@@ -35,14 +35,14 @@ export class MatchesService {
       attributes: attributes ?? {},
     };
 
-    const response: Deno.KvCommitResult | Deno.KvCommitError = await this
-      .kvService.setMatch(userId, match);
+    const response: Deno.KvCommitResult | Deno.KvCommitError =
+      await this.kvService.setMatch(userId, match);
 
     if (response.ok === false) {
       throw new ServerError(
         "MATCH_CREATION_FAILED",
         "Match creation failed",
-        500,
+        500
       );
     }
   }
@@ -60,21 +60,21 @@ export class MatchesService {
   }
 
   public async delete(userId: string): Promise<void> {
-    const response: Deno.KvCommitResult | Deno.KvCommitError = await this
-      .kvService.deleteMatch(userId);
+    const response: Deno.KvCommitResult | Deno.KvCommitError =
+      await this.kvService.deleteMatch(userId);
 
     if (response.ok === false) {
       throw new ServerError(
         "MATCH_DELETION_FAILED",
         "Match deletion failed",
-        500,
+        500
       );
     }
   }
 
   private filter(
     matches: MatchKV[],
-    body: FindMatchesRequest,
+    body: FindMatchesRequest
   ): FindMatchesResponse {
     const results: FindMatchesResponse = [];
 

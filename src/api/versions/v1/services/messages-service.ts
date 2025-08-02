@@ -1,6 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
-import { MessageKV } from "../interfaces/kv/message-kv.ts";
+import { ServerMessageKV } from "../interfaces/kv/server-message-kv.ts";
 import {
   CreateMessageRequest,
   GetMessageResponse,
@@ -11,9 +11,9 @@ export class MessagesService {
   constructor(private kvService = inject(KVService)) {}
 
   public async list(): Promise<GetMessageResponse> {
-    const entries: Deno.KvListIterator<MessageKV> = this.kvService
-      .listMessages();
-    const messages: MessageKV[] = [];
+    const entries: Deno.KvListIterator<ServerMessageKV> =
+      this.kvService.listMessages();
+    const messages: ServerMessageKV[] = [];
 
     for await (const entry of entries) {
       messages.push(entry.value);
