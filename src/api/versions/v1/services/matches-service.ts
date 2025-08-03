@@ -9,7 +9,7 @@ import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { MatchAttributes } from "../interfaces/match-attributes.ts";
 import { ServerError } from "../models/server-error.ts";
 import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { MatchEntity } from "../../../../db/tables/matches-table.ts";
 
 @injectable()
@@ -73,7 +73,17 @@ export class MatchesService {
 
   public async find(body: FindMatchesRequest): Promise<FindMatchesResponse> {
     const db = this.databaseService.get();
-    const matches = await db.select().from(matchesTable).limit(50);
+    // Filter by version and available slots in a single where clause
+    const matches = await db
+      .select()
+      .from(matchesTable)
+      .where(
+        and(
+          eq(matchesTable.version, body.version),
+          sql`${matchesTable.availableSlots} >= ${body.totalSlots}`
+        )
+      )
+      .limit(50);
 
     return this.filter(matches, body);
   }
@@ -102,10 +112,6 @@ export class MatchesService {
     const results: FindMatchesResponse = [];
 
     for (const match of matches) {
-      if (this.hasAvailableSlots(body, match) === false) {
-        continue;
-      }
-
       if (this.hasAttributes(body, match) === false) {
         continue;
       }
