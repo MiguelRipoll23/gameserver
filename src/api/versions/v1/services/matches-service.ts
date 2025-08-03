@@ -25,17 +25,18 @@ export class MatchesService {
   ): Promise<void> {
     // Get the user session from database
     const db = this.databaseService.get();
-    const sessions = await db
+    const session = await db
       .select({ id: userSessionsTable.id })
       .from(userSessionsTable)
       .where(eq(userSessionsTable.userId, userId))
-      .limit(1);
+      .limit(1)
+      .then(rows => rows[0]);
 
-    if (sessions.length === 0) {
+    if (!session) {
       throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
     }
 
-    const sessionId = sessions[0].id;
+    const sessionId = session.id;
     const { version, totalSlots, availableSlots, attributes } = body;
 
     try {
@@ -139,16 +140,7 @@ export class MatchesService {
     return matches.filter(match => this.hasAttributes(body, match));
   }
 
-  private isSameVersion(body: FindMatchesRequest, match: MatchEntity): boolean {
-    return body.version === match.version;
-  }
 
-  private hasAvailableSlots(
-    body: FindMatchesRequest,
-    match: MatchEntity
-  ): boolean {
-    return body.totalSlots <= match.availableSlots;
-  }
 
   private hasAttributes(body: FindMatchesRequest, match: MatchEntity): boolean {
     const matchAttributes = match.attributes as MatchAttributes;
