@@ -242,10 +242,19 @@ export class AuthenticationService {
     credential.counter = authenticationInfo.newCounter;
 
     const db = this.databaseService.get();
-    await db
-      .update(userCredentialsTable)
-      .set({ counter: credential.counter })
-      .where(eq(userCredentialsTable.id, credential.id));
+    try {
+      await db
+        .update(userCredentialsTable)
+        .set({ counter: credential.counter })
+        .where(eq(userCredentialsTable.id, credential.id));
+    } catch (error) {
+      console.error('Failed to update credential counter:', error);
+      throw new ServerError(
+        'CREDENTIAL_COUNTER_UPDATE_FAILED',
+        'Failed to update credential counter',
+        500
+      );
+    }
   }
 
   private async getUserOrThrowError(
