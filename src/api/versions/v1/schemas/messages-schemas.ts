@@ -14,7 +14,7 @@ export type CreateMessageRequest = z.infer<typeof CreateMessageRequestSchema>;
 
 export const DeleteMessageRequestSchema = z.object({
   id: z
-    .number()
+    .coerce.number()
     .describe("The ID of the message to delete")
     .openapi({
       example: 1,
@@ -51,7 +51,7 @@ export type GetMessageResponse = z.infer<typeof GetMessageResponseSchema>;
 
 export const UpdateMessageRequestSchema = z.object({
   id: z
-    .number()
+    .coerce.number()
     .describe("The ID of the message to update")
     .openapi({ example: 1 }),
   title: z
