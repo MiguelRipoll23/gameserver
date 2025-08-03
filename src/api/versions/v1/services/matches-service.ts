@@ -6,11 +6,9 @@ import {
 } from "../schemas/matches-schemas.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { MatchAttributes } from "../interfaces/match-attributes.ts";
 import { ServerError } from "../models/server-error.ts";
 import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
 import { eq, and, sql } from "drizzle-orm";
-import { MatchEntity } from "../../../../db/tables/matches-table.ts";
 
 @injectable()
 export class MatchesService {
@@ -86,6 +84,17 @@ export class MatchesService {
     if (body.cursor) {
       conditions.push(sql`${matchesTable.id} > ${body.cursor}`);
     }
+
+    // Add attribute conditions using jsonb operators
+    if (body.attributes) {
+      for (const [key, value] of Object.entries(body.attributes)) {
+        // Use ? operator to check if key exists and @> for exact value match
+        conditions.push(sql`${matchesTable.attributes} ? ${key}`);
+        conditions.push(
+          sql`${matchesTable.attributes}->>${key} = ${JSON.stringify(value)}`
+        );
+      }
+    }
     
     // Get one extra item to determine if there are more results
     const matches = await db
@@ -94,13 +103,10 @@ export class MatchesService {
       .where(and(...conditions))
       .orderBy(matchesTable.id)
       .limit(limit + 1);
-
-    // Filter matches by attributes
-    const filteredMatches = this.filter(matches, body);
     
     // Remove the extra item and use it to determine if there are more results
-    const hasNextPage = filteredMatches.length > limit;
-    const results = filteredMatches.slice(0, limit);
+    const hasNextPage = matches.length > limit;
+    const results = matches.slice(0, limit);
     
     // Transform the results into the expected response format
     return {
@@ -133,28 +139,5 @@ export class MatchesService {
     }
   }
 
-  private filter(
-    matches: MatchEntity[],
-    body: FindMatchesRequest
-  ): MatchEntity[] {
-    return matches.filter(match => this.hasAttributes(body, match));
-  }
 
-
-
-  private hasAttributes(body: FindMatchesRequest, match: MatchEntity): boolean {
-    const matchAttributes = match.attributes as MatchAttributes;
-
-    for (const key in body.attributes) {
-      if (key in matchAttributes === false) {
-        return false;
-      }
-
-      if (body.attributes[key] !== matchAttributes[key]) {
-        return false;
-      }
-    }
-
-    return true;
-  }
 }
