@@ -7,6 +7,7 @@ import {
 } from "../schemas/messages-schemas.ts";
 import { serverMessagesTable } from "../../../../db/schema.ts";
 import { desc, eq } from "drizzle-orm";
+import { ServerError } from "../models/server-error.ts";
 
 @injectable()
 export class MessagesService {
@@ -54,7 +55,7 @@ export class MessagesService {
       // But ServerError expects ContentfulStatusCode, which is a number or string
       // We'll use 404
       // Error code string can be e.g. "MESSAGE_NOT_FOUND"
-      throw new (await import("../models/server-error.ts")).ServerError(
+      throw new ServerError(
         "MESSAGE_NOT_FOUND",
         `Message with id ${id} does not exist`,
         404
@@ -67,34 +68,25 @@ export class MessagesService {
 
   public async update(messageRequest: UpdateMessageRequest): Promise<GetMessageResponse[number]> {
     const db = this.databaseService.get();
-    // Check if message exists
-    const existing = await db
-      .select()
-      .from(serverMessagesTable)
-      .where(eq(serverMessagesTable.id, messageRequest.id))
-      .limit(1);
-    if (existing.length === 0) {
-      throw new (await import("../models/server-error.ts")).ServerError(
-        "MESSAGE_NOT_FOUND",
-        `Message with id ${messageRequest.id} does not exist`,
-        404
-      );
-    }
-    await db
+    
+    const updated = await db
       .update(serverMessagesTable)
       .set({
         title: messageRequest.title,
         content: messageRequest.content,
         updatedAt: new Date(),
       })
-      .where(eq(serverMessagesTable.id, messageRequest.id));
-    // Return the updated message
-    const updated = await db
-      .select()
-      .from(serverMessagesTable)
       .where(eq(serverMessagesTable.id, messageRequest.id))
-      .limit(1);
-    // Map to response format if needed
+      .returning();
+
+    if (updated.length === 0) {
+      throw new ServerError(
+        "MESSAGE_NOT_FOUND",
+        `Message with id ${messageRequest.id} does not exist`,
+        404
+      );
+    }
+
     const msg = updated[0];
     return {
       id: msg.id,
