@@ -5,10 +5,10 @@ import {
   ONLINE_USERS_SERVER_TTL,
   TUNNEL_CHANNEL,
 } from "../constants/websocket-constants.ts";
-import { SessionKV } from "../interfaces/kv/session-kv.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
 import { ChatService } from "./chat-service.ts";
 import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
@@ -18,6 +18,8 @@ import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
+import { userSessionsTable } from "../../../../db/schema.ts";
+import { eq } from "drizzle-orm";
 
 @injectable()
 export class WebSocketService implements IWebSocketService {
@@ -30,9 +32,10 @@ export class WebSocketService implements IWebSocketService {
 
   constructor(
     private kvService = inject(KVService),
+    private databaseService = inject(DatabaseService),
     private matchPlayersService = inject(MatchPlayersService),
     private chatService = inject(ChatService),
-    private dispatcher = inject(WebSocketDispatcherService),
+    private dispatcher = inject(WebSocketDispatcherService)
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
@@ -65,14 +68,14 @@ export class WebSocketService implements IWebSocketService {
 
   public async handleCloseEvent(
     _event: CloseEvent,
-    user: WebSocketUser,
+    user: WebSocketUser
   ): Promise<void> {
     await this.handleDisconnection(user);
   }
 
   public handleMessageEvent(
     event: MessageEvent<WSMessageReceive>,
-    user: WebSocketUser,
+    user: WebSocketUser
   ): void {
     if (!(event.data instanceof ArrayBuffer)) return;
 
@@ -84,14 +87,13 @@ export class WebSocketService implements IWebSocketService {
   }
 
   private addBroadcastChannelListeners(): void {
-    this.broadcastChannel.onmessage = this.handleBroadcastChannelMessage.bind(
-      this,
-    );
+    this.broadcastChannel.onmessage =
+      this.handleBroadcastChannelMessage.bind(this);
   }
 
   private addOnlineUsersChannelListeners(): void {
-    this.onlineUsersChannel.onmessage = this.handleOnlineUsersChannelMessage
-      .bind(this);
+    this.onlineUsersChannel.onmessage =
+      this.handleOnlineUsersChannelMessage.bind(this);
   }
 
   private handleBroadcastChannelMessage(event: MessageEvent): void {
@@ -127,12 +129,19 @@ export class WebSocketService implements IWebSocketService {
     const userId = webSocketUser.getId();
     const userToken = webSocketUser.getUserToken();
 
-    const session: SessionKV = {
-      token: userToken,
-      timestamp: Date.now(),
-    };
+    // Store session in database
+    const db = this.databaseService.get();
 
-    await this.kvService.setSession(userId, session);
+    try {
+      await db.insert(userSessionsTable).values({
+        id: userToken,
+        userId: userId,
+      });
+    } catch (error) {
+      // Handle unique constraint violation or other errors
+      console.log(`Session already exists or error creating session: ${error}`);
+    }
+
     this.addWebSocketUser(webSocketUser);
     this.updateAndBroadcastOnlineUsers();
   }
@@ -144,16 +153,28 @@ export class WebSocketService implements IWebSocketService {
 
     console.log(`User ${userName} disconnected from server`);
 
-    const result: Deno.KvCommitResult | Deno.KvCommitError = await this
-      .kvService.deleteUserTemporaryData(userId);
+    try {
+      const db = this.databaseService.get();
 
-    if (result.ok) {
-      console.log(`Deleted temporary data for user ${userName}`);
-      this.removeWebSocketUser(user);
-      this.matchPlayersService.deleteByToken(userToken);
-      this.updateAndBroadcastOnlineUsers();
-    } else {
-      console.error(`Failed to delete temporary data for user ${userName}`);
+      // Delete user session from database
+      await db
+        .delete(userSessionsTable)
+        .where(eq(userSessionsTable.id, userToken));
+
+      // Still need to clear temporary KV data (keys, matches)
+      const result = await this.kvService.deleteUserTemporaryData(userId);
+
+      if (result.ok) {
+        console.log(`Deleted temporary data for user ${userName}`);
+        this.removeWebSocketUser(user);
+        this.matchPlayersService.deleteByToken(userToken);
+        this.updateAndBroadcastOnlineUsers();
+      } else {
+        console.error(`Failed to delete temporary data for user ${userName}`);
+        user.setWebSocket(null);
+      }
+    } catch (error) {
+      console.error(`Error during disconnection for user ${userName}:`, error);
       user.setWebSocket(null);
     }
   }
@@ -182,16 +203,12 @@ export class WebSocketService implements IWebSocketService {
     console.debug(
       `%cReceived message from user ${user.getName()}:\n` +
         binaryReader.preview(),
-      "color: green;",
+      "color: green;"
     );
 
     const commandId = binaryReader.unsignedInt8();
 
-    this.dispatcher.dispatchCommand(
-      user,
-      commandId,
-      binaryReader,
-    );
+    this.dispatcher.dispatchCommand(user, commandId, binaryReader);
   }
 
   public sendMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -207,7 +224,7 @@ export class WebSocketService implements IWebSocketService {
       console.debug(
         `%cSent message to user ${user.getName()}:\n` +
           BinaryWriter.preview(arrayBuffer),
-        "color: purple",
+        "color: purple"
       );
     } catch (error) {
       console.error("Failed to send message to user", user.getName(), error);
@@ -216,7 +233,7 @@ export class WebSocketService implements IWebSocketService {
 
   private sendMessageToOtherUser(
     destinationToken: string,
-    payload: ArrayBuffer,
+    payload: ArrayBuffer
   ): void {
     const destinationUser = this.usersByToken.get(destinationToken);
 
@@ -274,7 +291,7 @@ export class WebSocketService implements IWebSocketService {
   @CommandHandler(WebSocketType.PlayerIdentity)
   private handlePlayerIdentityMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader,
+    binaryReader: BinaryReader
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const destinationToken = encodeBase64(destinationTokenBytes);
@@ -294,7 +311,7 @@ export class WebSocketService implements IWebSocketService {
   @CommandHandler(WebSocketType.Tunnel)
   private handleTunnelMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader,
+    binaryReader: BinaryReader
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
@@ -307,14 +324,14 @@ export class WebSocketService implements IWebSocketService {
 
     this.sendMessageToOtherUser(
       encodeBase64(destinationTokenBytes),
-      tunnelPayload,
+      tunnelPayload
     );
   }
 
   @CommandHandler(WebSocketType.MatchPlayer)
   private handleMatchPlayerMessage(
     user: WebSocketUser,
-    binaryReader: BinaryReader,
+    binaryReader: BinaryReader
   ): void {
     const isConnected = binaryReader.boolean();
     const playerId = binaryReader.fixedLengthString(32);
@@ -327,14 +344,14 @@ export class WebSocketService implements IWebSocketService {
     this.matchPlayersService.handleMatchPlayerMessage(
       user,
       isConnected,
-      playerId,
+      playerId
     );
   }
 
   @CommandHandler(WebSocketType.ChatMessage)
   private handleChatMessage(
     user: WebSocketUser,
-    binaryReader: BinaryReader,
+    binaryReader: BinaryReader
   ): void {
     this.chatService.handleChatMessage(this, user, binaryReader);
   }

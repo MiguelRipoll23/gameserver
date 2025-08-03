@@ -8,11 +8,11 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
-import { userSessionsTable } from "./sessions-table.ts";
+import { userSessionsTable } from "./user-sessions-table.ts";
 
 export const matchesTable = pgTable("matches", {
   id: serial("id").primaryKey(),
-  sessionId: varchar("session_id", { length: 32 })
+  sessionId: varchar("session_id")
     .notNull()
     .references(() => userSessionsTable.id, { onDelete: "cascade" }),
   hostUserId: uuid("host_user_id")

@@ -21,7 +21,7 @@ import { UserKV } from "../../api/versions/v1/interfaces/kv/user-kv.ts";
 import { CredentialKV } from "../../api/versions/v1/interfaces/kv/credential-kv.ts";
 import { SessionKV } from "../../api/versions/v1/interfaces/kv/session-kv.ts";
 import { ServerMessageKV } from "../../api/versions/v1/interfaces/kv/server-message-kv.ts";
-import { MatchKV } from "../../api/versions/v1/interfaces/kv/match-kv.ts";
+import { MatchDB } from "../../api/versions/v1/interfaces/db/match-db.ts";
 import { PlayerScoreKV } from "../../api/versions/v1/interfaces/kv/player-score.ts";
 import { PlayerReportKV } from "../../api/versions/v1/interfaces/kv/player-report-kv.ts";
 import { ConfigurationType } from "../types/configuration-type.ts";
@@ -230,14 +230,14 @@ export class KVService {
     );
   }
 
-  public listMatches(): Deno.KvListIterator<MatchKV> {
-    return this.getKv().list<MatchKV>({
+  public listMatches(): Deno.KvListIterator<MatchDB> {
+    return this.getKv().list<MatchDB>({
       prefix: [KV_MATCHES],
     });
   }
 
-  public async getMatch(userId: string): Promise<MatchKV | null> {
-    const entry: Deno.KvEntryMaybe<MatchKV> = await this.getKv().get<MatchKV>([
+  public async getMatch(userId: string): Promise<MatchDB | null> {
+    const entry: Deno.KvEntryMaybe<MatchDB> = await this.getKv().get<MatchDB>([
       KV_MATCHES,
       userId,
     ]);
@@ -247,7 +247,7 @@ export class KVService {
 
   public async setMatch(
     userId: string,
-    match: MatchKV
+    match: MatchDB
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv()
       .atomic()

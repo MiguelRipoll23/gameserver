@@ -1,5 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   generateRegistrationOptions,
@@ -20,16 +21,19 @@ import {
 } from "../schemas/registration-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
+import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
+import { eq } from "drizzle-orm";
 
 @injectable()
 export class RegistrationService {
   constructor(
     private kvService = inject(KVService),
-    private authenticationService = inject(AuthenticationService),
+    private databaseService = inject(DatabaseService),
+    private authenticationService = inject(AuthenticationService)
   ) {}
 
   public async getOptions(
-    registrationOptionsRequest: GetRegistrationOptionsRequest,
+    registrationOptionsRequest: GetRegistrationOptionsRequest
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
     console.log("Registration options for display name", displayName);
@@ -60,23 +64,23 @@ export class RegistrationService {
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    registrationRequest: VerifyRegistrationRequest,
+    registrationRequest: VerifyRegistrationRequest
   ): Promise<AuthenticationResponse> {
     const { transactionId } = registrationRequest;
     const registrationOptions = await this.getRegistrationOptionsOrThrow(
-      transactionId,
+      transactionId
     );
 
     await this.kvService.deleteRegistrationOptionsByTransactionId(
-      transactionId,
+      transactionId
     );
 
-    const registrationResponse = registrationRequest
-      .registrationResponse as object as RegistrationResponseJSON;
+    const registrationResponse =
+      registrationRequest.registrationResponse as object as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
-      registrationOptions,
+      registrationOptions
     );
 
     const credential = this.createCredential(registrationOptions, verification);
@@ -88,28 +92,33 @@ export class RegistrationService {
   }
 
   private async ensureUserDoesNotExist(displayName: string): Promise<void> {
-    const existingUser = await this.kvService.getUserByDisplayName(displayName);
+    const db = this.databaseService.get();
+    const users = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.displayName, displayName))
+      .limit(1);
 
-    if (existingUser !== null) {
+    if (users.length > 0) {
       throw new ServerError(
         "DISPLAY_NAME_TAKEN",
         "Display name is already taken",
-        409,
+        409
       );
     }
   }
 
   private async getRegistrationOptionsOrThrow(
-    transactionId: string,
+    transactionId: string
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const registrationOptions = await this.kvService
-      .getRegistrationOptionsByTransactionId(transactionId);
+    const registrationOptions =
+      await this.kvService.getRegistrationOptionsByTransactionId(transactionId);
 
     if (registrationOptions === null) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
         "Registration options not found",
-        400,
+        400
       );
     }
 
@@ -120,7 +129,7 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
         "Registration options expired",
-        400,
+        400
       );
     }
 
@@ -129,7 +138,7 @@ export class RegistrationService {
 
   private async verifyRegistrationResponse(
     registrationResponse: RegistrationResponseJSON,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON
   ): Promise<VerifiedRegistrationResponse> {
     try {
       const verification = await verifyRegistrationResponse({
@@ -153,14 +162,14 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_VERIFICATION_FAILED",
         "Registration verification failed",
-        400,
+        400
       );
     }
   }
 
   private createCredential(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
-    verification: VerifiedRegistrationResponse,
+    verification: VerifiedRegistrationResponse
   ): CredentialKV {
     const { registrationInfo } = verification;
 
@@ -184,7 +193,7 @@ export class RegistrationService {
 
   private createUser(
     credential: CredentialKV,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON
   ): UserKV {
     const { userId } = credential;
 
@@ -197,18 +206,45 @@ export class RegistrationService {
 
   private async addCredentialAndUserOrThrow(
     credential: CredentialKV,
-    user: UserKV,
+    user: UserKV
   ): Promise<void> {
-    const result = await this.kvService.setCredentialAndUser(credential, user);
+    const db = this.databaseService.get();
 
-    if (result.ok === false) {
+    try {
+      await db.transaction(async (tx) => {
+        // Insert user
+        await tx.insert(usersTable).values({
+          id: user.userId,
+          displayName: user.displayName,
+          createdAt: new Date(user.createdAt),
+        });
+
+        // Convert Uint8Array to base64 string for storage
+        const publicKeyBase64 = btoa(
+          String.fromCharCode(...credential.publicKey)
+        );
+
+        // Insert credential
+        await tx.insert(userCredentialsTable).values({
+          id: credential.id,
+          userId: credential.userId,
+          userDisplayName: credential.userDisplayName,
+          publicKey: publicKeyBase64,
+          counter: credential.counter,
+          deviceType: credential.deviceType,
+          backupStatus: credential.backupStatus,
+          transports: credential.transports,
+        });
+      });
+
+      console.log(`Added credential and user for ${user.displayName}`);
+    } catch (error) {
+      console.error("Failed to add credential and user:", error);
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
         "Failed to add credential and user",
-        500,
+        500
       );
     }
-
-    console.log(`Added credential and user for ${user.displayName}`);
   }
 }

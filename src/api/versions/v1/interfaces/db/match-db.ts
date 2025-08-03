@@ -1,6 +1,6 @@
-import { MatchAttributesKV } from "./match-attributes.ts";
+import { MatchAttributesKV } from "../kv/match-attributes.ts";
 
-export interface MatchKV {
+export interface MatchDB {
   token: string;
   version: string;
   totalSlots: number;

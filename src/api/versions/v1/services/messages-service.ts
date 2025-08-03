@@ -1,38 +1,48 @@
 import { inject, injectable } from "@needle-di/core";
 import { KVService } from "../../../../core/services/kv-service.ts";
-import { ServerMessageKV } from "../interfaces/kv/server-message-kv.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
 import {
   CreateMessageRequest,
   GetMessageResponse,
 } from "../schemas/messages-schemas.ts";
+import { serverMessagesTable } from "../../../../db/schema.ts";
+import { desc, eq } from "drizzle-orm";
 
 @injectable()
 export class MessagesService {
-  constructor(private kvService = inject(KVService)) {}
+  constructor(
+    private kvService = inject(KVService),
+    private databaseService = inject(DatabaseService)
+  ) {}
 
   public async list(): Promise<GetMessageResponse> {
-    const entries: Deno.KvListIterator<ServerMessageKV> =
-      this.kvService.listMessages();
-    const messages: ServerMessageKV[] = [];
+    const db = this.databaseService.get();
+    const messages = await db
+      .select()
+      .from(serverMessagesTable)
+      .orderBy(desc(serverMessagesTable.createdAt));
 
-    for await (const entry of entries) {
-      messages.push(entry.value);
-    }
-
-    // order by timestamp desc
-    messages.sort((a, b) => b.timestamp - a.timestamp);
-
-    return messages;
+    // Convert database result to ServerMessageKV format for compatibility
+    return messages.map((message) => ({
+      title: message.title,
+      content: message.content,
+      timestamp: message.createdAt.getTime(),
+    }));
   }
 
   public async create(messageRequest: CreateMessageRequest): Promise<void> {
-    await this.kvService.setMessage({
-      ...messageRequest,
-      timestamp: Date.now(),
+    const db = this.databaseService.get();
+    await db.insert(serverMessagesTable).values({
+      title: messageRequest.title,
+      content: messageRequest.content,
     });
   }
 
   public async delete(timestamp: string): Promise<void> {
-    await this.kvService.deleteMessage(parseInt(timestamp));
+    const db = this.databaseService.get();
+    const timestampDate = new Date(parseInt(timestamp));
+    await db
+      .delete(serverMessagesTable)
+      .where(eq(serverMessagesTable.createdAt, timestampDate));
   }
 }

@@ -1,6 +1,8 @@
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
+import { injectable } from "@needle-di/core";
 
+@injectable()
 export class DatabaseService {
   private database: NodePgDatabase | null = null;
 

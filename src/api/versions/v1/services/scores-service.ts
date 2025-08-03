@@ -1,33 +1,36 @@
 import { inject, injectable } from "@needle-di/core";
 import { CryptoService } from "../../../../core/services/crypto-service.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
-import { PlayerScoreKV } from "../interfaces/kv/player-score.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   GetScoresResponse,
   SaveScoresRequest,
   SaveScoresRequestSchema,
 } from "../schemas/scores-schemas.ts";
+import { userScoresTable } from "../../../../db/schema.ts";
+import { eq, desc } from "drizzle-orm";
 
 @injectable()
 export class ScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
-    private kvService = inject(KVService)
+    private kvService = inject(KVService),
+    private databaseService = inject(DatabaseService)
   ) {}
 
   public async list(): Promise<GetScoresResponse> {
-    const entries = this.kvService.listScores();
-    const scores: GetScoresResponse = [];
+    const db = this.databaseService.get();
+    const scores = await db
+      .select({
+        playerName: userScoresTable.userDisplayName,
+        score: userScoresTable.totalScore,
+      })
+      .from(userScoresTable)
+      .orderBy(desc(userScoresTable.totalScore))
+      .limit(10);
 
-    for await (const entry of entries) {
-      const { playerName, score } = entry.value;
-      scores.push({ playerName, score });
-    }
-
-    scores.sort((a, b) => b.score - a.score);
-
-    return scores.slice(0, 10);
+    return scores;
   }
 
   public async save(userId: string, body: ArrayBuffer): Promise<void> {
@@ -75,10 +78,32 @@ export class ScoresService {
     score: number;
   }): Promise<void> {
     const { playerId, playerName, score } = entry;
-    const existing = await this.kvService.getScore(playerId);
-    const totalScore = score + (existing?.score ?? 0);
+    const db = this.databaseService.get();
 
-    const newScore: PlayerScoreKV = { playerId, playerName, score: totalScore };
-    await this.kvService.setScore(playerId, newScore);
+    // Check if player score exists
+    const existingScores = await db
+      .select()
+      .from(userScoresTable)
+      .where(eq(userScoresTable.userId, playerId))
+      .limit(1);
+
+    if (existingScores.length > 0) {
+      // Update existing score
+      const newTotalScore = score + existingScores[0].totalScore;
+      await db
+        .update(userScoresTable)
+        .set({
+          totalScore: newTotalScore,
+          userDisplayName: playerName, // Update display name in case it changed
+        })
+        .where(eq(userScoresTable.userId, playerId));
+    } else {
+      // Insert new score
+      await db.insert(userScoresTable).values({
+        userId: playerId,
+        userDisplayName: playerName,
+        totalScore: score,
+      });
+    }
   }
 }

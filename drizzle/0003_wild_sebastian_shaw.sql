@@ -1,0 +1,1 @@
+ALTER TABLE "matches" ALTER COLUMN "session_id" SET DATA TYPE varchar;
