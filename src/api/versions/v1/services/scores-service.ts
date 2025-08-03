@@ -8,7 +8,11 @@ import {
   SaveScoresRequest,
   SaveScoresRequestSchema,
 } from "../schemas/scores-schemas.ts";
-import { userScoresTable } from "../../../../db/schema.ts";
+import {
+  userScoresTable,
+  usersTable,
+  matchesTable,
+} from "../../../../db/schema.ts";
 import { eq, desc } from "drizzle-orm";
 
 @injectable()
@@ -23,10 +27,11 @@ export class ScoresService {
     const db = this.databaseService.get();
     const scores = await db
       .select({
-        playerName: userScoresTable.userDisplayName,
+        playerName: usersTable.displayName,
         score: userScoresTable.totalScore,
       })
       .from(userScoresTable)
+      .innerJoin(usersTable, eq(userScoresTable.userId, usersTable.id))
       .orderBy(desc(userScoresTable.totalScore))
       .limit(10);
 
@@ -34,15 +39,8 @@ export class ScoresService {
   }
 
   public async save(userId: string, body: ArrayBuffer): Promise<void> {
-    const match = await this.kvService.getMatch(userId);
-
-    if (match === null) {
-      throw new ServerError(
-        "NO_MATCH_FOUND",
-        "User is not hosting a match",
-        400
-      );
-    }
+    // Check if user is hosting a match
+    await this.validateUserIsHostingMatch(userId);
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
 
@@ -54,6 +52,24 @@ export class ScoresService {
 
     if (failures.length > 0) {
       console.error(`Failed to update ${failures.length} scores`);
+    }
+  }
+
+  private async validateUserIsHostingMatch(userId: string): Promise<void> {
+    const db = this.databaseService.get();
+
+    const hostedMatches = await db
+      .select()
+      .from(matchesTable)
+      .where(eq(matchesTable.hostUserId, userId))
+      .limit(1);
+
+    if (hostedMatches.length === 0) {
+      throw new ServerError(
+        "NOT_HOSTING_MATCH",
+        "Only match hosts can save scores",
+        400
+      );
     }
   }
 
@@ -77,7 +93,7 @@ export class ScoresService {
     playerName: string;
     score: number;
   }): Promise<void> {
-    const { playerId, playerName, score } = entry;
+    const { playerId, score } = entry;
     const db = this.databaseService.get();
 
     // Check if player score exists
@@ -94,14 +110,12 @@ export class ScoresService {
         .update(userScoresTable)
         .set({
           totalScore: newTotalScore,
-          userDisplayName: playerName, // Update display name in case it changed
         })
         .where(eq(userScoresTable.userId, playerId));
     } else {
       // Insert new score
       await db.insert(userScoresTable).values({
         userId: playerId,
-        userDisplayName: playerName,
         totalScore: score,
       });
     }

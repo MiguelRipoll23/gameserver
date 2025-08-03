@@ -29,6 +29,13 @@
       "when": 1754234159840,
       "tag": "0003_wild_sebastian_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1754238929327,
+      "tag": "0004_heavy_leper_queen",
+      "breakpoints": true
     }
   ]
 }

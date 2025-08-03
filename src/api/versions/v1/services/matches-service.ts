@@ -7,7 +7,7 @@ import {
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { MatchDB } from "../interfaces/db/match-db.ts";
-import { MatchAttributesKV } from "../interfaces/kv/match-attributes.ts";
+import { MatchAttributes } from "../interfaces/match-attributes.ts";
 import { ServerError } from "../models/server-error.ts";
 import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
@@ -84,12 +84,12 @@ export class MatchesService {
       .from(matchesTable)
       .limit(50);
 
-    // Convert database result to MatchKV format for compatibility
+    // Convert database result to MatchDB format for compatibility
     const matchKVs: MatchDB[] = matches.map((match) => ({
       version: match.version,
       totalSlots: match.totalSlots,
       availableSlots: match.availableSlots,
-      attributes: match.attributes as MatchAttributesKV,
+      attributes: match.attributes as MatchAttributes,
       token: match.token,
     }));
 

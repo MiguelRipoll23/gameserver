@@ -186,7 +186,6 @@ export class AuthenticationService {
     return {
       id: credential.id,
       userId: credential.userId,
-      userDisplayName: credential.userDisplayName,
       publicKey: publicKeyBuffer,
       counter: credential.counter,
       deviceType: credential.deviceType as CredentialDeviceType,

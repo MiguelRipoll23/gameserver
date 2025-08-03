@@ -6,6 +6,6 @@ export const userReportsTable = pgTable("user_reports", {
   userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-  reason: varchar("reason").notNull(),
+  reason: varchar("reason", { length: 500 }).notNull(),
   automatic: boolean("automatic").notNull().default(false),
 });

@@ -23,7 +23,11 @@ export class DatabaseService {
 
   public get(): NodePgDatabase {
     if (this.database === null) {
-      throw new Error("Database not initialized");
+      throw new ServerError(
+        "DATABASE_NOT_INITIALIZED",
+        "Database has not been initialized",
+        500
+      );
     }
 
     return this.database;

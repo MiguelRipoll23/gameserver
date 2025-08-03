@@ -1,29 +1,14 @@
 import {
   KV_AUTHENTICATION_OPTIONS,
   KV_CONFIGURATION,
-  KV_CREDENTIALS,
   KV_KEYS,
-  KV_MATCHES,
-  KV_MESSAGE,
   KV_REGISTRATION_OPTIONS,
-  KV_SCORES,
-  KV_REPORT,
-  KV_SESSIONS,
-  KV_USERS,
-  KV_USERS_BY_DISPLAY_NAME,
   KV_VERSION,
 } from "../../api/versions/v1/constants/kv-constants.ts";
 import { VersionKV } from "../../api/versions/v1/interfaces/kv/version-kv.ts";
 import { injectable } from "@needle-di/core";
 import { RegistrationOptionsKV } from "../../api/versions/v1/interfaces/kv/registration-options-kv.ts";
 import { AuthenticationOptionsKV } from "../../api/versions/v1/interfaces/kv/authentication-options-kv.ts";
-import { UserKV } from "../../api/versions/v1/interfaces/kv/user-kv.ts";
-import { CredentialKV } from "../../api/versions/v1/interfaces/kv/credential-kv.ts";
-import { SessionKV } from "../../api/versions/v1/interfaces/kv/session-kv.ts";
-import { ServerMessageKV } from "../../api/versions/v1/interfaces/kv/server-message-kv.ts";
-import { MatchDB } from "../../api/versions/v1/interfaces/db/match-db.ts";
-import { PlayerScoreKV } from "../../api/versions/v1/interfaces/kv/player-score.ts";
-import { PlayerReportKV } from "../../api/versions/v1/interfaces/kv/player-report-kv.ts";
 import { ConfigurationType } from "../types/configuration-type.ts";
 
 @injectable()
@@ -108,62 +93,6 @@ export class KVService {
     await this.getKv().delete([KV_AUTHENTICATION_OPTIONS, transactionId]);
   }
 
-  public async getCredential(
-    credentialId: string
-  ): Promise<CredentialKV | null> {
-    const entry: Deno.KvEntryMaybe<CredentialKV> =
-      await this.getKv().get<CredentialKV>([KV_CREDENTIALS, credentialId]);
-
-    return entry.value;
-  }
-
-  public async setCredential(
-    credentialId: string,
-    credential: CredentialKV
-  ): Promise<void> {
-    await this.getKv().set([KV_CREDENTIALS, credentialId], credential);
-  }
-
-  public async getUser(id: string): Promise<UserKV | null> {
-    const entry: Deno.KvEntryMaybe<UserKV> = await this.getKv().get<UserKV>([
-      KV_USERS,
-      id,
-    ]);
-
-    return entry.value;
-  }
-
-  public async setUser(userId: string, user: UserKV): Promise<void> {
-    await this.getKv().set([KV_USERS, userId], user);
-    await this.getKv().set([KV_USERS_BY_DISPLAY_NAME, user.displayName], user);
-  }
-
-  public async getUserByDisplayName(
-    displayName: string
-  ): Promise<UserKV | null> {
-    const entry: Deno.KvEntryMaybe<UserKV> = await this.getKv().get<UserKV>([
-      KV_USERS_BY_DISPLAY_NAME,
-      displayName,
-    ]);
-
-    return entry.value;
-  }
-
-  public async setCredentialAndUser(
-    credential: CredentialKV,
-    user: UserKV
-  ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
-    const displayNameKey = [KV_USERS_BY_DISPLAY_NAME, user.displayName];
-
-    return await this.getKv()
-      .atomic()
-      .check({ key: displayNameKey, versionstamp: null })
-      .set([KV_CREDENTIALS, credential.id], credential)
-      .set([KV_USERS, user.userId], user)
-      .set(displayNameKey, user)
-      .commit();
-  }
-
   public async getConfiguration(): Promise<ConfigurationType | null> {
     const entry: Deno.KvEntryMaybe<ConfigurationType> =
       await this.getKv().get<ConfigurationType>([KV_CONFIGURATION]);
@@ -192,106 +121,10 @@ export class KVService {
     });
   }
 
-  public async getSession(token: string): Promise<SessionKV | null> {
-    const entry: Deno.KvEntryMaybe<SessionKV> =
-      await this.getKv().get<SessionKV>([KV_SESSIONS, token]);
-
-    return entry.value;
-  }
-
-  public async setSession(userId: string, session: SessionKV): Promise<void> {
-    await this.getKv().set([KV_SESSIONS, userId], session, {
-      expireIn: 60 * 60 * 1_000,
-    });
-  }
-
-  public listMessages(): Deno.KvListIterator<ServerMessageKV> {
-    return this.getKv().list<ServerMessageKV>({
-      prefix: [KV_MESSAGE],
-    });
-  }
-
-  public async setMessage(message: ServerMessageKV): Promise<void> {
-    await this.getKv().set([KV_MESSAGE, message.timestamp], message);
-  }
-
-  public async deleteMessage(timestamp: number): Promise<void> {
-    await this.getKv().delete([KV_MESSAGE, timestamp]);
-  }
-
-  public async setReport(
-    reporterId: string,
-    reportedUserId: string,
-    report: PlayerReportKV
-  ): Promise<void> {
-    await this.getKv().set(
-      [KV_REPORT, reporterId, reportedUserId, Date.now()],
-      report
-    );
-  }
-
-  public listMatches(): Deno.KvListIterator<MatchDB> {
-    return this.getKv().list<MatchDB>({
-      prefix: [KV_MATCHES],
-    });
-  }
-
-  public async getMatch(userId: string): Promise<MatchDB | null> {
-    const entry: Deno.KvEntryMaybe<MatchDB> = await this.getKv().get<MatchDB>([
-      KV_MATCHES,
-      userId,
-    ]);
-
-    return entry.value;
-  }
-
-  public async setMatch(
-    userId: string,
-    match: MatchDB
-  ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
-    return await this.getKv()
-      .atomic()
-      .set([KV_MATCHES, userId], match, {
-        expireIn: 60 * 60 * 1_000,
-      })
-      .commit();
-  }
-
-  public async deleteMatch(
-    userId: string
-  ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
-    return await this.getKv().atomic().delete([KV_MATCHES, userId]).commit();
-  }
-
-  public listScores(): Deno.KvListIterator<PlayerScoreKV> {
-    return this.getKv().list<PlayerScoreKV>({
-      prefix: [KV_SCORES],
-    });
-  }
-
-  public async getScore(playerId: string): Promise<PlayerScoreKV | null> {
-    const entry: Deno.KvEntryMaybe<PlayerScoreKV> =
-      await this.getKv().get<PlayerScoreKV>([KV_SCORES, playerId]);
-
-    return entry.value;
-  }
-
-  public async setScore(
-    playerId: string,
-    scoreKV: PlayerScoreKV
-  ): Promise<void> {
-    await this.getKv().set([KV_SCORES, playerId], scoreKV);
-  }
-
   public async deleteUserTemporaryData(
     userId: string
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
-    return await this.getKv()
-      .atomic()
-      .delete([KV_SESSIONS, userId])
-      .delete([KV_KEYS, userId])
-      .delete([KV_MATCHES, userId])
-      .commit();
+    return await this.getKv().atomic().delete([KV_KEYS, userId]).commit();
   }
 
   private getKv(): Deno.Kv {

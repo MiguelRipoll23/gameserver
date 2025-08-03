@@ -9,8 +9,6 @@ import {
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
 import { RegistrationResponseJSON } from "@simplewebauthn/types";
-import { CredentialKV } from "../interfaces/kv/credential-kv.ts";
-import { UserKV } from "../interfaces/kv/user-kv.ts";
 import { AuthenticationService } from "./authentication-service.ts";
 import { ConnInfo } from "hono/conninfo";
 import { WebAuthnUtils } from "../../../../core/utils/webauthn-utils.ts";
@@ -23,6 +21,8 @@ import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
+import { UserCredentialDB } from "../interfaces/db/user-credential-db.ts";
+import { UserDB } from "../interfaces/db/user-db.ts";
 
 @injectable()
 export class RegistrationService {
@@ -170,7 +170,7 @@ export class RegistrationService {
   private createCredential(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
     verification: VerifiedRegistrationResponse
-  ): CredentialKV {
+  ): UserCredentialDB {
     const { registrationInfo } = verification;
 
     if (registrationInfo === undefined) {
@@ -182,7 +182,6 @@ export class RegistrationService {
     return {
       id: registrationInfo.credential.id,
       userId,
-      userDisplayName: registrationOptions.user.name,
       publicKey: registrationInfo.credential.publicKey,
       counter: registrationInfo.credential.counter,
       transports: registrationInfo.credential.transports,
@@ -192,9 +191,9 @@ export class RegistrationService {
   }
 
   private createUser(
-    credential: CredentialKV,
+    credential: UserCredentialDB,
     registrationOptions: PublicKeyCredentialCreationOptionsJSON
-  ): UserKV {
+  ): UserDB {
     const { userId } = credential;
 
     return {
@@ -205,8 +204,8 @@ export class RegistrationService {
   }
 
   private async addCredentialAndUserOrThrow(
-    credential: CredentialKV,
-    user: UserKV
+    credential: UserCredentialDB,
+    user: UserDB
   ): Promise<void> {
     const db = this.databaseService.get();
 
@@ -228,7 +227,6 @@ export class RegistrationService {
         await tx.insert(userCredentialsTable).values({
           id: credential.id,
           userId: credential.userId,
-          userDisplayName: credential.userDisplayName,
           publicKey: publicKeyBase64,
           counter: credential.counter,
           deviceType: credential.deviceType,

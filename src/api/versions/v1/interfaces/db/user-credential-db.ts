@@ -6,7 +6,6 @@ import {
 export interface UserCredentialDB {
   id: string;
   userId: string;
-  userDisplayName: string;
   publicKey: Uint8Array;
   counter: number;
   deviceType: CredentialDeviceType;

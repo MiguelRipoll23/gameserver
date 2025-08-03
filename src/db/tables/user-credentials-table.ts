@@ -14,7 +14,6 @@ export const userCredentialsTable = pgTable("user_credentials", {
   userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-  userDisplayName: varchar("user_display_name", { length: 255 }).notNull(),
   publicKey: text("public_key").notNull(), // store base64-encoded string
   counter: integer("counter").notNull(),
   deviceType: varchar("device_type", { length: 32 }).notNull(),
