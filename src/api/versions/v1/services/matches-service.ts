@@ -26,7 +26,7 @@ export class MatchesService {
     // Get the user session from database
     const db = this.databaseService.get();
     const sessions = await db
-      .select()
+      .select({ id: userSessionsTable.id })
       .from(userSessionsTable)
       .where(eq(userSessionsTable.userId, userId))
       .limit(1);
