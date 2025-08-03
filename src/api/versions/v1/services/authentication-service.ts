@@ -26,6 +26,8 @@ import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
+import { userBansTable } from "../../../../db/tables/user-bans-table.ts";
+import { desc } from "drizzle-orm";
 
 @injectable()
 export class AuthenticationService {
@@ -270,9 +272,37 @@ export class AuthenticationService {
     return user;
   }
 
-  private ensureUserNotBanned(user: UserEntity): void {
-    // TODO: check if user is banned
-    // If banned temporarily, thorw server error with message informing remaining time
-    // if banned permanently, throw server error informing so
+  private async ensureUserNotBanned(user: UserEntity): Promise<void> {
+    const db = this.databaseService.get();
+    const userBans = await db
+      .select({ expiresAt: userBansTable.expiresAt })
+      .from(userBansTable)
+      .where(eq(userBansTable.userId, user.id))
+      .orderBy(desc(userBansTable.createdAt))
+      .limit(1);
+
+    if (userBans.length > 0) {
+      const latestBan = userBans[0];
+      const now = new Date();
+
+      // Check if it's a permanent ban (no expiration date)
+      if (!latestBan.expiresAt) {
+        throw new ServerError(
+          "USER_BANNED_PERMANENTLY",
+          "Your account has been permanently banned",
+          403
+        );
+      }
+
+      // Check if temporary ban is still active
+      if (latestBan.expiresAt > now) {
+        const remainingTime = Math.ceil((latestBan.expiresAt.getTime() - now.getTime()) / (1000 * 60));
+        throw new ServerError(
+          "USER_BANNED_TEMPORARILY",
+          `Your account is temporarily banned. The ban will expire in ${remainingTime} minutes`,
+          403
+        );
+      }
+    }
   }
 }
