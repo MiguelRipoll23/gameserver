@@ -1,9 +1,9 @@
 import { inject, injectable } from "@needle-di/core";
-import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import {
   CreateMessageRequest,
   GetMessageResponse,
+  UpdateMessageRequest,
 } from "../schemas/messages-schemas.ts";
 import { serverMessagesTable } from "../../../../db/schema.ts";
 import { desc, eq } from "drizzle-orm";
@@ -11,7 +11,6 @@ import { desc, eq } from "drizzle-orm";
 @injectable()
 export class MessagesService {
   constructor(
-    private kvService = inject(KVService),
     private databaseService = inject(DatabaseService)
   ) {}
 
@@ -20,13 +19,15 @@ export class MessagesService {
     const messages = await db
       .select()
       .from(serverMessagesTable)
-      .orderBy(desc(serverMessagesTable.createdAt));
+      .orderBy(desc(serverMessagesTable.createdAt))
+      .limit(5);
 
-    // Convert database result to ServerMessageKV format for compatibility
     return messages.map((message) => ({
+      id: message.id,
       title: message.title,
       content: message.content,
-      timestamp: message.createdAt.getTime(),
+      createdAt: message.createdAt.getTime(),
+      updatedAt: message.updatedAt?.getTime(),
     }));
   }
 
@@ -38,11 +39,22 @@ export class MessagesService {
     });
   }
 
-  public async delete(timestamp: string): Promise<void> {
+  public async delete(id: number): Promise<void> {
     const db = this.databaseService.get();
-    const timestampDate = new Date(parseInt(timestamp));
     await db
       .delete(serverMessagesTable)
-      .where(eq(serverMessagesTable.createdAt, timestampDate));
+      .where(eq(serverMessagesTable.id, id));
+  }
+
+  public async update(messageRequest: UpdateMessageRequest): Promise<void> {
+    const db = this.databaseService.get();
+    await db
+      .update(serverMessagesTable)
+      .set({
+        title: messageRequest.title,
+        content: messageRequest.content,
+        updatedAt: new Date(),
+      })
+      .where(eq(serverMessagesTable.id, messageRequest.id));
   }
 }

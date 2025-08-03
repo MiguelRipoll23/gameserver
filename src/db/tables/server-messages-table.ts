@@ -7,6 +7,7 @@ export const serverMessagesTable = pgTable("server_messages", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
 });
 
 export type ServerMessageEntity = typeof serverMessagesTable.$inferSelect;
