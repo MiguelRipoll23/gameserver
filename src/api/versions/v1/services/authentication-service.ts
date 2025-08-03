@@ -2,6 +2,7 @@ import { encodeBase64 } from "hono/utils/encode";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { create } from "@wok/djwt";
+import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { inject, injectable } from "@needle-di/core";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
 import { ConnInfo } from "hono/conninfo";
@@ -181,9 +182,7 @@ export class AuthenticationService {
   private transformCredentialForWebAuthn(credential: UserCredentialEntity) {
     // Convert base64 string back to Uint8Array for WebAuthn usage
     const publicKeyBuffer = new Uint8Array(
-      atob(credential.publicKey)
-        .split("")
-        .map((char) => char.charCodeAt(0))
+      Base64Utils.base64UrlToArrayBuffer(credential.publicKey)
     );
 
     return {

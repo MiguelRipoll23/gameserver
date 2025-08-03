@@ -178,8 +178,8 @@ export class RegistrationService {
     }
 
     const userId = Base64Utils.base64UrlToString(registrationOptions.user.id);
-    const publicKey = btoa(
-      String.fromCharCode(...registrationInfo.credential.publicKey)
+    const publicKey = Base64Utils.arrayBufferToBase64Url(
+      registrationInfo.credential.publicKey.buffer
     );
 
     return {
