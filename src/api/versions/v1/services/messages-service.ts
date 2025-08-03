@@ -41,13 +41,45 @@ export class MessagesService {
 
   public async delete(id: number): Promise<void> {
     const db = this.databaseService.get();
+    const message = await db
+      .select()
+      .from(serverMessagesTable)
+      .where(eq(serverMessagesTable.id, id))
+      .limit(1);
+    if (message.length === 0) {
+      // Not found, throw error
+      // Import ServerError and use 404
+      // (import already present in project)
+      // 404 from hono/utils/http-status is "NotFound"
+      // But ServerError expects ContentfulStatusCode, which is a number or string
+      // We'll use 404
+      // Error code string can be e.g. "MESSAGE_NOT_FOUND"
+      throw new (await import("../models/server-error.ts")).ServerError(
+        "MESSAGE_NOT_FOUND",
+        `Message with id ${id} does not exist`,
+        404
+      );
+    }
     await db
       .delete(serverMessagesTable)
       .where(eq(serverMessagesTable.id, id));
   }
 
-  public async update(messageRequest: UpdateMessageRequest): Promise<void> {
+  public async update(messageRequest: UpdateMessageRequest): Promise<GetMessageResponse[number]> {
     const db = this.databaseService.get();
+    // Check if message exists
+    const existing = await db
+      .select()
+      .from(serverMessagesTable)
+      .where(eq(serverMessagesTable.id, messageRequest.id))
+      .limit(1);
+    if (existing.length === 0) {
+      throw new (await import("../models/server-error.ts")).ServerError(
+        "MESSAGE_NOT_FOUND",
+        `Message with id ${messageRequest.id} does not exist`,
+        404
+      );
+    }
     await db
       .update(serverMessagesTable)
       .set({
@@ -56,5 +88,20 @@ export class MessagesService {
         updatedAt: new Date(),
       })
       .where(eq(serverMessagesTable.id, messageRequest.id));
+    // Return the updated message
+    const updated = await db
+      .select()
+      .from(serverMessagesTable)
+      .where(eq(serverMessagesTable.id, messageRequest.id))
+      .limit(1);
+    // Map to response format if needed
+    const msg = updated[0];
+    return {
+      id: msg.id,
+      title: msg.title,
+      content: msg.content,
+      createdAt: msg.createdAt.getTime(),
+      updatedAt: msg.updatedAt?.getTime(),
+    };
   }
 }
