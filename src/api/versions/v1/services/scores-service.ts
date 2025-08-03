@@ -13,7 +13,7 @@ import {
   usersTable,
   matchesTable,
 } from "../../../../db/schema.ts";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 
 @injectable()
 export class ScoresService {
@@ -96,28 +96,17 @@ export class ScoresService {
     const { playerId, score } = entry;
     const db = this.databaseService.get();
 
-    // Check if player score exists
-    const existingScores = await db
-      .select()
-      .from(userScoresTable)
-      .where(eq(userScoresTable.userId, playerId))
-      .limit(1);
-
-    if (existingScores.length > 0) {
-      // Update existing score
-      const newTotalScore = score + existingScores[0].totalScore;
-      await db
-        .update(userScoresTable)
-        .set({
-          totalScore: newTotalScore,
-        })
-        .where(eq(userScoresTable.userId, playerId));
-    } else {
-      // Insert new score
-      await db.insert(userScoresTable).values({
+    // Atomic upsert: insert or increment totalScore on conflict
+    await db.insert(userScoresTable)
+      .values({
         userId: playerId,
         totalScore: score,
+      })
+      .onConflictDoUpdate({
+        target: userScoresTable.userId,
+        set: {
+          totalScore: sql`${userScoresTable.totalScore} + ${score}`,
+        },
       });
-    }
   }
 }
