@@ -63,7 +63,7 @@ export class ManagementMessageRouter {
     this.app.openapi(
       createRoute({
         method: "delete",
-        path: "/:timestamp",
+        path: "/:id",
         summary: "Delete server message",
         description:
           "Server messages shown to the player after connecting to server",
@@ -79,8 +79,8 @@ export class ManagementMessageRouter {
         },
       }),
       async (c) => {
-        const timestamp = c.req.param("timestamp");
-        await this.messageService.delete(timestamp);
+        const id = parseInt(c.req.param("id"), 10);
+        await this.messageService.delete(id);
 
         return c.body(null, 204);
       },
