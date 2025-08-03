@@ -1,5 +1,4 @@
 import { encodeBase64 } from "hono/utils/encode";
-import { UserKV } from "../interfaces/kv/user-kv.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { create } from "@wok/djwt";
@@ -14,10 +13,7 @@ import {
   VerifiedAuthenticationResponse,
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
-import {
-  AuthenticatorTransportFuture,
-  CredentialDeviceType,
-} from "@simplewebauthn/types";
+import { AuthenticatorTransportFuture } from "@simplewebauthn/types";
 import { ServerError } from "../models/server-error.ts";
 import { ICEService } from "./ice-service.ts";
 import {
@@ -26,10 +22,10 @@ import {
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
-import { BAN_MESSAGE_TEMPLATE } from "../constants/api-constants.ts";
 import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
-import { UserCredentialDB } from "../interfaces/db/user-credential-db.ts";
+import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
+import { UserEntity } from "../../../../db/tables/users-table.ts";
 
 @injectable()
 export class AuthenticationService {
@@ -92,12 +88,12 @@ export class AuthenticationService {
 
   public async getResponseForUser(
     connectionInfo: ConnInfo,
-    user: UserKV
+    user: UserEntity
   ): Promise<AuthenticationResponse> {
     this.ensureUserNotBanned(user);
     const key = await this.jwtService.getKey();
     const publicIp = connectionInfo.remote.address ?? null;
-    const userId = user.userId;
+    const userId = user.id;
     const displayName = user.displayName;
 
     // Create JWT for client authentication
@@ -159,7 +155,9 @@ export class AuthenticationService {
     return authenticationOptions.data;
   }
 
-  private async getCredentialOrThrow(id: string): Promise<UserCredentialDB> {
+  private async getCredentialOrThrow(
+    id: string
+  ): Promise<UserCredentialEntity> {
     const db = this.databaseService.get();
     const credentials = await db
       .select()
@@ -175,8 +173,11 @@ export class AuthenticationService {
       );
     }
 
-    const credential = credentials[0];
-    // Convert base64 string back to Uint8Array
+    return credentials[0];
+  }
+
+  private transformCredentialForWebAuthn(credential: UserCredentialEntity) {
+    // Convert base64 string back to Uint8Array for WebAuthn usage
     const publicKeyBuffer = new Uint8Array(
       atob(credential.publicKey)
         .split("")
@@ -185,11 +186,8 @@ export class AuthenticationService {
 
     return {
       id: credential.id,
-      userId: credential.userId,
       publicKey: publicKeyBuffer,
       counter: credential.counter,
-      deviceType: credential.deviceType as CredentialDeviceType,
-      backupStatus: credential.backupStatus,
       transports: credential.transports as
         | AuthenticatorTransportFuture[]
         | undefined,
@@ -199,7 +197,7 @@ export class AuthenticationService {
   private async verifyAuthenticationResponse(
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
-    credentialDB: UserCredentialDB
+    credentialDB: UserCredentialEntity
   ): Promise<VerifiedAuthenticationResponse> {
     try {
       const verification = await verifyAuthenticationResponse({
@@ -207,12 +205,7 @@ export class AuthenticationService {
         expectedChallenge: authenticationOptions.challenge,
         expectedOrigin: WebAuthnUtils.getRelyingPartyOrigin(),
         expectedRPID: WebAuthnUtils.getRelyingPartyID(),
-        credential: {
-          id: credentialDB.id,
-          publicKey: credentialDB.publicKey,
-          counter: credentialDB.counter,
-          transports: credentialDB.transports,
-        },
+        credential: this.transformCredentialForWebAuthn(credentialDB),
       });
 
       if (verification.verified === false) {
@@ -235,7 +228,7 @@ export class AuthenticationService {
   }
 
   private async updateCredentialCounter(
-    credential: UserCredentialDB,
+    credential: UserCredentialEntity,
     verification: VerifiedAuthenticationResponse
   ): Promise<void> {
     const { authenticationInfo } = verification;
@@ -248,18 +241,18 @@ export class AuthenticationService {
         .set({ counter: credential.counter })
         .where(eq(userCredentialsTable.id, credential.id));
     } catch (error) {
-      console.error('Failed to update credential counter:', error);
+      console.error("Failed to update credential counter:", error);
       throw new ServerError(
-        'CREDENTIAL_COUNTER_UPDATE_FAILED',
-        'Failed to update credential counter',
+        "CREDENTIAL_COUNTER_UPDATE_FAILED",
+        "Failed to update credential counter",
         500
       );
     }
   }
 
   private async getUserOrThrowError(
-    credentialDB: UserCredentialDB
-  ): Promise<UserKV> {
+    credentialDB: UserCredentialEntity
+  ): Promise<UserEntity> {
     const userId = credentialDB.userId;
     const db = this.databaseService.get();
     const users = await db
@@ -273,31 +266,13 @@ export class AuthenticationService {
     }
 
     const user = users[0];
-    return {
-      userId: user.id,
-      displayName: user.displayName,
-      createdAt: user.createdAt.getTime(),
-      // Note: ban information is not stored in PostgreSQL table yet
-      // This would need to be added to the usersTable schema if needed
-    };
+
+    return user;
   }
 
-  private ensureUserNotBanned(user: UserKV): void {
-    if (user.ban) {
-      const { expiresAt, reason } = user.ban;
-
-      if (expiresAt !== null && expiresAt < Date.now()) {
-        user.ban = undefined;
-        // Update user in database - for now we skip this as ban info is not in PostgreSQL schema
-        // TODO: Add ban information to users table schema and update here
-      } else {
-        const banType = expiresAt === null ? "permanently" : "temporarily";
-        const message = BAN_MESSAGE_TEMPLATE.replace("{type}", banType).replace(
-          "{reason}",
-          reason.toLowerCase()
-        );
-        throw new ServerError("USER_BANNED", message, 403);
-      }
-    }
+  private ensureUserNotBanned(user: UserEntity): void {
+    // TODO: check if user is banned
+    // If banned temporarily, thorw server error with message informing remaining time
+    // if banned permanently, throw server error informing so
   }
 }

@@ -30,3 +30,6 @@ export const matchesTable = pgTable("matches", {
     .defaultNow()
     .notNull(),
 });
+
+export type MatchEntity = typeof matchesTable.$inferSelect;
+export type MatchInsertEntity = typeof matchesTable.$inferInsert;

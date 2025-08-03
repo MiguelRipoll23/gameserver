@@ -21,8 +21,8 @@ import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
-import { UserCredentialDB } from "../interfaces/db/user-credential-db.ts";
-import { UserDB } from "../interfaces/db/user-db.ts";
+import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
+import { UserEntity } from "../../../../db/tables/users-table.ts";
 
 @injectable()
 export class RegistrationService {
@@ -122,10 +122,10 @@ export class RegistrationService {
       );
     }
 
-    // Check if the registration options are expired
-    const createdAt = registrationOptions.createdAt;
-
-    if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
+    if (
+      registrationOptions.createdAt + KV_OPTIONS_EXPIRATION_TIME <
+      Date.now()
+    ) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
         "Registration options expired",
@@ -149,7 +149,7 @@ export class RegistrationService {
       });
 
       if (
-        verification.verified == false ||
+        !verification.verified ||
         verification.registrationInfo === undefined
       ) {
         throw new Error("Verification failed or registration info not found");
@@ -170,19 +170,22 @@ export class RegistrationService {
   private createCredential(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
     verification: VerifiedRegistrationResponse
-  ): UserCredentialDB {
+  ): UserCredentialEntity {
     const { registrationInfo } = verification;
 
-    if (registrationInfo === undefined) {
+    if (!registrationInfo) {
       throw new Error("Registration info not found");
     }
 
     const userId = Base64Utils.base64UrlToString(registrationOptions.user.id);
+    const publicKey = btoa(
+      String.fromCharCode(...registrationInfo.credential.publicKey)
+    );
 
     return {
       id: registrationInfo.credential.id,
       userId,
-      publicKey: registrationInfo.credential.publicKey,
+      publicKey,
       counter: registrationInfo.credential.counter,
       transports: registrationInfo.credential.transports,
       deviceType: registrationInfo.credentialDeviceType,
@@ -191,43 +194,36 @@ export class RegistrationService {
   }
 
   private createUser(
-    credential: UserCredentialDB,
+    credential: UserCredentialEntity,
     registrationOptions: PublicKeyCredentialCreationOptionsJSON
-  ): UserDB {
+  ): UserEntity {
     const { userId } = credential;
 
     return {
-      userId,
+      id: userId,
       displayName: registrationOptions.user.name,
-      createdAt: Date.now(),
+      createdAt: new Date(),
     };
   }
 
   private async addCredentialAndUserOrThrow(
-    credential: UserCredentialDB,
-    user: UserDB
+    credential: UserCredentialEntity,
+    user: UserEntity
   ): Promise<void> {
     const db = this.databaseService.get();
 
     try {
       await db.transaction(async (tx) => {
-        // Insert user
         await tx.insert(usersTable).values({
-          id: user.userId,
+          id: user.id,
           displayName: user.displayName,
           createdAt: new Date(user.createdAt),
         });
 
-        // Convert Uint8Array to base64 string for storage
-        const publicKeyBase64 = btoa(
-          String.fromCharCode(...credential.publicKey)
-        );
-
-        // Insert credential
         await tx.insert(userCredentialsTable).values({
           id: credential.id,
           userId: credential.userId,
-          publicKey: publicKeyBase64,
+          publicKey: credential.publicKey,
           counter: credential.counter,
           deviceType: credential.deviceType,
           backupStatus: credential.backupStatus,

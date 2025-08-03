@@ -7,3 +7,6 @@ export const userScoresTable = pgTable("user_scores", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   totalScore: integer("total_score").notNull().default(0),
 });
+
+export type UserScoreEntity = typeof userScoresTable.$inferSelect;
+export type UserScoreInsertEntity = typeof userScoresTable.$inferInsert;

@@ -9,3 +9,6 @@ export const userReportsTable = pgTable("user_reports", {
   reason: varchar("reason", { length: 500 }).notNull(),
   automatic: boolean("automatic").notNull().default(false),
 });
+
+export type UserReportEntity = typeof userReportsTable.$inferSelect;
+export type UserReportInsertEntity = typeof userReportsTable.$inferInsert;

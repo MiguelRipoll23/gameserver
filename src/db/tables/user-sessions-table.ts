@@ -10,3 +10,6 @@ export const userSessionsTable = pgTable("user_sessions", {
     .defaultNow()
     .notNull(),
 });
+
+export type UserSessionEntity = typeof userSessionsTable.$inferSelect;
+export type UserSessionInsertEntity = typeof userSessionsTable.$inferInsert;

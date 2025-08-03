@@ -8,3 +8,6 @@ export const serverMessagesTable = pgTable("server_messages", {
     .defaultNow()
     .notNull(),
 });
+
+export type ServerMessageEntity = typeof serverMessagesTable.$inferSelect;
+export type ServerMessageInsertEntity = typeof serverMessagesTable.$inferInsert;

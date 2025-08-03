@@ -6,11 +6,11 @@ import {
 } from "../schemas/matches-schemas.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { MatchDB } from "../interfaces/db/match-db.ts";
 import { MatchAttributes } from "../interfaces/match-attributes.ts";
 import { ServerError } from "../models/server-error.ts";
 import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
+import { MatchEntity } from "../../../../db/tables/matches-table.ts";
 
 @injectable()
 export class MatchesService {
@@ -73,27 +73,9 @@ export class MatchesService {
 
   public async find(body: FindMatchesRequest): Promise<FindMatchesResponse> {
     const db = this.databaseService.get();
-    const matches = await db
-      .select({
-        version: matchesTable.version,
-        totalSlots: matchesTable.totalSlots,
-        availableSlots: matchesTable.availableSlots,
-        attributes: matchesTable.attributes,
-        token: matchesTable.sessionId,
-      })
-      .from(matchesTable)
-      .limit(50);
+    const matches = await db.select().from(matchesTable).limit(50);
 
-    // Convert database result to MatchDB format for compatibility
-    const matchKVs: MatchDB[] = matches.map((match) => ({
-      version: match.version,
-      totalSlots: match.totalSlots,
-      availableSlots: match.availableSlots,
-      attributes: match.attributes as MatchAttributes,
-      token: match.token,
-    }));
-
-    return this.filter(matchKVs, body);
+    return this.filter(matches, body);
   }
 
   public async delete(userId: string): Promise<void> {
@@ -114,16 +96,12 @@ export class MatchesService {
   }
 
   private filter(
-    matches: MatchDB[],
+    matches: MatchEntity[],
     body: FindMatchesRequest
   ): FindMatchesResponse {
     const results: FindMatchesResponse = [];
 
     for (const match of matches) {
-      if (this.isSameVersion(body, match) === false) {
-        continue;
-      }
-
       if (this.hasAvailableSlots(body, match) === false) {
         continue;
       }
@@ -132,31 +110,36 @@ export class MatchesService {
         continue;
       }
 
-      const { token } = match;
+      const { sessionId } = match;
 
       results.push({
-        token,
+        token: sessionId,
       });
     }
 
     return results;
   }
 
-  private isSameVersion(body: FindMatchesRequest, match: MatchDB): boolean {
+  private isSameVersion(body: FindMatchesRequest, match: MatchEntity): boolean {
     return body.version === match.version;
   }
 
-  private hasAvailableSlots(body: FindMatchesRequest, match: MatchDB): boolean {
+  private hasAvailableSlots(
+    body: FindMatchesRequest,
+    match: MatchEntity
+  ): boolean {
     return body.totalSlots <= match.availableSlots;
   }
 
-  private hasAttributes(body: FindMatchesRequest, match: MatchDB): boolean {
+  private hasAttributes(body: FindMatchesRequest, match: MatchEntity): boolean {
+    const matchAttributes = match.attributes as MatchAttributes;
+
     for (const key in body.attributes) {
-      if (key in match.attributes === false) {
+      if (key in matchAttributes === false) {
         return false;
       }
 
-      if (body.attributes[key] !== match.attributes[key]) {
+      if (body.attributes[key] !== matchAttributes[key]) {
         return false;
       }
     }

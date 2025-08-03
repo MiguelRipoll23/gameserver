@@ -20,3 +20,7 @@ export const userCredentialsTable = pgTable("user_credentials", {
   backupStatus: boolean("backup_status").notNull(),
   transports: jsonb("transports"), // string[] or undefined
 });
+
+export type UserCredentialEntity = typeof userCredentialsTable.$inferSelect;
+export type UserCredentialInsertEntity =
+  typeof userCredentialsTable.$inferInsert;

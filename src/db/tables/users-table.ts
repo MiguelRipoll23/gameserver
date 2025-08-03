@@ -7,3 +7,6 @@ export const usersTable = pgTable("users", {
     .defaultNow()
     .notNull(),
 });
+
+export type UserEntity = typeof usersTable.$inferSelect;
+export type UserInsertEntity = typeof usersTable.$inferInsert;
