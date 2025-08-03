@@ -77,7 +77,8 @@ export class MatchesService {
     // Build the query conditions
     const conditions = [
       eq(matchesTable.version, body.version),
-      sql`${matchesTable.availableSlots} >= ${body.totalSlots}`
+      sql`${matchesTable.availableSlots} >= ${body.totalSlots}`,
+      sql`${matchesTable.updatedAt} >= NOW() - INTERVAL '5 minutes' OR ${matchesTable.createdAt} >= NOW() - INTERVAL '5 minutes'`
     ];
     
     // Add cursor condition if provided
