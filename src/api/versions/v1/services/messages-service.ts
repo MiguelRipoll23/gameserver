@@ -42,28 +42,18 @@ export class MessagesService {
 
   public async delete(id: number): Promise<void> {
     const db = this.databaseService.get();
-    const message = await db
-      .select()
-      .from(serverMessagesTable)
+    const deleted = await db
+      .delete(serverMessagesTable)
       .where(eq(serverMessagesTable.id, id))
-      .limit(1);
-    if (message.length === 0) {
-      // Not found, throw error
-      // Import ServerError and use 404
-      // (import already present in project)
-      // 404 from hono/utils/http-status is "NotFound"
-      // But ServerError expects ContentfulStatusCode, which is a number or string
-      // We'll use 404
-      // Error code string can be e.g. "MESSAGE_NOT_FOUND"
+      .returning();
+
+    if (deleted.length === 0) {
       throw new ServerError(
         "MESSAGE_NOT_FOUND",
         `Message with id ${id} does not exist`,
         404
       );
     }
-    await db
-      .delete(serverMessagesTable)
-      .where(eq(serverMessagesTable.id, id));
   }
 
   public async update(messageRequest: UpdateMessageRequest): Promise<GetMessageResponse[number]> {
