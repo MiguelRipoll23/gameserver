@@ -122,8 +122,16 @@ export class ManagementMessageRouter {
       }),
       async (c) => {
         const id = parseInt(c.req.param("id"), 10);
-        await this.messageService.delete(id);
+        if (isNaN(id)) {
+          return c.json(
+            {
+              message: "Invalid message ID format",
+            },
+            400,
+          );
+        }
 
+        await this.messageService.delete(id);
         return c.body(null, 204);
       },
     );
