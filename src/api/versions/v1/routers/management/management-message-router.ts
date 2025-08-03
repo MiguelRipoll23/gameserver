@@ -4,6 +4,7 @@ import { MessagesService } from "../../services/messages-service.ts";
 import {
   CreateMessageRequestSchema,
   DeleteMessageRequestSchema,
+  UpdateMessageRequestSchema,
 } from "../../schemas/messages-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -22,6 +23,7 @@ export class ManagementMessageRouter {
 
   private setRoutes(): void {
     this.registerCreateMessageRoute();
+    this.registerUpdateMessageRoute();
     this.registerDeleteMessageRoute();
   }
 
@@ -53,6 +55,46 @@ export class ManagementMessageRouter {
       async (c) => {
         const validated = c.req.valid("json");
         await this.messageService.create(validated);
+
+        return c.body(null, 204);
+      },
+    );
+  }
+
+  private registerUpdateMessageRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "put",
+        path: "/:id",
+        summary: "Update server message",
+        description:
+          "Update existing server message shown to the player after connecting to server",
+        tags: ["Server message"],
+        request: {
+          params: DeleteMessageRequestSchema,
+          body: {
+            content: {
+              "application/json": {
+                schema: UpdateMessageRequestSchema,
+              },
+            },
+          },
+        },
+        responses: {
+          ...ServerResponse.NoContent,
+          ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
+          ...ServerResponse.Forbidden,
+          ...ServerResponse.NotFound,
+        },
+      }),
+      async (c) => {
+        const id = parseInt(c.req.param("id"), 10);
+        const validated = c.req.valid("json");
+        await this.messageService.update({
+          ...validated,
+          id,
+        });
 
         return c.body(null, 204);
       },
