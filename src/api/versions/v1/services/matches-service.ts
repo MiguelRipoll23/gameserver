@@ -73,19 +73,46 @@ export class MatchesService {
 
   public async find(body: FindMatchesRequest): Promise<FindMatchesResponse> {
     const db = this.databaseService.get();
-    // Filter by version and available slots in a single where clause
+    const limit = body.limit ?? 20; // Default to 20 items per page
+    
+    // Build the query conditions
+    const conditions = [
+      eq(matchesTable.version, body.version),
+      sql`${matchesTable.availableSlots} >= ${body.totalSlots}`
+    ];
+    
+    // Add cursor condition if provided
+    if (body.cursor) {
+      conditions.push(sql`${matchesTable.id} > ${body.cursor}`);
+    }
+    
+    // Get one extra item to determine if there are more results
     const matches = await db
       .select()
       .from(matchesTable)
-      .where(
-        and(
-          eq(matchesTable.version, body.version),
-          sql`${matchesTable.availableSlots} >= ${body.totalSlots}`
-        )
-      )
-      .limit(50);
+      .where(and(...conditions))
+      .orderBy(matchesTable.id)
+      .limit(limit + 1);
 
-    return this.filter(matches, body);
+    // Filter matches by attributes
+    const filteredMatches = this.filter(matches, body);
+    
+    // Remove the extra item and use it to determine if there are more results
+    const hasNextPage = filteredMatches.length > limit;
+    const results = filteredMatches.slice(0, limit);
+    
+    // Transform the results into the expected response format
+    return {
+      data: results.map(match => ({
+        id: match.id,
+        token: match.sessionId,
+        totalSlots: match.totalSlots,
+        availableSlots: match.availableSlots,
+        attributes: match.attributes as Record<string, unknown>,
+        createdAt: match.createdAt.toISOString()
+      })),
+      nextCursor: hasNextPage ? results[results.length - 1].id : undefined
+    };
   }
 
   public async delete(userId: string): Promise<void> {
@@ -108,22 +135,8 @@ export class MatchesService {
   private filter(
     matches: MatchEntity[],
     body: FindMatchesRequest
-  ): FindMatchesResponse {
-    const results: FindMatchesResponse = [];
-
-    for (const match of matches) {
-      if (this.hasAttributes(body, match) === false) {
-        continue;
-      }
-
-      const { sessionId } = match;
-
-      results.push({
-        token: sessionId,
-      });
-    }
-
-    return results;
+  ): MatchEntity[] {
+    return matches.filter(match => this.hasAttributes(body, match));
   }
 
   private isSameVersion(body: FindMatchesRequest, match: MatchEntity): boolean {
