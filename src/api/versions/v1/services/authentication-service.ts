@@ -18,7 +18,6 @@ import {
   AuthenticatorTransportFuture,
   CredentialDeviceType,
 } from "@simplewebauthn/types";
-import { CredentialKV } from "../interfaces/kv/credential-kv.ts";
 import { ServerError } from "../models/server-error.ts";
 import { ICEService } from "./ice-service.ts";
 import {
@@ -30,6 +29,7 @@ import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 import { BAN_MESSAGE_TEMPLATE } from "../constants/api-constants.ts";
 import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
+import { UserCredentialDB } from "../interfaces/db/user-credential-db.ts";
 
 @injectable()
 export class AuthenticationService {
@@ -73,19 +73,19 @@ export class AuthenticationService {
       transactionId
     );
 
-    const credentialKV = await this.getCredentialOrThrow(
+    const credentialDB = await this.getCredentialOrThrow(
       authenticationResponse.id
     );
 
     const verification = await this.verifyAuthenticationResponse(
       authenticationResponse,
       authenticationOptions,
-      credentialKV
+      credentialDB
     );
 
-    await this.updateCredentialCounter(credentialKV, verification);
+    await this.updateCredentialCounter(credentialDB, verification);
 
-    const userKV = await this.getUserOrThrowError(credentialKV);
+    const userKV = await this.getUserOrThrowError(credentialDB);
 
     return await this.getResponseForUser(connectionInfo, userKV);
   }
@@ -159,7 +159,7 @@ export class AuthenticationService {
     return authenticationOptions.data;
   }
 
-  private async getCredentialOrThrow(id: string): Promise<CredentialKV> {
+  private async getCredentialOrThrow(id: string): Promise<UserCredentialDB> {
     const db = this.databaseService.get();
     const credentials = await db
       .select()
@@ -199,7 +199,7 @@ export class AuthenticationService {
   private async verifyAuthenticationResponse(
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
-    credentialKV: CredentialKV
+    credentialDB: UserCredentialDB
   ): Promise<VerifiedAuthenticationResponse> {
     try {
       const verification = await verifyAuthenticationResponse({
@@ -208,10 +208,10 @@ export class AuthenticationService {
         expectedOrigin: WebAuthnUtils.getRelyingPartyOrigin(),
         expectedRPID: WebAuthnUtils.getRelyingPartyID(),
         credential: {
-          id: credentialKV.id,
-          publicKey: credentialKV.publicKey,
-          counter: credentialKV.counter,
-          transports: credentialKV.transports,
+          id: credentialDB.id,
+          publicKey: credentialDB.publicKey,
+          counter: credentialDB.counter,
+          transports: credentialDB.transports,
         },
       });
 
@@ -235,7 +235,7 @@ export class AuthenticationService {
   }
 
   private async updateCredentialCounter(
-    credential: CredentialKV,
+    credential: UserCredentialDB,
     verification: VerifiedAuthenticationResponse
   ): Promise<void> {
     const { authenticationInfo } = verification;
@@ -249,9 +249,9 @@ export class AuthenticationService {
   }
 
   private async getUserOrThrowError(
-    credentialKV: CredentialKV
+    credentialDB: UserCredentialDB
   ): Promise<UserKV> {
-    const userId = credentialKV.userId;
+    const userId = credentialDB.userId;
     const db = this.databaseService.get();
     const users = await db
       .select()
