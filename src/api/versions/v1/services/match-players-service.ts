@@ -24,10 +24,9 @@ export class MatchPlayersService {
   public handleMatchPlayerMessage(
     originUser: WebSocketUser,
     isConnected: boolean,
-    playerId: string,
+    playerId: string
   ): void {
-
-    const token = originUser.getUserToken();
+    const token = originUser.getSessionId();
     let players = this.matchPlayers.get(token);
     if (players === undefined) {
       players = new Set<string>();

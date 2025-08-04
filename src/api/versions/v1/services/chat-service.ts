@@ -50,7 +50,7 @@ export class ChatService {
     }
     message = filterMessage(message);
 
-    const hostToken = user.getHostToken() ?? user.getUserToken();
+    const hostToken = user.getHostSessionId() ?? user.getSessionId();
 
     console.log(
       `Broadcasting chat message from ${user.getName()} to ${hostToken} with content: ${message}`,
