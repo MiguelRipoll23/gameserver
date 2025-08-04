@@ -27,7 +27,8 @@ CREATE TABLE "user_bans" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_credentials" (
-	"id" uuid NOT NULL,
+	"id" varchar(255) PRIMARY KEY NOT NULL,
+	"user_id" uuid NOT NULL,
 	"public_key" text NOT NULL,
 	"counter" integer NOT NULL,
 	"device_type" varchar(32) NOT NULL,
@@ -47,9 +48,10 @@ CREATE TABLE "user_scores" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_sessions" (
-	"id" uuid NOT NULL,
+	"id" varchar PRIMARY KEY NOT NULL,
+	"user_id" uuid NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "user_sessions_id_unique" UNIQUE("id")
+	CONSTRAINT "user_sessions_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -62,7 +64,7 @@ CREATE TABLE "users" (
 ALTER TABLE "matches" ADD CONSTRAINT "matches_session_id_user_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."user_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "matches" ADD CONSTRAINT "matches_host_user_id_users_id_fk" FOREIGN KEY ("host_user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_bans" ADD CONSTRAINT "user_bans_id_users_id_fk" FOREIGN KEY ("id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_credentials" ADD CONSTRAINT "user_credentials_id_users_id_fk" FOREIGN KEY ("id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "user_credentials" ADD CONSTRAINT "user_credentials_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_reports" ADD CONSTRAINT "user_reports_id_users_id_fk" FOREIGN KEY ("id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_scores" ADD CONSTRAINT "user_scores_id_users_id_fk" FOREIGN KEY ("id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_id_users_id_fk" FOREIGN KEY ("id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "user_sessions" ADD CONSTRAINT "user_sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;

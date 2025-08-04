@@ -72,7 +72,7 @@ export class MatchesService {
 
     // Build the query conditions
     const conditions = [
-      eq(matchesTable.version, body.version),
+      eq(matchesTable.version, body.clientVersion),
       sql`${matchesTable.availableSlots} >= ${body.totalSlots}`,
       sql`${matchesTable.updatedAt} >= NOW() - INTERVAL '5 minutes'`,
     ];
@@ -107,15 +107,10 @@ export class MatchesService {
 
     // Transform the results into the expected response format
     return {
-      data: results.map((match) => ({
-        id: match.id,
-        token: match.sessionId,
-        totalSlots: match.totalSlots,
-        availableSlots: match.availableSlots,
-        attributes: match.attributes as Record<string, unknown>,
-        createdAt: match.createdAt.toISOString(),
+      results: results.map((match) => ({
+        sessionId: match.sessionId,
       })),
-      nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
+      nextCursor: hasNextPage ? matches[matches.length - 1].id : undefined,
     };
   }
 

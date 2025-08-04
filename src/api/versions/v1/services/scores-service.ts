@@ -27,8 +27,8 @@ export class ScoresService {
     const db = this.databaseService.get();
     const scores = await db
       .select({
-        playerName: usersTable.displayName,
-        score: userScoresTable.totalScore,
+        userDisplayName: usersTable.displayName,
+        totalScore: userScoresTable.totalScore,
       })
       .from(userScoresTable)
       .innerJoin(usersTable, eq(userScoresTable.userId, usersTable.id))
@@ -89,23 +89,24 @@ export class ScoresService {
   }
 
   private async updatePlayerScore(entry: {
-    playerId: string;
-    playerName: string;
-    score: number;
+    userId: string;
+    userDisplayName: string;
+    totalScore: number;
   }): Promise<void> {
-    const { playerId, score } = entry;
+    const { userId, totalScore } = entry;
     const db = this.databaseService.get();
 
     // Atomic upsert: insert or increment totalScore on conflict
-    await db.insert(userScoresTable)
+    await db
+      .insert(userScoresTable)
       .values({
-        userId: playerId,
-        totalScore: score,
+        userId,
+        totalScore,
       })
       .onConflictDoUpdate({
         target: userScoresTable.userId,
         set: {
-          totalScore: sql`${userScoresTable.totalScore} + ${score}`,
+          totalScore: sql`${userScoresTable.totalScore} + ${totalScore}`,
         },
       });
   }

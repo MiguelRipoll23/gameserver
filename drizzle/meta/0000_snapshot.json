@@ -1,5 +1,5 @@
 {
-  "id": "36e1195b-f86d-452b-a16c-161a0113b508",
+  "id": "3769e9de-7e9b-4d72-ad97-cef4b8622534",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -210,6 +210,12 @@
       "columns": {
         "id": {
           "name": "id",
+          "type": "varchar(255)",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -247,12 +253,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_credentials_id_users_id_fk": {
-          "name": "user_credentials_id_users_id_fk",
+        "user_credentials_user_id_users_id_fk": {
+          "name": "user_credentials_user_id_users_id_fk",
           "tableFrom": "user_credentials",
           "tableTo": "users",
           "columnsFrom": [
-            "id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -359,6 +365,12 @@
       "columns": {
         "id": {
           "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -373,12 +385,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_sessions_id_users_id_fk": {
-          "name": "user_sessions_id_users_id_fk",
+        "user_sessions_user_id_users_id_fk": {
+          "name": "user_sessions_user_id_users_id_fk",
           "tableFrom": "user_sessions",
           "tableTo": "users",
           "columnsFrom": [
-            "id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -389,11 +401,11 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "user_sessions_id_unique": {
-          "name": "user_sessions_id_unique",
+        "user_sessions_user_id_unique": {
+          "name": "user_sessions_user_id_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "id"
+            "user_id"
           ]
         }
       },
