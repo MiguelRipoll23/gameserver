@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   timestamp,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 import { userSessionsTable } from "./user-sessions-table.ts";
@@ -14,7 +15,7 @@ export const matchesTable = pgTable("matches", {
   sessionId: varchar("session_id")
     .notNull()
     .references(() => userSessionsTable.id, { onDelete: "cascade" }),
-  hostUserId: varchar("host_user_id")
+  hostUserId: uuid("host_user_id")
     .notNull()
     .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),

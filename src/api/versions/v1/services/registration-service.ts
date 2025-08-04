@@ -40,7 +40,7 @@ export class RegistrationService {
 
     await this.ensureUserDoesNotExist(displayName);
 
-    const userId = crypto.randomUUID().replaceAll("-", "");
+    const userId = crypto.randomUUID();
     const options = await generateRegistrationOptions({
       rpName: WebAuthnUtils.getRelyingPartyName(),
       rpID: WebAuthnUtils.getRelyingPartyID(),

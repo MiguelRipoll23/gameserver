@@ -1,9 +1,9 @@
-import { pgTable, varchar, boolean, serial } from "drizzle-orm/pg-core";
+import { pgTable, varchar, boolean, serial, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userReportsTable = pgTable("user_reports", {
   id: serial("id").primaryKey(),
-  userId: varchar("user_id")
+  userId: uuid("id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   reason: varchar("reason", { length: 500 }).notNull(),

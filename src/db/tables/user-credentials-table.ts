@@ -5,12 +5,13 @@ import {
   boolean,
   jsonb,
   text,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userCredentialsTable = pgTable("user_credentials", {
   id: varchar("id", { length: 255 }).primaryKey(),
-  userId: varchar("user_id")
+  userId: uuid("id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   publicKey: text("public_key").notNull(), // store base64-encoded string

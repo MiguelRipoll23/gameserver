@@ -1,9 +1,9 @@
-import { pgTable, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, varchar, timestamp, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userSessionsTable = pgTable("user_sessions", {
   id: varchar("id").primaryKey(),
-  userId: varchar("user_id")
+  userId: uuid("id")
     .notNull()
     .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),

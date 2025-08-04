@@ -1,5 +1,5 @@
 {
-  "id": "61c33c81-5c4b-4454-bdc5-2e8d883865b5",
+  "id": "36e1195b-f86d-452b-a16c-161a0113b508",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -22,7 +22,7 @@
         },
         "host_user_id": {
           "name": "host_user_id",
-          "type": "varchar",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -158,13 +158,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "varchar",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -190,12 +184,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_bans_user_id_users_id_fk": {
-          "name": "user_bans_user_id_users_id_fk",
+        "user_bans_id_users_id_fk": {
+          "name": "user_bans_id_users_id_fk",
           "tableFrom": "user_bans",
           "tableTo": "users",
           "columnsFrom": [
-            "user_id"
+            "id"
           ],
           "columnsTo": [
             "id"
@@ -216,13 +210,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(255)",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "varchar",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -259,12 +247,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_credentials_user_id_users_id_fk": {
-          "name": "user_credentials_user_id_users_id_fk",
+        "user_credentials_id_users_id_fk": {
+          "name": "user_credentials_id_users_id_fk",
           "tableFrom": "user_credentials",
           "tableTo": "users",
           "columnsFrom": [
-            "user_id"
+            "id"
           ],
           "columnsTo": [
             "id"
@@ -285,13 +273,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "varchar",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -311,12 +293,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_reports_user_id_users_id_fk": {
-          "name": "user_reports_user_id_users_id_fk",
+        "user_reports_id_users_id_fk": {
+          "name": "user_reports_id_users_id_fk",
           "tableFrom": "user_reports",
           "tableTo": "users",
           "columnsFrom": [
-            "user_id"
+            "id"
           ],
           "columnsTo": [
             "id"
@@ -335,9 +317,9 @@
       "name": "user_scores",
       "schema": "",
       "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "varchar",
+        "id": {
+          "name": "id",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -351,12 +333,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_scores_user_id_users_id_fk": {
-          "name": "user_scores_user_id_users_id_fk",
+        "user_scores_id_users_id_fk": {
+          "name": "user_scores_id_users_id_fk",
           "tableFrom": "user_scores",
           "tableTo": "users",
           "columnsFrom": [
-            "user_id"
+            "id"
           ],
           "columnsTo": [
             "id"
@@ -377,13 +359,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "varchar",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -397,12 +373,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_sessions_user_id_users_id_fk": {
-          "name": "user_sessions_user_id_users_id_fk",
+        "user_sessions_id_users_id_fk": {
+          "name": "user_sessions_id_users_id_fk",
           "tableFrom": "user_sessions",
           "tableTo": "users",
           "columnsFrom": [
-            "user_id"
+            "id"
           ],
           "columnsTo": [
             "id"
@@ -413,11 +389,11 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "user_sessions_user_id_unique": {
-          "name": "user_sessions_user_id_unique",
+        "user_sessions_id_unique": {
+          "name": "user_sessions_id_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "user_id"
+            "id"
           ]
         }
       },
@@ -431,7 +407,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
