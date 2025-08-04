@@ -4,7 +4,6 @@ import {
   FindMatchesRequest,
   FindMatchesResponse,
 } from "../schemas/matches-schemas.ts";
-import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
@@ -12,10 +11,7 @@ import { eq, and, sql } from "drizzle-orm";
 
 @injectable()
 export class MatchesService {
-  constructor(
-    private kvService = inject(KVService),
-    private databaseService = inject(DatabaseService)
-  ) {}
+  constructor(private databaseService = inject(DatabaseService)) {}
 
   public async advertise(
     userId: string,
