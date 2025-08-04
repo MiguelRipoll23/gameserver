@@ -1,6 +1,5 @@
 import {
   pgTable,
-  uuid,
   varchar,
   integer,
   boolean,
@@ -11,7 +10,7 @@ import { usersTable } from "./users-table.ts";
 
 export const userCredentialsTable = pgTable("user_credentials", {
   id: varchar("id", { length: 255 }).primaryKey(),
-  userId: uuid("user_id")
+  userId: varchar("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   publicKey: text("public_key").notNull(), // store base64-encoded string

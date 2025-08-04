@@ -1,5 +1,5 @@
 {
-  "id": "8f395c68-d185-4214-8ed7-14e447fad8da",
+  "id": "61c33c81-5c4b-4454-bdc5-2e8d883865b5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -16,13 +16,13 @@
         },
         "session_id": {
           "name": "session_id",
-          "type": "varchar(32)",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
         "host_user_id": {
           "name": "host_user_id",
-          "type": "uuid",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
@@ -67,10 +67,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "matches_session_id_userSessions_id_fk": {
-          "name": "matches_session_id_userSessions_id_fk",
+        "matches_session_id_user_sessions_id_fk": {
+          "name": "matches_session_id_user_sessions_id_fk",
           "tableFrom": "matches",
-          "tableTo": "userSessions",
+          "tableTo": "user_sessions",
           "columnsFrom": [
             "session_id"
           ],
@@ -136,10 +136,74 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user_bans": {
+      "name": "user_bans",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_bans_user_id_users_id_fk": {
+          "name": "user_bans_user_id_users_id_fk",
+          "tableFrom": "user_bans",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -158,13 +222,7 @@
         },
         "user_id": {
           "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_display_name": {
-          "name": "user_display_name",
-          "type": "varchar(255)",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
@@ -233,13 +291,13 @@
         },
         "user_id": {
           "name": "user_id",
-          "type": "uuid",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
         "reason": {
           "name": "reason",
-          "type": "varchar",
+          "type": "varchar(500)",
           "primaryKey": false,
           "notNull": true
         },
@@ -279,14 +337,8 @@
       "columns": {
         "user_id": {
           "name": "user_id",
-          "type": "uuid",
+          "type": "varchar",
           "primaryKey": true,
-          "notNull": true
-        },
-        "user_display_name": {
-          "name": "user_display_name",
-          "type": "varchar(16)",
-          "primaryKey": false,
           "notNull": true
         },
         "total_score": {
@@ -319,19 +371,19 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.userSessions": {
-      "name": "userSessions",
+    "public.user_sessions": {
+      "name": "user_sessions",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar(32)",
+          "type": "varchar",
           "primaryKey": true,
           "notNull": true
         },
         "user_id": {
           "name": "user_id",
-          "type": "uuid",
+          "type": "varchar",
           "primaryKey": false,
           "notNull": true
         },
@@ -345,9 +397,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "userSessions_user_id_users_id_fk": {
-          "name": "userSessions_user_id_users_id_fk",
-          "tableFrom": "userSessions",
+        "user_sessions_user_id_users_id_fk": {
+          "name": "user_sessions_user_id_users_id_fk",
+          "tableFrom": "user_sessions",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -360,7 +412,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "user_sessions_user_id_unique": {
+          "name": "user_sessions_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -371,10 +431,9 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "uuid",
+          "type": "varchar",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "display_name": {
           "name": "display_name",

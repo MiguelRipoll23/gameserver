@@ -295,7 +295,9 @@ export class AuthenticationService {
 
       // Check if temporary ban is still active
       if (latestBan.expiresAt > now) {
-        const remainingTime = Math.ceil((latestBan.expiresAt.getTime() - now.getTime()) / (1000 * 60));
+        const remainingTime = Math.ceil(
+          (latestBan.expiresAt.getTime() - now.getTime()) / (1000 * 60)
+        );
         throw new ServerError(
           "USER_BANNED_TEMPORARILY",
           `Your account is temporarily banned. The ban will expire in ${remainingTime} minutes`,

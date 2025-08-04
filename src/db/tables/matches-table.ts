@@ -2,7 +2,6 @@ import {
   pgTable,
   serial,
   varchar,
-  uuid,
   integer,
   jsonb,
   timestamp,
@@ -15,7 +14,7 @@ export const matchesTable = pgTable("matches", {
   sessionId: varchar("session_id")
     .notNull()
     .references(() => userSessionsTable.id, { onDelete: "cascade" }),
-  hostUserId: uuid("host_user_id")
+  hostUserId: varchar("host_user_id")
     .notNull()
     .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),

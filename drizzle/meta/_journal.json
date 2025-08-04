@@ -5,50 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1754231173328,
-      "tag": "0000_cooing_micromacro",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1754233870052,
-      "tag": "0001_good_silverclaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1754234050407,
-      "tag": "0002_dashing_leader",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1754234159840,
-      "tag": "0003_wild_sebastian_shaw",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1754238929327,
-      "tag": "0004_heavy_leper_queen",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1754257760693,
-      "tag": "0005_funny_ink",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1754300445039,
-      "tag": "0006_remarkable_misty_knight",
+      "when": 1754309229711,
+      "tag": "0000_faulty_stick",
       "breakpoints": true
     }
   ]

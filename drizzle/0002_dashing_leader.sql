@@ -1,1 +1,0 @@
-ALTER TABLE "user_sessions" ALTER COLUMN "id" SET DATA TYPE varchar;
