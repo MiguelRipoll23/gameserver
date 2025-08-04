@@ -28,7 +28,7 @@ export class MatchesService {
       .from(userSessionsTable)
       .where(eq(userSessionsTable.userId, userId))
       .limit(1)
-      .then(rows => rows[0]);
+      .then((rows) => rows[0]);
 
     if (!session) {
       throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
@@ -73,14 +73,14 @@ export class MatchesService {
   public async find(body: FindMatchesRequest): Promise<FindMatchesResponse> {
     const db = this.databaseService.get();
     const limit = body.limit ?? 20; // Default to 20 items per page
-    
+
     // Build the query conditions
     const conditions = [
       eq(matchesTable.version, body.version),
       sql`${matchesTable.availableSlots} >= ${body.totalSlots}`,
-      sql`${matchesTable.updatedAt} >= NOW() - INTERVAL '5 minutes' OR ${matchesTable.createdAt} >= NOW() - INTERVAL '5 minutes'`
+      sql`${matchesTable.updatedAt} >= NOW() - INTERVAL '5 minutes'`,
     ];
-    
+
     // Add cursor condition if provided
     if (body.cursor) {
       conditions.push(sql`${matchesTable.id} > ${body.cursor}`);
@@ -89,14 +89,13 @@ export class MatchesService {
     // Add attribute conditions using jsonb operators
     if (body.attributes) {
       for (const [key, value] of Object.entries(body.attributes)) {
-        // Use ? operator to check if key exists and @> for exact value match
-        conditions.push(sql`${matchesTable.attributes} ? ${key}`);
+        // Use ->> operator for exact value match (handles non-existent keys gracefully)
         conditions.push(
           sql`${matchesTable.attributes}->>${key} = ${JSON.stringify(value)}`
         );
       }
     }
-    
+
     // Get one extra item to determine if there are more results
     const matches = await db
       .select()
@@ -104,22 +103,22 @@ export class MatchesService {
       .where(and(...conditions))
       .orderBy(matchesTable.id)
       .limit(limit + 1);
-    
+
     // Remove the extra item and use it to determine if there are more results
     const hasNextPage = matches.length > limit;
     const results = matches.slice(0, limit);
-    
+
     // Transform the results into the expected response format
     return {
-      data: results.map(match => ({
+      data: results.map((match) => ({
         id: match.id,
         token: match.sessionId,
         totalSlots: match.totalSlots,
         availableSlots: match.availableSlots,
         attributes: match.attributes as Record<string, unknown>,
-        createdAt: match.createdAt.toISOString()
+        createdAt: match.createdAt.toISOString(),
       })),
-      nextCursor: hasNextPage ? results[results.length - 1].id : undefined
+      nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
     };
   }
 
@@ -139,6 +138,4 @@ export class MatchesService {
       );
     }
   }
-
-
 }
