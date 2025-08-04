@@ -57,7 +57,7 @@ export class AuthenticatedMatchesRouter {
         await this.matchesService.advertise(userId, validated);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 
@@ -92,10 +92,19 @@ export class AuthenticatedMatchesRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
+        console.log(
+          "Find matches request validated:",
+          JSON.stringify(validated, null, 2)
+        );
+
         const response = await this.matchesService.find(validated);
+        console.log(
+          "Find matches service response:",
+          JSON.stringify(response, null, 2)
+        );
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 
@@ -117,7 +126,7 @@ export class AuthenticatedMatchesRouter {
         await this.matchesService.delete(userId);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 }
