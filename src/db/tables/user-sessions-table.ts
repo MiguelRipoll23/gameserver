@@ -5,6 +5,7 @@ export const userSessionsTable = pgTable("user_sessions", {
   id: varchar("id").primaryKey(),
   userId: uuid("user_id")
     .notNull()
+    .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

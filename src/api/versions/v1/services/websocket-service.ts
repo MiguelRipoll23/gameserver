@@ -129,17 +129,28 @@ export class WebSocketService implements IWebSocketService {
     const userId = webSocketUser.getId();
     const userToken = webSocketUser.getUserToken();
 
-    // Store session in database
+    // Store session in database using upsert (insert or update if user_id exists)
     const db = this.databaseService.get();
 
     try {
-      await db.insert(userSessionsTable).values({
-        id: userToken,
-        userId: userId,
-      });
+      await db
+        .insert(userSessionsTable)
+        .values({
+          id: userToken,
+          userId: userId,
+        })
+        .onConflictDoUpdate({
+          target: userSessionsTable.userId,
+          set: {
+            id: userToken,
+            createdAt: new Date(),
+          },
+        });
     } catch (error) {
-      // Handle unique constraint violation or other errors
-      console.log(`Session already exists or error creating session: ${error}`);
+      console.error(
+        `Failed to create/update session for user ${webSocketUser.getName()}:`,
+        error
+      );
     }
 
     this.addWebSocketUser(webSocketUser);
