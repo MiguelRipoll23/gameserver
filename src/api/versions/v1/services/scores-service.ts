@@ -1,45 +1,46 @@
 import { inject, injectable } from "@needle-di/core";
 import { CryptoService } from "../../../../core/services/crypto-service.ts";
 import { KVService } from "../../../../core/services/kv-service.ts";
-import { PlayerScoreKV } from "../interfaces/kv/player-score.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   GetScoresResponse,
   SaveScoresRequest,
   SaveScoresRequestSchema,
 } from "../schemas/scores-schemas.ts";
+import {
+  userScoresTable,
+  usersTable,
+  matchesTable,
+} from "../../../../db/schema.ts";
+import { eq, desc, sql } from "drizzle-orm";
 
 @injectable()
 export class ScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
-    private kvService = inject(KVService)
+    private kvService = inject(KVService),
+    private databaseService = inject(DatabaseService)
   ) {}
 
   public async list(): Promise<GetScoresResponse> {
-    const entries = this.kvService.listScores();
-    const scores: GetScoresResponse = [];
+    const db = this.databaseService.get();
+    const scores = await db
+      .select({
+        userDisplayName: usersTable.displayName,
+        totalScore: userScoresTable.totalScore,
+      })
+      .from(userScoresTable)
+      .innerJoin(usersTable, eq(userScoresTable.userId, usersTable.id))
+      .orderBy(desc(userScoresTable.totalScore))
+      .limit(10);
 
-    for await (const entry of entries) {
-      const { playerName, score } = entry.value;
-      scores.push({ playerName, score });
-    }
-
-    scores.sort((a, b) => b.score - a.score);
-
-    return scores.slice(0, 10);
+    return scores;
   }
 
   public async save(userId: string, body: ArrayBuffer): Promise<void> {
-    const match = await this.kvService.getMatch(userId);
-
-    if (match === null) {
-      throw new ServerError(
-        "NO_MATCH_FOUND",
-        "User is not hosting a match",
-        400
-      );
-    }
+    // Check if user is hosting a match
+    await this.validateUserIsHostingMatch(userId);
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
 
@@ -51,6 +52,24 @@ export class ScoresService {
 
     if (failures.length > 0) {
       console.error(`Failed to update ${failures.length} scores`);
+    }
+  }
+
+  private async validateUserIsHostingMatch(userId: string): Promise<void> {
+    const db = this.databaseService.get();
+
+    const hostedMatches = await db
+      .select()
+      .from(matchesTable)
+      .where(eq(matchesTable.hostUserId, userId))
+      .limit(1);
+
+    if (hostedMatches.length === 0) {
+      throw new ServerError(
+        "NOT_HOSTING_MATCH",
+        "Only match hosts can save scores",
+        400
+      );
     }
   }
 
@@ -70,15 +89,24 @@ export class ScoresService {
   }
 
   private async updatePlayerScore(entry: {
-    playerId: string;
-    playerName: string;
-    score: number;
+    userId: string;
+    totalScore: number;
   }): Promise<void> {
-    const { playerId, playerName, score } = entry;
-    const existing = await this.kvService.getScore(playerId);
-    const totalScore = score + (existing?.score ?? 0);
+    const { userId, totalScore } = entry;
+    const db = this.databaseService.get();
 
-    const newScore: PlayerScoreKV = { playerId, playerName, score: totalScore };
-    await this.kvService.setScore(playerId, newScore);
+    // Atomic upsert: insert or increment totalScore on conflict
+    await db
+      .insert(userScoresTable)
+      .values({
+        userId,
+        totalScore,
+      })
+      .onConflictDoUpdate({
+        target: userScoresTable.userId,
+        set: {
+          totalScore: sql`${userScoresTable.totalScore} + ${totalScore}`,
+        },
+      });
   }
 }
