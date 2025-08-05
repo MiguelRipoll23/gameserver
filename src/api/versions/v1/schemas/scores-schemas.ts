@@ -2,13 +2,7 @@ import { z } from "@hono/zod-openapi";
 
 export const SaveScoresRequestSchema = z.array(
   z.object({
-    userId: z.string().length(32).describe("The unique identifier of the user"),
-    userDisplayName: z
-      .string()
-      .min(1)
-      .max(16)
-      .describe("The display name of the user")
-      .openapi({ example: "MiguelRipoll23" }),
+    userId: z.string().length(36).describe("The unique identifier of the user"),
     totalScore: z
       .number()
       .min(0)

@@ -90,7 +90,6 @@ export class ScoresService {
 
   private async updatePlayerScore(entry: {
     userId: string;
-    userDisplayName: string;
     totalScore: number;
   }): Promise<void> {
     const { userId, totalScore } = entry;

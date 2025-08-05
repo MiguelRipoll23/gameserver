@@ -16,7 +16,7 @@ export const GetAuthenticationOptionsRequestSchema = z.object({
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
-      example: "123e4567-e89b-12d3-a456-426614174000",
+      example: "00000000-00000000-00000000-00000000",
     }),
 });
 
@@ -45,7 +45,7 @@ export const VerifyAuthenticationRequestSchema = z.object({
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
-      example: "123e4567-e89b-12d3-a456-426614174000",
+      example: "00000000-00000000-00000000-00000000",
     }),
   authenticationResponse: z
     .looseObject({})
@@ -57,8 +57,15 @@ export type VerifyAuthenticationRequest = z.infer<
 >;
 
 export const VerifyAuthenticationResponseSchema = z.object({
-  userId: z.string().length(32).describe("The user ID"),
-  displayName: z.string().describe("The display name of the user"),
+  userId: z
+    .string()
+    .length(36)
+    .describe("The user ID")
+    .openapi({ example: "00000000-00000000-00000000-00000000" }),
+  displayName: z
+    .string()
+    .describe("The display name of the user")
+    .openapi({ example: "MiguelRipoll23" }),
   authenticationToken: z
     .string()
     .describe("The authentication token of the user"),
@@ -67,7 +74,7 @@ export const VerifyAuthenticationResponseSchema = z.object({
     .union([z.ipv4(), z.ipv6()])
     .nullable()
     .describe("The public IP of the user")
-    .openapi({ example: "…" }),
+    .openapi({ example: "1.1.1.1" }),
   rtcIceServers: z
     .array(RTCIceServerSchema)
     .describe("The RTC ICE servers for the user"),
