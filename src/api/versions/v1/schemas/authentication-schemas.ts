@@ -16,7 +16,7 @@ export const GetAuthenticationOptionsRequestSchema = z.object({
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
-      example: "00000000-00000000-00000000-00000000",
+      example: "00000000-0000-0000-0000-000000000000",
     }),
 });
 
@@ -45,7 +45,7 @@ export const VerifyAuthenticationRequestSchema = z.object({
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
-      example: "00000000-00000000-00000000-00000000",
+      example: "00000000-0000-0000-0000-000000000000",
     }),
   authenticationResponse: z
     .looseObject({})
@@ -61,7 +61,7 @@ export const VerifyAuthenticationResponseSchema = z.object({
     .string()
     .length(36)
     .describe("The user ID")
-    .openapi({ example: "00000000-00000000-00000000-00000000" }),
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
   displayName: z
     .string()
     .describe("The display name of the user")

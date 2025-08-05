@@ -5,6 +5,10 @@ export default defineConfig({
   schema: "./src/db/schema.ts",
   dialect: "postgresql",
   dbCredentials: {
-    url: Deno.env.get("DATABASE_URL")!,
+    url:
+      Deno.env.get("DATABASE_URL") ??
+      (() => {
+        throw new Error("DATABASE_URL environment variable is required");
+      })(),
   },
 });

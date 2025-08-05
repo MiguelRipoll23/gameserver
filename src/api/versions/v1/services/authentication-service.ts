@@ -162,11 +162,23 @@ export class AuthenticationService {
     id: string
   ): Promise<UserCredentialEntity> {
     const db = this.databaseService.get();
-    const credentials = await db
-      .select()
-      .from(userCredentialsTable)
-      .where(eq(userCredentialsTable.id, id))
-      .limit(1);
+
+    let credentials;
+
+    try {
+      credentials = await db
+        .select()
+        .from(userCredentialsTable)
+        .where(eq(userCredentialsTable.id, id))
+        .limit(1);
+    } catch (error) {
+      console.error("Failed to query credential:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to retrieve credential",
+        500
+      );
+    }
 
     if (credentials.length === 0) {
       throw new ServerError(
@@ -256,11 +268,19 @@ export class AuthenticationService {
   ): Promise<UserEntity> {
     const userId = credentialDB.userId;
     const db = this.databaseService.get();
-    const users = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, userId))
-      .limit(1);
+
+    let users;
+
+    try {
+      users = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, userId))
+        .limit(1);
+    } catch (error) {
+      console.error("Failed to query user:", error);
+      throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
+    }
 
     if (users.length === 0) {
       throw new ServerError("USER_NOT_FOUND", "User not found", 400);

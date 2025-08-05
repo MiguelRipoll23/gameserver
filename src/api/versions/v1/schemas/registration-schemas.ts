@@ -5,7 +5,7 @@ export const GetRegistrationOptionsRequestSchema = z.object({
     .uuid()
     .describe("The transaction ID for the registration request")
     .openapi({
-      example: "00000000-00000000-00000000-00000000",
+      example: "00000000-0000-0000-0000-000000000000",
     }),
   displayName: z
     .string()
@@ -72,7 +72,7 @@ export const VerifyRegistrationRequestSchema = z.object({
     .uuid()
     .describe("The transaction ID for the registration request")
     .openapi({
-      example: "00000000-00000000-00000000-00000000",
+      example: "00000000-0000-0000-0000-000000000000",
     }),
   registrationResponse: z
     .looseObject({})

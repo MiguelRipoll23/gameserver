@@ -349,7 +349,7 @@ export class WebSocketService implements IWebSocketService {
 
     const playerUser = this.usersById.get(playerId);
     if (playerUser) {
-      playerUser.setHostToken(isConnected ? user.getSessionId() : null);
+      playerUser.setHostSessionId(isConnected ? user.getSessionId() : null);
     }
 
     this.matchPlayersService.handleMatchPlayerMessage(

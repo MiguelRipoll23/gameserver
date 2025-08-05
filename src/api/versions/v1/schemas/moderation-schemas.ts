@@ -45,7 +45,7 @@ export const BanUserRequestSchema = z.object({
     .string()
     .length(36)
     .describe("The user ID to ban")
-    .openapi({ example: "00000000-00000000-00000000-00000000" }),
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
   reason: z.string().min(1).max(100).describe("Reason for the ban").openapi({
     example: "Toxic behaviour",
   }),
@@ -61,7 +61,7 @@ export const UnbanUserRequestSchema = z.object({
     .string()
     .length(36)
     .describe("The user ID to unban")
-    .openapi({ example: "00000000-00000000-00000000-00000000" }),
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
 });
 
 export type UnbanUserRequest = z.infer<typeof UnbanUserRequestSchema>;
@@ -71,7 +71,7 @@ export const ReportUserRequestSchema = z.object({
     .string()
     .length(36)
     .describe("The user ID to report")
-    .openapi({ example: "00000000-00000000-00000000-00000000" }),
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
   reason: z
     .string()
     .min(1)

@@ -34,8 +34,8 @@ export class WebSocketUser {
     return this.hostSessionId;
   }
 
-  public setHostToken(token: string | null): void {
-    this.hostSessionId = token;
+  public setHostSessionId(sessionId: string | null): void {
+    this.hostSessionId = sessionId;
   }
 
   public getName(): string {
