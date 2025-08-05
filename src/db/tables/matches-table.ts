@@ -1,6 +1,5 @@
 import {
   pgTable,
-  serial,
   varchar,
   integer,
   jsonb,
@@ -11,7 +10,7 @@ import { usersTable } from "./users-table.ts";
 import { userSessionsTable } from "./user-sessions-table.ts";
 
 export const matchesTable = pgTable("matches", {
-  id: serial("id").primaryKey(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   sessionId: varchar("session_id")
     .notNull()
     .references(() => userSessionsTable.id, { onDelete: "cascade" }),

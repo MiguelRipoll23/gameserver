@@ -1,9 +1,9 @@
-import { pgTable, serial, timestamp, uuid } from "drizzle-orm/pg-core";
+import { integer, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userBansTable = pgTable("user_bans", {
-  id: serial("id").primaryKey(),
-  userId: uuid("id")
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true })
