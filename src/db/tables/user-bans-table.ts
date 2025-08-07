@@ -1,4 +1,10 @@
-import { integer, pgTable, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  integer,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userBansTable = pgTable("user_bans", {
@@ -6,6 +12,7 @@ export const userBansTable = pgTable("user_bans", {
   userId: uuid("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
+  reason: varchar("reason", { length: 500 }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

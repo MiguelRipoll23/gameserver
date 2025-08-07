@@ -75,6 +75,7 @@ export class ModerationService {
     try {
       await db.insert(userBansTable).values({
         userId: userId,
+        reason: reason,
         expiresAt: expiresAt,
       });
     } catch (error) {
@@ -98,6 +99,7 @@ export class ModerationService {
 
     // Check if user exists
     let users;
+
     try {
       users = await db
         .select()
@@ -119,6 +121,7 @@ export class ModerationService {
 
     // Check if user is actually banned
     let existingBan;
+
     try {
       existingBan = await db
         .select()
@@ -201,6 +204,7 @@ export class ModerationService {
     body: ReportUserRequest
   ): Promise<void> {
     const { userId, reason, automatic } = body;
+
     if (reporterId === userId) {
       throw new ServerError("INVALID_REPORT", "Cannot report yourself", 400);
     }
@@ -209,6 +213,7 @@ export class ModerationService {
 
     // Check if user exists
     let users;
+
     try {
       users = await db
         .select()
@@ -231,7 +236,8 @@ export class ModerationService {
     // Insert report into database
     try {
       await db.insert(userReportsTable).values({
-        userId: userId,
+        reporterUserId: reporterId,
+        reportedUserId: userId,
         reason: reason,
         automatic: automatic,
       });

@@ -3,7 +3,10 @@ import { usersTable } from "./users-table.ts";
 
 export const userReportsTable = pgTable("user_reports", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  userId: uuid("user_id")
+  reporterUserId: uuid("reporter_user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  reportedUserId: uuid("reported_user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   reason: varchar("reason", { length: 500 }).notNull(),
