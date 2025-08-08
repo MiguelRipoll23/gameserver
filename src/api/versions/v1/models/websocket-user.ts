@@ -7,13 +7,15 @@ export class WebSocketUser {
   private sessionId: string;
   private hostSessionId: string | null = null;
   private name: string;
+  private publicIp: string;
   private connectedTimestamp: number;
   private webSocket: WSContext<WebSocket> | null = null;
 
-  constructor(id: string, name: string) {
+  constructor(id: string, name: string, publicIp: string) {
     this.id = id;
     this.networkId = id.replaceAll("-", "");
     this.name = name;
+    this.publicIp = publicIp;
     this.sessionId = AuthenticationUtils.generateSessionId();
     this.connectedTimestamp = Date.now();
   }
@@ -42,6 +44,10 @@ export class WebSocketUser {
     return this.name;
   }
 
+  public getPublicIp(): string {
+    return this.publicIp;
+  }
+
   public getConnectedTimestamp(): number {
     return this.connectedTimestamp;
   }
@@ -60,6 +66,7 @@ export class WebSocketUser {
       userToken: this.sessionId,
       hostToken: this.hostSessionId,
       name: this.name,
+      publicIp: this.publicIp,
       connectedTimestamp: this.connectedTimestamp,
     });
   }

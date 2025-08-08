@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
 import { upgradeWebSocket } from "hono/deno";
+import { getConnInfo } from "hono/deno";
 import { WebSocketService } from "../../services/websocket-service.ts";
 import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
 import { ServerResponse } from "../../models/server-response.ts";
@@ -43,7 +44,12 @@ export class AuthenticatedWebSocketRouter {
       upgradeWebSocket((c) => {
         const id = c.get("userId");
         const name = c.get("userName");
-        const user = new WebSocketUser(id, name);
+
+        // Get client IP address
+        const info = getConnInfo(c);
+        const publicIp = info.remote.address || "unknown";
+
+        const user = new WebSocketUser(id, name, publicIp);
 
         return {
           onOpen: (event, webSocketContext) => {
@@ -60,7 +66,7 @@ export class AuthenticatedWebSocketRouter {
             webSocketService.handleCloseEvent(event, user);
           },
         };
-      }),
+      })
     );
   }
 }

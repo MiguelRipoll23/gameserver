@@ -7,6 +7,8 @@ export const userSessionsTable = pgTable("user_sessions", {
     .notNull()
     .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
+  publicIp: varchar("public_ip").notNull(),
+  country: varchar("country"), // will be obtained from public ip later
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

@@ -128,6 +128,7 @@ export class WebSocketService implements IWebSocketService {
   private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {
     const userId = webSocketUser.getId();
     const userToken = webSocketUser.getSessionId();
+    const publicIp = webSocketUser.getPublicIp();
 
     // Store session in database using upsert (insert or update if user_id exists)
     const db = this.databaseService.get();
@@ -138,11 +139,13 @@ export class WebSocketService implements IWebSocketService {
         .values({
           id: userToken,
           userId: userId,
+          publicIp: publicIp,
         })
         .onConflictDoUpdate({
           target: userSessionsTable.userId,
           set: {
             id: userToken,
+            publicIp: publicIp,
             createdAt: new Date(),
           },
         });
