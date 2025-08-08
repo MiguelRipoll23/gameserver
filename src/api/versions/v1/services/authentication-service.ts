@@ -162,16 +162,16 @@ export class AuthenticationService {
   private async getCredentialOrThrow(
     id: string
   ): Promise<UserCredentialEntity> {
-    const db = this.databaseService.get();
-
     let credentials;
 
     try {
-      credentials = await db
-        .select()
-        .from(userCredentialsTable)
-        .where(eq(userCredentialsTable.id, id))
-        .limit(1);
+      credentials = await this.databaseService.withRlsCredential(id, (tx) => {
+        return tx
+          .select()
+          .from(userCredentialsTable)
+          .where(eq(userCredentialsTable.id, id))
+          .limit(1);
+      });
     } catch (error) {
       console.error("Failed to query credential:", error);
       throw new ServerError(
@@ -249,6 +249,7 @@ export class AuthenticationService {
     credential.counter = authenticationInfo.newCounter;
 
     const db = this.databaseService.get();
+
     try {
       await db
         .update(userCredentialsTable)
@@ -268,16 +269,16 @@ export class AuthenticationService {
     credentialDB: UserCredentialEntity
   ): Promise<UserEntity> {
     const userId = credentialDB.userId;
-    const db = this.databaseService.get();
-
     let users;
 
     try {
-      users = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, userId))
-        .limit(1);
+      users = await this.databaseService.withRlsUser(userId, (tx) => {
+        return tx
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.id, userId))
+          .limit(1);
+      });
     } catch (error) {
       console.error("Failed to query user:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);

@@ -1,6 +1,7 @@
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 import { injectable } from "@needle-di/core";
+import { sql } from "drizzle-orm/sql";
 
 @injectable()
 export class DatabaseService {
@@ -31,5 +32,27 @@ export class DatabaseService {
     }
 
     return this.database;
+  }
+
+  public withRlsCredential<T>(
+    credentialId: string,
+    fn: (tx: NodePgDatabase) => Promise<T>
+  ): Promise<T> {
+    return this.get().transaction(async (tx) => {
+      await tx.execute(sql.raw(`SET app.credential_id = '${credentialId}'`));
+
+      return await fn(tx);
+    });
+  }
+
+  public withRlsUser<T>(
+    userId: string,
+    fn: (tx: NodePgDatabase) => Promise<T>
+  ): Promise<T> {
+    return this.get().transaction(async (tx) => {
+      await tx.execute(sql.raw(`SET app.user_id = '${userId}'`));
+
+      return await fn(tx);
+    });
   }
 }
