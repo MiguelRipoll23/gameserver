@@ -93,7 +93,8 @@ export class AuthenticationService {
     connectionInfo: ConnInfo,
     user: UserEntity
   ): Promise<AuthenticationResponse> {
-    this.ensureUserNotBanned(user);
+    await this.ensureUserNotBanned(user);
+
     const key = await this.jwtService.getKey();
     const publicIp = connectionInfo.remote.address ?? null;
     const userId = user.id;
