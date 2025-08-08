@@ -1,6 +1,6 @@
 {
   "imports": {
-    "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.0.2",
+    "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.1.0",
     "@needle-di/core": "jsr:@needle-di/core@^1.0.0",
     "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.9.13",
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.1.2",
@@ -12,7 +12,7 @@
     "drizzle-orm": "npm:drizzle-orm@^0.44.4",
     "hono": "npm:hono@^4.8.12",
     "pg": "npm:pg@^8.16.3",
-    "zod": "npm:zod@^4.0.14"
+    "zod": "npm:zod@^4.0.15"
   },
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
