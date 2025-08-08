@@ -156,49 +156,6 @@ export class ModerationService {
     console.log(`User ${userId} has been unbanned`);
   }
 
-  public async isUserBanned(userId: string): Promise<boolean> {
-    const db = this.databaseService.get();
-
-    let bans;
-    try {
-      bans = await db
-        .select()
-        .from(userBansTable)
-        .where(eq(userBansTable.userId, userId))
-        .limit(1);
-    } catch (error) {
-      // Log error but don't throw - return false as fallback for safety
-      console.error("Database error while checking ban status:", error);
-      return false;
-    }
-
-    if (bans.length === 0) {
-      return false;
-    }
-
-    const ban = bans[0];
-
-    // If ban has no expiration date, it's permanent
-    if (!ban.expiresAt) {
-      return true;
-    }
-
-    // Check if ban has expired
-    const now = new Date();
-    if (ban.expiresAt <= now) {
-      // Ban has expired, remove it from database
-      try {
-        await db.delete(userBansTable).where(eq(userBansTable.userId, userId));
-      } catch (error) {
-        console.error("Database error while removing expired ban:", error);
-        // Continue and return false even if deletion failed
-      }
-      return false;
-    }
-
-    return true;
-  }
-
   public async reportUser(
     reporterId: string,
     body: ReportUserRequest

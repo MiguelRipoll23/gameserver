@@ -293,37 +293,57 @@ export class AuthenticationService {
 
   private async ensureUserNotBanned(user: UserEntity): Promise<void> {
     const db = this.databaseService.get();
-    const userBans = await db
-      .select({ expiresAt: userBansTable.expiresAt })
-      .from(userBansTable)
-      .where(eq(userBansTable.userId, user.id))
-      .orderBy(desc(userBansTable.createdAt))
-      .limit(1);
+    let userBans;
 
-    if (userBans.length > 0) {
-      const latestBan = userBans[0];
-      const now = new Date();
+    try {
+      userBans = await db
+        .select({ expiresAt: userBansTable.expiresAt })
+        .from(userBansTable)
+        .where(eq(userBansTable.userId, user.id))
+        .orderBy(desc(userBansTable.createdAt))
+        .limit(1);
+    } catch (error) {
+      console.error("Failed to query user bans:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to retrieve user bans",
+        500
+      );
+    }
 
-      // Check if it's a permanent ban (no expiration date)
-      if (!latestBan.expiresAt) {
-        throw new ServerError(
-          "USER_BANNED_PERMANENTLY",
-          "Your account has been permanently banned",
-          403
-        );
-      }
+    if (userBans.length === 0) {
+      return;
+    }
 
-      // Check if temporary ban is still active
-      if (latestBan.expiresAt > now) {
-        const remainingTime = Math.ceil(
-          (latestBan.expiresAt.getTime() - now.getTime()) / (1000 * 60)
-        );
-        throw new ServerError(
-          "USER_BANNED_TEMPORARILY",
-          `Your account is temporarily banned. The ban will expire in ${remainingTime} minutes`,
-          403
-        );
-      }
+    const latestBan = userBans[0];
+    const now = new Date();
+
+    // Permanent ban
+    if (!latestBan.expiresAt) {
+      throw new ServerError(
+        "USER_BANNED_PERMANENTLY",
+        "Your account has been permanently banned",
+        403
+      );
+    }
+
+    // Temporary ban still active
+    if (latestBan.expiresAt > now) {
+      const formattedDate = latestBan.expiresAt.toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "short",
+      });
+
+      throw new ServerError(
+        "USER_BANNED_TEMPORARILY",
+        `Your account is temporarily banned. The ban will expire on ${formattedDate}`,
+        403
+      );
     }
   }
 }
