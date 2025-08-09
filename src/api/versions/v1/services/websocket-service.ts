@@ -2,7 +2,6 @@ import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
 import {
   ONLINE_USERS_CHANNEL,
-  ONLINE_USERS_SERVER_TTL,
   TUNNEL_CHANNEL,
 } from "../constants/websocket-constants.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
@@ -23,10 +22,8 @@ import { eq } from "drizzle-orm";
 
 @injectable()
 export class WebSocketService implements IWebSocketService {
-  private broadcastChannel: BroadcastChannel;
-  private onlineUsersChannel: BroadcastChannel;
-  private serverId: string;
-  private serversUserCount: Map<string, { count: number; timestamp: number }>;
+  private tunnelBroadcastChannel: BroadcastChannel;
+  private onlineUsersBroadcastChannel: BroadcastChannel;
   private usersById: Map<string, WebSocketUser>;
   private usersBySessionId: Map<string, WebSocketUser>;
 
@@ -39,27 +36,18 @@ export class WebSocketService implements IWebSocketService {
   ) {
     this.usersById = new Map();
     this.usersBySessionId = new Map();
-    this.serverId = crypto.randomUUID();
-    this.broadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
-    this.onlineUsersChannel = new BroadcastChannel(ONLINE_USERS_CHANNEL);
-    this.serversUserCount = new Map();
-    this.serversUserCount.set(this.serverId, {
-      count: 0,
-      timestamp: Date.now(),
-    });
-    setInterval(this.cleanupOldServers.bind(this), ONLINE_USERS_SERVER_TTL);
+    this.tunnelBroadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
+    this.onlineUsersBroadcastChannel = new BroadcastChannel(
+      ONLINE_USERS_CHANNEL
+    );
     this.addBroadcastChannelListeners();
-    this.addOnlineUsersChannelListeners();
     this.addEventListeners();
     this.dispatcher.registerCommandHandlers(this);
   }
 
-  public getTotalSessions(): number {
-    let total = 0;
-    for (const data of this.serversUserCount.values()) {
-      total += data.count;
-    }
-    return total;
+  public async getTotalSessions(): Promise<number> {
+    const db = this.databaseService.get();
+    return await db.$count(userSessionsTable);
   }
 
   public handleOpenEvent(_event: Event, user: WebSocketUser): void {
@@ -87,35 +75,32 @@ export class WebSocketService implements IWebSocketService {
   }
 
   private addBroadcastChannelListeners(): void {
-    this.broadcastChannel.onmessage =
-      this.handleBroadcastChannelMessage.bind(this);
+    this.tunnelBroadcastChannel.onmessage =
+      this.handleTunnelBroadcastChannelMessage.bind(this);
+
+    this.onlineUsersBroadcastChannel.onmessage =
+      this.handleOnlineUsersBroadcastChannelMessage.bind(this);
   }
 
-  private addOnlineUsersChannelListeners(): void {
-    this.onlineUsersChannel.onmessage =
-      this.handleOnlineUsersChannelMessage.bind(this);
-  }
-
-  private handleBroadcastChannelMessage(event: MessageEvent): void {
-    const { destinationToken, payload } = event.data;
-    const destinationUser = this.usersBySessionId.get(destinationToken) ?? null;
+  private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
+    const { destinationSessionId: destinationSessionId, payload } = event.data;
+    const destinationUser =
+      this.usersBySessionId.get(destinationSessionId) ?? null;
 
     if (destinationUser === null) {
-      console.info(`No user found for token ${destinationToken}`);
+      console.info(`No user found for session id ${destinationSessionId}`);
       return;
     }
 
     this.sendMessage(destinationUser, payload);
   }
 
-  private handleOnlineUsersChannelMessage(event: MessageEvent): void {
-    const { serverId, count } = event.data as {
-      serverId: string;
-      count: number;
-    };
-    this.serversUserCount.set(serverId, { count, timestamp: Date.now() });
-    this.cleanupOldServers();
-    this.notifyOnlinePlayers();
+  private handleOnlineUsersBroadcastChannelMessage(event: MessageEvent): void {
+    const { payload } = event.data;
+
+    for (const user of this.usersById.values()) {
+      this.sendMessage(user, payload);
+    }
   }
 
   private addEventListeners(): void {
@@ -127,7 +112,7 @@ export class WebSocketService implements IWebSocketService {
 
   private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {
     const userId = webSocketUser.getId();
-    const userToken = webSocketUser.getSessionId();
+    const userSessionId = webSocketUser.getSessionId();
     const publicIp = webSocketUser.getPublicIp();
 
     // Store session in database using upsert (insert or update if user_id exists)
@@ -137,14 +122,14 @@ export class WebSocketService implements IWebSocketService {
       await db
         .insert(userSessionsTable)
         .values({
-          id: userToken,
+          id: userSessionId,
           userId: userId,
           publicIp: publicIp,
         })
         .onConflictDoUpdate({
           target: userSessionsTable.userId,
           set: {
-            id: userToken,
+            id: userSessionId,
             publicIp: publicIp,
             createdAt: new Date(),
           },
@@ -157,7 +142,7 @@ export class WebSocketService implements IWebSocketService {
     }
 
     this.addWebSocketUser(webSocketUser);
-    this.updateAndBroadcastOnlineUsers();
+    this.notifyUsersCount();
   }
 
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
@@ -175,18 +160,19 @@ export class WebSocketService implements IWebSocketService {
         .delete(userSessionsTable)
         .where(eq(userSessionsTable.id, userSessionId));
 
-      // Still need to clear temporary KV data (keys, matches)
+      // Clear temporary KV data (keys, matches)
       const result = await this.kvService.deleteUserTemporaryData(userId);
 
       if (result.ok) {
         console.log(`Deleted temporary data for user ${userName}`);
         this.removeWebSocketUser(user);
-        this.matchPlayersService.deleteByToken(userSessionId);
-        this.updateAndBroadcastOnlineUsers();
+        this.matchPlayersService.deleteBySessionId(userSessionId);
       } else {
         console.error(`Failed to delete temporary data for user ${userName}`);
         user.setWebSocket(null);
       }
+
+      this.notifyUsersCount();
     } catch (error) {
       console.error(`Error during disconnection for user ${userName}:`, error);
       user.setWebSocket(null);
@@ -207,8 +193,8 @@ export class WebSocketService implements IWebSocketService {
     return this.usersById.get(id);
   }
 
-  public getUserByToken(token: string): WebSocketUser | undefined {
-    return this.usersBySessionId.get(token);
+  public getUserBySessionId(sessionId: string): WebSocketUser | undefined {
+    return this.usersBySessionId.get(sessionId);
   }
 
   private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -246,16 +232,22 @@ export class WebSocketService implements IWebSocketService {
   }
 
   private sendMessageToOtherUser(
-    destinationToken: string,
+    destinationSessionId: string,
     payload: ArrayBuffer
   ): void {
-    const destinationUser = this.usersBySessionId.get(destinationToken);
+    const destinationUser = this.usersBySessionId.get(destinationSessionId);
 
     if (destinationUser) {
       this.sendMessage(destinationUser, payload);
     } else {
-      console.log(`Token not found, broadcasting message...`, destinationToken);
-      this.broadcastChannel.postMessage({ destinationToken, payload });
+      console.log(
+        `Session id not found, broadcasting message...`,
+        destinationSessionId
+      );
+      this.tunnelBroadcastChannel.postMessage({
+        destinationSessionId,
+        payload,
+      });
     }
   }
 
@@ -271,34 +263,30 @@ export class WebSocketService implements IWebSocketService {
     }
   }
 
-  private updateAndBroadcastOnlineUsers(): void {
-    const count = this.usersBySessionId.size;
-    this.serversUserCount.set(this.serverId, { count, timestamp: Date.now() });
-    this.cleanupOldServers();
-    this.onlineUsersChannel.postMessage({ serverId: this.serverId, count });
-    this.notifyOnlinePlayers();
+  private async notifyUsersCount(): Promise<void> {
+    const totalSessions = await this.getTotalSessions();
+
+    this.sendOnlineUsersCountToUsers(totalSessions);
+    this.sendOnlineUsersCountToServers(totalSessions);
   }
 
-  private notifyOnlinePlayers(): void {
-    this.cleanupOldServers();
-    const total = this.getTotalSessions();
+  private sendOnlineUsersCountToServers(totalSessions: number): void {
     const payload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.OnlinePlayers)
-      .unsignedInt16(total)
+      .unsignedInt16(totalSessions)
+      .toArrayBuffer();
+
+    this.tunnelBroadcastChannel.postMessage({ payload });
+  }
+
+  private sendOnlineUsersCountToUsers(totalSessions: number) {
+    const payload = BinaryWriter.build()
+      .unsignedInt8(WebSocketType.OnlinePlayers)
+      .unsignedInt16(totalSessions)
       .toArrayBuffer();
 
     for (const user of this.usersBySessionId.values()) {
       this.sendMessage(user, payload);
-    }
-  }
-
-  private cleanupOldServers(): void {
-    const now = Date.now();
-    for (const [serverId, data] of this.serversUserCount.entries()) {
-      if (serverId === this.serverId) continue;
-      if (now - data.timestamp > ONLINE_USERS_SERVER_TTL) {
-        this.serversUserCount.delete(serverId);
-      }
     }
   }
 
@@ -327,7 +315,7 @@ export class WebSocketService implements IWebSocketService {
     originUser: WebSocketUser,
     binaryReader: BinaryReader
   ): void {
-    const destinationTokenBytes = binaryReader.bytes(32);
+    const destinationSessionIdBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
 
     const tunnelPayload = BinaryWriter.build()
@@ -337,7 +325,7 @@ export class WebSocketService implements IWebSocketService {
       .toArrayBuffer();
 
     this.sendMessageToOtherUser(
-      encodeBase64(destinationTokenBytes),
+      encodeBase64(destinationSessionIdBytes),
       tunnelPayload
     );
   }
