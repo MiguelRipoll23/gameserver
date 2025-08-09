@@ -16,7 +16,7 @@ import {
 import { eq, desc, sql } from "drizzle-orm";
 
 @injectable()
-export class ScoresService {
+export class UserScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
     private kvService = inject(KVService),

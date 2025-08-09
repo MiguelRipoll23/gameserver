@@ -6,7 +6,7 @@ import { AuthenticatedConfigurationRouter } from "./authenticated/authenticated-
 import { AuthenticatedWebSocketRouter } from "./authenticated/authenticated-websocket-router.ts";
 import { AuthenticatedMessagesRouter } from "./authenticated/authenticated-messages-router.ts";
 import { AuthenticatedMatchesRouter } from "./authenticated/authenticated-matches-router.ts";
-import { AuthenticatedScoresRouter } from "./authenticated/authenticated-scores-router.ts";
+import { AuthenticatedUserScoresRouter } from "./authenticated/authenticated-user-scores-router.ts";
 import { AuthenticatedStatsRouter } from "./authenticated/authenticated-stats-router.ts";
 import { AuthenticatedUserModerationRouter } from "./authenticated/authenticated-user-moderation-router.ts";
 
@@ -21,8 +21,8 @@ export class V1AuthenticatedRouter {
     private messagesRouter = inject(AuthenticatedMessagesRouter),
     private statsRouter = inject(AuthenticatedStatsRouter),
     private matchesRouter = inject(AuthenticatedMatchesRouter),
-    private scoresRouter = inject(AuthenticatedScoresRouter),
-    private userModerationRouter = inject(AuthenticatedUserModerationRouter),
+    private userScoresRouter = inject(AuthenticatedUserScoresRouter),
+    private userModerationRouter = inject(AuthenticatedUserModerationRouter)
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();
@@ -47,7 +47,7 @@ export class V1AuthenticatedRouter {
     this.app.route("/server-messages", this.messagesRouter.getRouter());
     this.app.route("/server-stats", this.statsRouter.getRouter());
     this.app.route("/matches", this.matchesRouter.getRouter());
-    this.app.route("/player-scores", this.scoresRouter.getRouter());
+    this.app.route("/user-scores", this.userScoresRouter.getRouter());
     this.app.route("/user-moderation", this.userModerationRouter.getRouter());
   }
 }

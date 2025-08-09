@@ -1,15 +1,15 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { ScoresService } from "../../services/scores-service.ts";
+import { UserScoresService } from "../../services/scores-service.ts";
 import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
 import { GetScoresResponseSchema } from "../../schemas/scores-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
-export class AuthenticatedScoresRouter {
+export class AuthenticatedUserScoresRouter {
   private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
 
-  constructor(private scoresService = inject(ScoresService)) {
+  constructor(private scoresService = inject(UserScoresService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
@@ -28,9 +28,9 @@ export class AuthenticatedScoresRouter {
       createRoute({
         method: "get",
         path: "/",
-        summary: "Get player scores",
-        description: "Obtains list of saved player scores",
-        tags: ["Player scores"],
+        summary: "Get user scores",
+        description: "Obtains list of saved user scores",
+        tags: ["User scores"],
         responses: {
           200: {
             description: "Responds with data",
@@ -47,7 +47,7 @@ export class AuthenticatedScoresRouter {
         const response = await this.scoresService.list();
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 
@@ -56,9 +56,9 @@ export class AuthenticatedScoresRouter {
       createRoute({
         method: "post",
         path: "/",
-        summary: "Save player score",
-        description: "Updates the player score using an encrypted payload",
-        tags: ["Player scores"],
+        summary: "Save user score",
+        description: "Updates the user score using an encrypted payload",
+        tags: ["User scores"],
         request: {
           body: {
             content: {
@@ -83,7 +83,7 @@ export class AuthenticatedScoresRouter {
         await this.scoresService.save(userId, validated);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 }
