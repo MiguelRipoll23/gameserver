@@ -1,5 +1,5 @@
 import { WSContext } from "hono/ws";
-import { AuthenticationUtils } from "../../../utils/authentication-utils.ts";
+import { AuthenticationUtils } from "../utils/authentication-utils.ts";
 
 export class WebSocketUser {
   private id: string;
