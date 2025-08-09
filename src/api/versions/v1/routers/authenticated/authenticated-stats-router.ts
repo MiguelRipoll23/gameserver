@@ -1,14 +1,14 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { GetStatsResponseSchema } from "../../schemas/stats-schemas.ts";
-import { StatsService } from "../../services/stats-service.ts";
+import { ServerStatsService } from "../../services/server-stats-service.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
 export class AuthenticatedStatsRouter {
   private app: OpenAPIHono;
 
-  constructor(private statsService = inject(StatsService)) {
+  constructor(private serverStatsService = inject(ServerStatsService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
@@ -42,10 +42,10 @@ export class AuthenticatedStatsRouter {
         },
       }),
       (c) => {
-        const response = this.statsService.get();
+        const response = this.serverStatsService.get();
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 }

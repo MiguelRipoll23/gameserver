@@ -1,6 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { ModerationService } from "../../services/moderation-service.ts";
+import { UserModerationService } from "../../services/user-moderation-service.ts";
 import {
   BanUserRequestSchema,
   UnbanUserRequestSchema,
@@ -11,7 +11,7 @@ import { ServerResponse } from "../../models/server-response.ts";
 export class ManagementUserModerationRouter {
   private app: OpenAPIHono;
 
-  constructor(private moderationService = inject(ModerationService)) {
+  constructor(private userModerationService = inject(UserModerationService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
@@ -52,7 +52,7 @@ export class ManagementUserModerationRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        await this.moderationService.banUser(validated);
+        await this.userModerationService.banUser(validated);
         return c.body(null, 204);
       }
     );
@@ -78,7 +78,7 @@ export class ManagementUserModerationRouter {
       }),
       async (c) => {
         const userId = c.req.param("userId");
-        await this.moderationService.unbanUser(userId);
+        await this.userModerationService.unbanUser(userId);
         return c.body(null, 204);
       }
     );

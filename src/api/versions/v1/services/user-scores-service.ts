@@ -1,6 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
 import { CryptoService } from "../../../../core/services/crypto-service.ts";
-import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
@@ -19,7 +18,6 @@ import { eq, desc, sql } from "drizzle-orm";
 export class UserScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
-    private kvService = inject(KVService),
     private databaseService = inject(DatabaseService)
   ) {}
 

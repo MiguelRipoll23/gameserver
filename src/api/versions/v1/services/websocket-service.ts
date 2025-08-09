@@ -45,11 +45,6 @@ export class WebSocketService implements IWebSocketService {
     this.dispatcher.registerCommandHandlers(this);
   }
 
-  public async getTotalSessions(): Promise<number> {
-    const db = this.databaseService.get();
-    return await db.$count(userSessionsTable);
-  }
-
   public handleOpenEvent(_event: Event, user: WebSocketUser): void {
     this.handleConnection(user);
   }
@@ -268,6 +263,11 @@ export class WebSocketService implements IWebSocketService {
 
     this.sendOnlineUsersCountToUsers(totalSessions);
     this.sendOnlineUsersCountToServers(totalSessions);
+  }
+
+  private async getTotalSessions(): Promise<number> {
+    const db = this.databaseService.get();
+    return await db.$count(userSessionsTable);
   }
 
   private sendOnlineUsersCountToServers(totalSessions: number): void {

@@ -1,6 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { MessagesService } from "../../services/messages-service.ts";
+import { ServerMessagesService } from "../../services/server-messages-service.ts";
 import {
   CreateMessageRequestSchema,
   DeleteMessageRequestSchema,
@@ -12,7 +12,7 @@ import { ServerResponse } from "../../models/server-response.ts";
 export class ManagementMessageRouter {
   private app: OpenAPIHono;
 
-  constructor(private messageService = inject(MessagesService)) {
+  constructor(private serverMessagesService = inject(ServerMessagesService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
@@ -54,10 +54,10 @@ export class ManagementMessageRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        await this.messageService.create(validated);
+        await this.serverMessagesService.create(validated);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 
@@ -91,13 +91,13 @@ export class ManagementMessageRouter {
       async (c) => {
         const id = parseInt(c.req.param("id"), 10);
         const validated = c.req.valid("json");
-        await this.messageService.update({
+        await this.serverMessagesService.update({
           ...validated,
           id,
         });
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 
@@ -127,13 +127,13 @@ export class ManagementMessageRouter {
             {
               message: "Invalid message ID format",
             },
-            400,
+            400
           );
         }
 
-        await this.messageService.delete(id);
+        await this.serverMessagesService.delete(id);
         return c.body(null, 204);
-      },
+      }
     );
   }
 }

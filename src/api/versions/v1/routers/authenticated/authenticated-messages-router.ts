@@ -1,6 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { MessagesService } from "../../services/messages-service.ts";
+import { ServerMessagesService } from "../../services/server-messages-service.ts";
 import { GetMessageResponseSchema } from "../../schemas/messages-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -8,7 +8,7 @@ import { ServerResponse } from "../../models/server-response.ts";
 export class AuthenticatedMessagesRouter {
   private app: OpenAPIHono;
 
-  constructor(private messagesService = inject(MessagesService)) {
+  constructor(private serverMessagesService = inject(ServerMessagesService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
@@ -43,10 +43,10 @@ export class AuthenticatedMessagesRouter {
         },
       }),
       async (c) => {
-        const response = await this.messagesService.list();
+        const response = await this.serverMessagesService.list();
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 }

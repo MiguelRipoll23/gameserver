@@ -1,6 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
-import { UserScoresService } from "../../services/scores-service.ts";
+import { UserScoresService } from "../../services/user-scores-service.ts";
 import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
 import { GetScoresResponseSchema } from "../../schemas/scores-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
@@ -9,7 +9,7 @@ import { ServerResponse } from "../../models/server-response.ts";
 export class AuthenticatedUserScoresRouter {
   private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
 
-  constructor(private scoresService = inject(UserScoresService)) {
+  constructor(private userScoresService = inject(UserScoresService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
@@ -44,7 +44,7 @@ export class AuthenticatedUserScoresRouter {
         },
       }),
       async (c) => {
-        const response = await this.scoresService.list();
+        const response = await this.userScoresService.list();
 
         return c.json(response, 200);
       }
@@ -80,7 +80,7 @@ export class AuthenticatedUserScoresRouter {
       async (c) => {
         const userId = c.get("userId");
         const validated = await c.req.arrayBuffer();
-        await this.scoresService.save(userId, validated);
+        await this.userScoresService.save(userId, validated);
 
         return c.body(null, 204);
       }

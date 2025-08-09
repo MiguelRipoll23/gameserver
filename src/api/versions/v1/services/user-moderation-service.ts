@@ -14,7 +14,7 @@ import {
 import { eq } from "drizzle-orm";
 
 @injectable()
-export class ModerationService {
+export class UserModerationService {
   constructor(private databaseService = inject(DatabaseService)) {}
   public async banUser(body: BanUserRequest): Promise<void> {
     const { userId, reason, duration } = body;

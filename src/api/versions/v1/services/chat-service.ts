@@ -63,7 +63,7 @@ export class ChatService {
       .toArrayBuffer();
 
     // Broadcast to all players in the match
-    for (const playerId of this.matchPlayersService.getPlayersBySessionid(hostToken)) {
+    for (const playerId of this.matchPlayersService.getPlayersBySessionId(hostToken)) {
       const target = wsAdapter.getUserById(playerId);
       if (target) {
         wsAdapter.sendMessage(target, payload);
@@ -71,7 +71,8 @@ export class ChatService {
     }
 
     // Ensure the host also receives the message
-    const host = wsAdapter.getUserByToken(hostToken);
+    const host = wsAdapter.getUserBySessionId(hostToken);
+    
     if (host) {
       wsAdapter.sendMessage(host, payload);
     }

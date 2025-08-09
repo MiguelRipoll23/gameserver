@@ -10,10 +10,8 @@ import { desc, eq } from "drizzle-orm";
 import { ServerError } from "../models/server-error.ts";
 
 @injectable()
-export class MessagesService {
-  constructor(
-    private databaseService = inject(DatabaseService)
-  ) {}
+export class ServerMessagesService {
+  constructor(private databaseService = inject(DatabaseService)) {}
 
   public async list(): Promise<GetMessageResponse> {
     const db = this.databaseService.get();
@@ -56,9 +54,11 @@ export class MessagesService {
     }
   }
 
-  public async update(messageRequest: UpdateMessageRequest): Promise<GetMessageResponse[number]> {
+  public async update(
+    messageRequest: UpdateMessageRequest
+  ): Promise<GetMessageResponse[number]> {
     const db = this.databaseService.get();
-    
+
     const updated = await db
       .update(serverMessagesTable)
       .set({
