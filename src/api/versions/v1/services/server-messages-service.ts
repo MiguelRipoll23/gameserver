@@ -26,7 +26,7 @@ export class ServerMessagesService {
       title: message.title,
       content: message.content,
       createdAt: message.createdAt.getTime(),
-      updatedAt: message.updatedAt?.getTime(),
+      updatedAt: message.updatedAt?.getTime() ?? null,
     }));
   }
 

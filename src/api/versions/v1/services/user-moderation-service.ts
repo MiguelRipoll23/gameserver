@@ -42,42 +42,26 @@ export class UserModerationService {
       throw new ServerError("USER_NOT_FOUND", "User not found", 404);
     }
 
-    // Check if user is already banned
-    let existingBan;
-
-    try {
-      existingBan = await db
-        .select()
-        .from(userBansTable)
-        .where(eq(userBansTable.userId, userId))
-        .limit(1);
-    } catch (error) {
-      console.error("Database error while checking existing ban:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to check ban status",
-        500
-      );
-    }
-
-    if (existingBan.length > 0) {
-      throw new ServerError(
-        "USER_ALREADY_BANNED",
-        "User is already banned",
-        409
-      );
-    }
-
     // Calculate expiration date
     const expiresAt = this.calculateExpirationDate(duration);
 
-    // Create ban record
+    // Create ban record atomically
     try {
-      await db.insert(userBansTable).values({
-        userId: userId,
-        reason: reason,
-        expiresAt: expiresAt,
-      });
+      const result = await db
+        .insert(userBansTable)
+        .values({
+          userId: userId,
+          reason: reason,
+          expiresAt: expiresAt,
+        })
+        .onConflictDoNothing();
+      if (result.rowCount === 0) {
+        throw new ServerError(
+          "USER_ALREADY_BANNED",
+          "User is already banned",
+          409
+        );
+      }
     } catch (error) {
       console.error("Database error while creating ban record:", error);
       throw new ServerError(
@@ -226,7 +210,11 @@ export class UserModerationService {
       case "years":
         return new Date(now.getTime() + value * 365 * 24 * 60 * 60 * 1000);
       default:
-        return null;
+        throw new ServerError(
+          "INVALID_DURATION_UNIT",
+          "Invalid duration unit",
+          400
+        );
     }
   }
 }

@@ -103,7 +103,7 @@ export class UserScoresService {
       .onConflictDoUpdate({
         target: userScoresTable.userId,
         set: {
-          totalScore: sql`${userScoresTable.totalScore} + ${totalScore}`,
+          totalScore: sql`${userScoresTable.totalScore} + EXCLUDED.totalScore`,
         },
       });
   }
