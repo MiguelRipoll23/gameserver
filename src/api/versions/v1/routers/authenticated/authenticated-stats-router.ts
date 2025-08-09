@@ -41,8 +41,8 @@ export class AuthenticatedStatsRouter {
           ...ServerResponse.Unauthorized,
         },
       }),
-      (c) => {
-        const response = this.serverStatsService.get();
+      async (c) => {
+        const response = await this.serverStatsService.get();
 
         return c.json(response, 200);
       }
