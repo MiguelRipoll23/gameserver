@@ -50,7 +50,7 @@ export class ChatService {
     }
     message = filterMessage(message);
 
-    const hostToken = user.getHostSessionId() ?? user.getSessionId();
+    const hostToken = user.getHostToken() ?? user.getToken();
 
     console.log(
       `Broadcasting chat message from ${user.getName()} to ${hostToken} with content: ${message}`,
@@ -63,7 +63,7 @@ export class ChatService {
       .toArrayBuffer();
 
     // Broadcast to all players in the match
-    for (const playerId of this.matchPlayersService.getPlayersBySessionId(hostToken)) {
+    for (const playerId of this.matchPlayersService.getPlayersByToken(hostToken)) {
       const target = webSocketServer.getUserById(playerId);
       if (target) {
         webSocketServer.sendMessage(target, payload);
@@ -71,7 +71,7 @@ export class ChatService {
     }
 
     // Ensure the host also receives the message
-    const host = webSocketServer.getUserBySessionId(hostToken);
+    const host = webSocketServer.getUserByToken(hostToken);
     
     if (host) {
       webSocketServer.sendMessage(host, payload);

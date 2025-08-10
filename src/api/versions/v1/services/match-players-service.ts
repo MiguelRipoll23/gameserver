@@ -9,12 +9,12 @@ export class MatchPlayersService {
     this.matchPlayers = new Map();
   }
 
-  public deleteBySessionId(sessionId: string): void {
-    this.matchPlayers.delete(sessionId);
+  public deleteByToken(token: string): void {
+    this.matchPlayers.delete(token);
   }
 
-  public getPlayersBySessionId(sessionId: string): string[] {
-    const players = this.matchPlayers.get(sessionId);
+  public getPlayersByToken(token: string): string[] {
+    const players = this.matchPlayers.get(token);
 
     if (players === undefined) {
       return [];
@@ -28,13 +28,13 @@ export class MatchPlayersService {
     isConnected: boolean,
     playerId: string
   ): void {
-    const sessionId = originUser.getSessionId();
+    const token = originUser.getToken();
 
-    let players = this.matchPlayers.get(sessionId);
+    let players = this.matchPlayers.get(token);
 
     if (players === undefined) {
       players = new Set<string>();
-      this.matchPlayers.set(sessionId, players);
+      this.matchPlayers.set(token, players);
     }
 
     if (isConnected) {
@@ -42,11 +42,11 @@ export class MatchPlayersService {
     } else {
       players.delete(playerId);
       if (players.size === 0) {
-        this.matchPlayers.delete(sessionId);
+        this.matchPlayers.delete(token);
       }
     }
 
     const action = isConnected ? "joined" : "left";
-    console.log(`Player ${playerId} ${action} match ${sessionId}`);
+    console.log(`Player ${playerId} ${action} match ${token}`);
   }
 }

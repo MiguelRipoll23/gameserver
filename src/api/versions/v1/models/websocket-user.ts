@@ -4,8 +4,8 @@ import { AuthenticationUtils } from "../utils/authentication-utils.ts";
 export class WebSocketUser {
   private id: string;
   private networkId: string;
-  private sessionId: string;
-  private hostSessionId: string | null = null;
+  private token: string;
+  private hostToken: string | null = null;
   private name: string;
   private publicIp: string;
   private connectedTimestamp: number;
@@ -16,7 +16,7 @@ export class WebSocketUser {
     this.networkId = id.replaceAll("-", "");
     this.name = name;
     this.publicIp = publicIp;
-    this.sessionId = AuthenticationUtils.generateSessionId();
+    this.token = AuthenticationUtils.generateToken();
     this.connectedTimestamp = Date.now();
   }
 
@@ -28,16 +28,16 @@ export class WebSocketUser {
     return this.networkId;
   }
 
-  public getSessionId(): string {
-    return this.sessionId;
+  public getToken(): string {
+    return this.token;
   }
 
-  public getHostSessionId(): string | null {
-    return this.hostSessionId;
+  public getHostToken(): string | null {
+    return this.hostToken;
   }
 
-  public setHostSessionId(sessionId: string | null): void {
-    this.hostSessionId = sessionId;
+  public setHostToken(token: string | null): void {
+    this.hostToken = token;
   }
 
   public getName(): string {
@@ -63,8 +63,8 @@ export class WebSocketUser {
   public serialize(): string {
     return JSON.stringify({
       id: this.id,
-      userToken: this.sessionId,
-      hostToken: this.hostSessionId,
+      userToken: this.token,
+      hostToken: this.hostToken,
       name: this.name,
       publicIp: this.publicIp,
       connectedTimestamp: this.connectedTimestamp,

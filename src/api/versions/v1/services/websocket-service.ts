@@ -25,7 +25,7 @@ export class WebSocketService implements WebSocketServer {
   private tunnelBroadcastChannel: BroadcastChannel;
   private onlineUsersBroadcastChannel: BroadcastChannel;
   private usersById: Map<string, WebSocketUser>;
-  private usersBySessionId: Map<string, WebSocketUser>;
+  private usersByToken: Map<string, WebSocketUser>;
 
   constructor(
     private kvService = inject(KVService),
@@ -35,7 +35,7 @@ export class WebSocketService implements WebSocketServer {
     private dispatcher = inject(WebSocketDispatcherService)
   ) {
     this.usersById = new Map();
-    this.usersBySessionId = new Map();
+    this.usersByToken = new Map();
     this.tunnelBroadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
     this.onlineUsersBroadcastChannel = new BroadcastChannel(
       ONLINE_USERS_CHANNEL
@@ -78,12 +78,11 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
-    const { destinationSessionId: destinationSessionId, payload } = event.data;
-    const destinationUser =
-      this.usersBySessionId.get(destinationSessionId) ?? null;
+    const { destinationToken: destinationToken, payload } = event.data;
+    const destinationUser = this.usersByToken.get(destinationToken) ?? null;
 
     if (destinationUser === null) {
-      console.info(`No user found for session id ${destinationSessionId}`);
+      console.info(`No user found for session id ${destinationToken}`);
       return;
     }
 
@@ -107,7 +106,7 @@ export class WebSocketService implements WebSocketServer {
 
   private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {
     const userId = webSocketUser.getId();
-    const userSessionId = webSocketUser.getSessionId();
+    const userToken = webSocketUser.getToken();
     const publicIp = webSocketUser.getPublicIp();
 
     // Store session in database using upsert (insert or update if user_id exists)
@@ -118,13 +117,13 @@ export class WebSocketService implements WebSocketServer {
         .insert(userSessionsTable)
         .values({
           userId: userId,
-          token: userSessionId,
+          token: userToken,
           publicIp: publicIp,
         })
         .onConflictDoUpdate({
           target: userSessionsTable.userId,
           set: {
-            token: userSessionId,
+            token: userToken,
             publicIp: publicIp,
             updatedAt: new Date(),
           },
@@ -143,7 +142,7 @@ export class WebSocketService implements WebSocketServer {
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
     const userId = user.getId();
     const userName = user.getName();
-    const userSessionId = user.getSessionId();
+    const userToken = user.getToken();
 
     console.log(`User ${userName} disconnected from server`);
 
@@ -168,27 +167,27 @@ export class WebSocketService implements WebSocketServer {
     } finally {
       // Always clean up in-memory data regardless of DB/KV operation success
       this.removeWebSocketUser(user);
-      this.matchPlayersService.deleteBySessionId(userSessionId);
+      this.matchPlayersService.deleteByToken(userToken);
       this.notifyUsersCount();
     }
   }
 
   private addWebSocketUser(user: WebSocketUser): void {
     this.usersById.set(user.getId(), user);
-    this.usersBySessionId.set(user.getSessionId(), user);
+    this.usersByToken.set(user.getToken(), user);
   }
 
   private removeWebSocketUser(user: WebSocketUser): void {
     this.usersById.delete(user.getId());
-    this.usersBySessionId.delete(user.getSessionId());
+    this.usersByToken.delete(user.getToken());
   }
 
   public getUserById(id: string): WebSocketUser | undefined {
     return this.usersById.get(id);
   }
 
-  public getUserBySessionId(sessionId: string): WebSocketUser | undefined {
-    return this.usersBySessionId.get(sessionId);
+  public getUserByToken(token: string): WebSocketUser | undefined {
+    return this.usersByToken.get(token);
   }
 
   private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -226,27 +225,27 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private sendMessageToOtherUser(
-    destinationSessionId: string,
+    destinationToken: string,
     payload: ArrayBuffer
   ): void {
-    const destinationUser = this.usersBySessionId.get(destinationSessionId);
+    const destinationUser = this.usersByToken.get(destinationToken);
 
     if (destinationUser) {
       this.sendMessage(destinationUser, payload);
     } else {
       console.log(
         `Session id not found, broadcasting message...`,
-        destinationSessionId
+        destinationToken
       );
       this.tunnelBroadcastChannel.postMessage({
-        destinationSessionId,
+        destinationToken,
         payload,
       });
     }
   }
 
   private sendNotificationToUsers(text: string): void {
-    for (const user of this.usersBySessionId.values()) {
+    for (const user of this.usersByToken.values()) {
       const textBytes = new TextEncoder().encode(text);
       const payload = BinaryWriter.build()
         .unsignedInt8(WebSocketType.Notification)
@@ -284,7 +283,7 @@ export class WebSocketService implements WebSocketServer {
       .unsignedInt16(totalSessions)
       .toArrayBuffer();
 
-    for (const user of this.usersBySessionId.values()) {
+    for (const user of this.usersByToken.values()) {
       this.sendMessage(user, payload);
     }
   }
@@ -294,19 +293,19 @@ export class WebSocketService implements WebSocketServer {
     originUser: WebSocketUser,
     binaryReader: BinaryReader
   ): void {
-    const destinationSessionIdBytes = binaryReader.bytes(32);
-    const destinationSessionId = encodeBase64(destinationSessionIdBytes);
+    const destinationTokenBytes = binaryReader.bytes(32);
+    const destinationToken = encodeBase64(destinationTokenBytes);
 
-    console.log("Received player identity message for", destinationSessionId);
+    console.log("Received player identity message for", destinationToken);
 
     const playerIdentityPayload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.PlayerIdentity)
-      .bytes(decodeBase64(originUser.getSessionId()), 32)
+      .bytes(decodeBase64(originUser.getToken()), 32)
       .fixedLengthString(originUser.getNetworkId(), 32)
       .fixedLengthString(originUser.getName(), 16)
       .toArrayBuffer();
 
-    this.sendMessageToOtherUser(destinationSessionId, playerIdentityPayload);
+    this.sendMessageToOtherUser(destinationToken, playerIdentityPayload);
   }
 
   @CommandHandler(WebSocketType.Tunnel)
@@ -314,17 +313,17 @@ export class WebSocketService implements WebSocketServer {
     originUser: WebSocketUser,
     binaryReader: BinaryReader
   ): void {
-    const destinationSessionIdBytes = binaryReader.bytes(32);
+    const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
 
     const tunnelPayload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.Tunnel)
-      .bytes(decodeBase64(originUser.getSessionId()), 32)
+      .bytes(decodeBase64(originUser.getToken()), 32)
       .bytes(dataBytes)
       .toArrayBuffer();
 
     this.sendMessageToOtherUser(
-      encodeBase64(destinationSessionIdBytes),
+      encodeBase64(destinationTokenBytes),
       tunnelPayload
     );
   }
@@ -339,7 +338,7 @@ export class WebSocketService implements WebSocketServer {
 
     const playerUser = this.usersById.get(playerId);
     if (playerUser) {
-      playerUser.setHostSessionId(isConnected ? user.getSessionId() : null);
+      playerUser.setHostToken(isConnected ? user.getToken() : null);
     }
 
     this.matchPlayersService.handleMatchPlayerMessage(
