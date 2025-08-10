@@ -45,17 +45,19 @@ export class UserModerationService {
     // Calculate expiration date
     const expiresAt = this.calculateExpirationDate(duration);
 
-    // Create ban record atomically
+    // Create ban record atomically with explicit conflict target
     try {
-      const result = await db
+      const insertedBan = await db
         .insert(userBansTable)
         .values({
           userId: userId,
           reason: reason,
           expiresAt: expiresAt,
         })
-        .onConflictDoNothing();
-      if (result.rowCount === 0) {
+        .onConflictDoNothing({ target: userBansTable.userId })
+        .returning();
+
+      if (insertedBan.length === 0) {
         throw new ServerError(
           "USER_ALREADY_BANNED",
           "User is already banned",
