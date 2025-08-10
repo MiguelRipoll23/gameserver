@@ -9,7 +9,7 @@ import { VersionKV } from "../../api/versions/v1/interfaces/kv/version-kv.ts";
 import { injectable } from "@needle-di/core";
 import { RegistrationOptionsKV } from "../../api/versions/v1/interfaces/kv/registration-options-kv.ts";
 import { AuthenticationOptionsKV } from "../../api/versions/v1/interfaces/kv/authentication-options-kv.ts";
-import { ConfigurationType } from "../types/configuration-type.ts";
+import { ConfigurationType } from "../../api/versions/v1/types/configuration-type.ts";
 
 @injectable()
 export class KVService {
