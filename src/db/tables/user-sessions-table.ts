@@ -12,6 +12,9 @@ export const userSessionsTable = pgTable("user_sessions", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type UserSessionEntity = typeof userSessionsTable.$inferSelect;

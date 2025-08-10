@@ -1,0 +1,2 @@
+ALTER TABLE "user_sessions" ADD COLUMN "updated_at" timestamp with time zone DEFAULT now() NOT NULL;--> statement-breakpoint
+ALTER TABLE "user_bans" ADD CONSTRAINT "user_bans_user_id_unique" UNIQUE("user_id");

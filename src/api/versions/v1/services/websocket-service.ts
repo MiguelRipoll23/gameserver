@@ -126,7 +126,7 @@ export class WebSocketService implements WebSocketServer {
           set: {
             id: userSessionId,
             publicIp: publicIp,
-            createdAt: new Date(),
+            updatedAt: new Date(),
           },
         });
     } catch (error) {
