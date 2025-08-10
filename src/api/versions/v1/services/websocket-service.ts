@@ -10,7 +10,7 @@ import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
 import { ChatService } from "./chat-service.ts";
-import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
+import type { WebSocketServer } from "../interfaces/websocket-server-interface.ts";
 import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
@@ -21,7 +21,7 @@ import { userSessionsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 
 @injectable()
-export class WebSocketService implements IWebSocketService {
+export class WebSocketService implements WebSocketServer {
   private tunnelBroadcastChannel: BroadcastChannel;
   private onlineUsersBroadcastChannel: BroadcastChannel;
   private usersById: Map<string, WebSocketUser>;

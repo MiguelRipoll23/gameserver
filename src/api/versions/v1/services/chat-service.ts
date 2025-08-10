@@ -4,7 +4,7 @@ import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
-import type { IWebSocketService } from "../interfaces/websocket-adapter.ts";
+import type { WebSocketServer } from "../interfaces/websocket-server-interface.ts";
 import blockWords from "../data/block-words.json" with { type: "json" };
 
 const MAX_CHAT_MESSAGE_LENGTH = 35;
@@ -31,7 +31,7 @@ export class ChatService {
   ) {}
 
   public handleChatMessage(
-    wsAdapter: IWebSocketService,
+    webSocketServer: WebSocketServer,
     user: WebSocketUser,
     reader: BinaryReader,
   ): void {
@@ -64,17 +64,17 @@ export class ChatService {
 
     // Broadcast to all players in the match
     for (const playerId of this.matchPlayersService.getPlayersBySessionId(hostToken)) {
-      const target = wsAdapter.getUserById(playerId);
+      const target = webSocketServer.getUserById(playerId);
       if (target) {
-        wsAdapter.sendMessage(target, payload);
+        webSocketServer.sendMessage(target, payload);
       }
     }
 
     // Ensure the host also receives the message
-    const host = wsAdapter.getUserBySessionId(hostToken);
+    const host = webSocketServer.getUserBySessionId(hostToken);
     
     if (host) {
-      wsAdapter.sendMessage(host, payload);
+      webSocketServer.sendMessage(host, payload);
     }
   }
 }
