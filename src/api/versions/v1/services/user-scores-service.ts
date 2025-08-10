@@ -1,5 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
-import { CryptoService } from "../../../../core/services/crypto-service.ts";
+import { CryptoService } from "./crypto-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {

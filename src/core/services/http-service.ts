@@ -10,14 +10,14 @@ import { ErrorHandlingService } from "./error-handling-service.ts";
 import { HonoVariablesType } from "../types/hono-variables-type.ts";
 import { CORSMiddleware } from "../middlewares/cors-middleware.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
-import { KVService } from "./kv-service.ts";
+import { BaseKVService } from "./kv-service.ts";
 
 @injectable()
 export class HTTPService {
   private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
 
   constructor(
-    private kvService = inject(KVService),
+    private kvService = inject(BaseKVService),
     private rootRooter = inject(RootRouter),
     private apiRouter = inject(APIRouter)
   ) {

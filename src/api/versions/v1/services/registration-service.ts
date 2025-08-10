@@ -1,5 +1,4 @@
 import { inject, injectable } from "@needle-di/core";
-import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
@@ -23,6 +22,7 @@ import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
+import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class RegistrationService {

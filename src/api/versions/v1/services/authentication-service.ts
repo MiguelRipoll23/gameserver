@@ -1,5 +1,4 @@
 import { encodeBase64 } from "hono/utils/encode";
-import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { create } from "@wok/djwt";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
@@ -29,6 +28,7 @@ import { UserCredentialEntity } from "../../../../db/tables/user-credentials-tab
 import { UserEntity } from "../../../../db/tables/users-table.ts";
 import { userBansTable } from "../../../../db/tables/user-bans-table.ts";
 import { desc } from "drizzle-orm";
+import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class AuthenticationService {

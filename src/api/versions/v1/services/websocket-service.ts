@@ -6,7 +6,6 @@ import {
 } from "../constants/websocket-constants.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
-import { KVService } from "../../../../core/services/kv-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { MatchPlayersService } from "./match-players-service.ts";
 import { ChatService } from "./chat-service.ts";
@@ -19,6 +18,7 @@ import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
 import { userSessionsTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
+import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
