@@ -34,9 +34,9 @@ export class UserModerationService {
       insertedBan = await db
         .insert(userBansTable)
         .values({
-          userId: userId,
-          reason: reason,
-          expiresAt: expiresAt,
+          userId,
+          reason,
+          expiresAt,
         })
         .onConflictDoNothing({ target: [userBansTable.userId] })
         .returning({ id: userBansTable.id });
@@ -93,12 +93,12 @@ export class UserModerationService {
   }
 
   public async reportUser(
-    reporterId: string,
+    reporterUserId: string,
     body: ReportUserRequest
   ): Promise<void> {
     const { userId, reason, automatic } = body;
 
-    if (reporterId === userId) {
+    if (reporterUserId === userId) {
       throw new ServerError("INVALID_REPORT", "Cannot report yourself", 400);
     }
 
@@ -110,10 +110,10 @@ export class UserModerationService {
     // Insert report into database
     try {
       await db.insert(userReportsTable).values({
-        reporterUserId: reporterId,
+        reporterUserId,
         reportedUserId: userId,
-        reason: reason,
-        automatic: automatic,
+        reason,
+        automatic,
       });
     } catch (error) {
       console.error("Database error while creating report:", error);
