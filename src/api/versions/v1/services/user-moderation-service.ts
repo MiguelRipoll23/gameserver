@@ -196,6 +196,15 @@ export class UserModerationService {
     const now = new Date();
     const { value, unit } = duration;
 
+    // Validate value is a positive integer
+    if (!Number.isInteger(value) || value <= 0) {
+      throw new ServerError(
+        "INVALID_DURATION_VALUE",
+        "Duration value must be a positive integer",
+        400
+      );
+    }
+
     switch (unit) {
       case "minutes":
         return new Date(now.getTime() + value * 60 * 1000);
@@ -205,10 +214,16 @@ export class UserModerationService {
         return new Date(now.getTime() + value * 24 * 60 * 60 * 1000);
       case "weeks":
         return new Date(now.getTime() + value * 7 * 24 * 60 * 60 * 1000);
-      case "months":
-        return new Date(now.getTime() + value * 30 * 24 * 60 * 60 * 1000);
-      case "years":
-        return new Date(now.getTime() + value * 365 * 24 * 60 * 60 * 1000);
+      case "months": {
+        const result = new Date(now);
+        result.setMonth(result.getMonth() + value);
+        return result;
+      }
+      case "years": {
+        const result = new Date(now);
+        result.setFullYear(result.getFullYear() + value);
+        return result;
+      }
       default:
         throw new ServerError(
           "INVALID_DURATION_UNIT",
