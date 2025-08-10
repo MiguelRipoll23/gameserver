@@ -42,6 +42,7 @@ export class UserScoresService {
     await this.validateUserIsHostingMatch(userId);
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
+    console.debug("SaveScoresRequest", request);
 
     // Use database transaction to ensure atomicity
     const db = this.databaseService.get();
@@ -50,7 +51,11 @@ export class UserScoresService {
       await db.transaction(async (tx) => {
         // Update all player scores within a single transaction
         for (const playerScore of request) {
-          await this.updatePlayerScoreWithTransaction(tx, playerScore.userId, playerScore.totalScore);
+          await this.updateWithTransaction(
+            tx,
+            playerScore.userId,
+            playerScore.totalScore
+          );
         }
       });
     } catch (error) {
@@ -96,28 +101,7 @@ export class UserScoresService {
     }
   }
 
-  private async updatePlayerScore(
-    userId: string,
-    totalScore: number
-  ): Promise<void> {
-    const db = this.databaseService.get();
-
-    // Atomic upsert: insert or increment totalScore on conflict
-    await db
-      .insert(userScoresTable)
-      .values({
-        userId,
-        totalScore,
-      })
-      .onConflictDoUpdate({
-        target: userScoresTable.userId,
-        set: {
-          totalScore: sql`${userScoresTable.totalScore} + EXCLUDED.totalScore`,
-        },
-      });
-  }
-
-  private async updatePlayerScoreWithTransaction(
+  private async updateWithTransaction(
     tx: NodePgDatabase,
     userId: string,
     totalScore: number
