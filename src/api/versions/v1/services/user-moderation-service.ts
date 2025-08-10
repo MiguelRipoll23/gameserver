@@ -28,30 +28,32 @@ export class UserModerationService {
     const expiresAt = this.calculateExpirationDate(duration);
 
     // Create ban record atomically with explicit conflict target
+    let insertedBan;
+
     try {
-      const insertedBan = await db
+      insertedBan = await db
         .insert(userBansTable)
         .values({
           userId: userId,
           reason: reason,
           expiresAt: expiresAt,
         })
-        .onConflictDoNothing({ target: userBansTable.userId })
-        .returning();
-
-      if (insertedBan.length === 0) {
-        throw new ServerError(
-          "USER_ALREADY_BANNED",
-          "User is already banned",
-          409
-        );
-      }
+        .onConflictDoNothing({ target: [userBansTable.userId] })
+        .returning({ id: userBansTable.id });
     } catch (error) {
       console.error("Database error while creating ban record:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to create ban record",
         500
+      );
+    }
+
+    if (insertedBan.length === 0) {
+      throw new ServerError(
+        "USER_ALREADY_BANNED",
+        "User is already banned",
+        409
       );
     }
 
@@ -72,7 +74,7 @@ export class UserModerationService {
       deletedBan = await db
         .delete(userBansTable)
         .where(eq(userBansTable.userId, userId))
-        .returning();
+        .returning({ userId: userBansTable.userId });
     } catch (error) {
       console.error("Database error while removing ban:", error);
       throw new ServerError(
