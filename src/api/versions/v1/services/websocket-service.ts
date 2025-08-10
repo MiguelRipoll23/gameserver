@@ -16,7 +16,7 @@ import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
-import { userSessionsTable } from "../../../../db/schema.ts";
+import { userSessionsTable, matchesTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 
@@ -142,34 +142,76 @@ export class WebSocketService implements WebSocketServer {
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
     const userId = user.getId();
     const userName = user.getName();
-    const userToken = user.getToken();
 
     console.log(`User ${userName} disconnected from server`);
 
     try {
-      const db = this.databaseService.get();
-
-      // Delete user session from database using userId as primary key
-      await db
-        .delete(userSessionsTable)
-        .where(eq(userSessionsTable.userId, userId));
-
-      // Clear temporary KV data (keys, matches)
-      const result = await this.kvService.deleteUserTemporaryData(userId);
-
-      if (result.ok) {
-        console.log(`Deleted temporary data for user ${userName}`);
-      } else {
-        console.error(`Failed to delete temporary data for user ${userName}`);
-      }
+      await this.deleteSessionByUserId(userId, userName);
+      await this.deleteMatchByUserId(userId, userName);
+      await this.deleteUserKeyValueData(userId, userName);
     } catch (error) {
       console.error(`Error during disconnection for user ${userName}:`, error);
     } finally {
-      // Always clean up in-memory data regardless of DB/KV operation success
-      this.removeWebSocketUser(user);
-      this.matchPlayersService.deleteByToken(userToken);
+      this.cleanupUserMemoryData(user);
       this.notifyUsersCount();
     }
+  }
+
+  private async deleteSessionByUserId(
+    userId: string,
+    userName: string
+  ): Promise<void> {
+    const db = this.databaseService.get();
+    const deletedSessions = await db
+      .delete(userSessionsTable)
+      .where(eq(userSessionsTable.userId, userId))
+      .returning({ id: userSessionsTable.userId });
+
+    if (deletedSessions.length > 0) {
+      console.log(`Deleted session for user ${userName}`);
+    }
+  }
+
+  private async deleteMatchByUserId(
+    userId: string,
+    userName: string
+  ): Promise<void> {
+    const db = this.databaseService.get();
+    const deletedMatches = await db
+      .delete(matchesTable)
+      .where(eq(matchesTable.hostUserId, userId))
+      .returning({ id: matchesTable.id });
+
+    if (deletedMatches.length > 0) {
+      console.log(`Deleted match hosted by user ${userName}`);
+    }
+  }
+
+  private async deleteUserKeyValueData(
+    userId: string,
+    userName: string
+  ): Promise<void> {
+    const result = await this.kvService.deleteUserTemporaryData(userId);
+
+    if (result.ok) {
+      console.log(`Deleted temporary data for user ${userName}`);
+    } else {
+      console.error(`Failed to delete temporary data for user ${userName}`);
+    }
+  }
+
+  private cleanupUserMemoryData(user: WebSocketUser): void {
+    const userId = user.getId();
+    const userToken = user.getToken();
+
+    // Remove user from WebSocket maps
+    this.removeWebSocketUser(user);
+
+    // Remove user from any matches they hosted
+    this.matchPlayersService.deleteByToken(userToken);
+
+    // Remove user from any matches they joined as a player
+    this.matchPlayersService.removePlayerFromAllMatches(userId);
   }
 
   private addWebSocketUser(user: WebSocketUser): void {

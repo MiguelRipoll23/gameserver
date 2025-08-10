@@ -13,6 +13,22 @@ export class MatchPlayersService {
     this.matchPlayers.delete(token);
   }
 
+  public removePlayerFromAllMatches(playerId: string): void {
+    // Remove the player from all matches and clean up empty matches
+    for (const [token, players] of this.matchPlayers.entries()) {
+      if (players.has(playerId)) {
+        players.delete(playerId);
+        console.log(`Removed player ${playerId} from match ${token}`);
+
+        // If the match has no players left, remove it entirely
+        if (players.size === 0) {
+          this.matchPlayers.delete(token);
+          console.log(`Deleted empty match ${token}`);
+        }
+      }
+    }
+  }
+
   public getPlayersByToken(token: string): string[] {
     const players = this.matchPlayers.get(token);
 
