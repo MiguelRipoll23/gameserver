@@ -13,6 +13,7 @@ import {
   matchesTable,
 } from "../../../../db/schema.ts";
 import { eq, desc, sql } from "drizzle-orm";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 @injectable()
 export class UserScoresService {
@@ -42,14 +43,23 @@ export class UserScoresService {
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
 
-    const results = await Promise.allSettled(
-      request.map((playerScore) => this.updatePlayerScore(playerScore))
-    );
+    // Use database transaction to ensure atomicity
+    const db = this.databaseService.get();
 
-    const failures = results.filter((r) => r.status === "rejected");
-
-    if (failures.length > 0) {
-      console.error(`Failed to update ${failures.length} scores`);
+    try {
+      await db.transaction(async (tx) => {
+        // Update all player scores within a single transaction
+        for (const playerScore of request) {
+          await this.updatePlayerScoreWithTransaction(tx, playerScore);
+        }
+      });
+    } catch (error) {
+      console.error("Failed to update scores in transaction:", error);
+      throw new ServerError(
+        "SCORE_UPDATE_FAILED",
+        "Failed to update player scores",
+        500
+      );
     }
   }
 
@@ -95,6 +105,30 @@ export class UserScoresService {
 
     // Atomic upsert: insert or increment totalScore on conflict
     await db
+      .insert(userScoresTable)
+      .values({
+        userId,
+        totalScore,
+      })
+      .onConflictDoUpdate({
+        target: userScoresTable.userId,
+        set: {
+          totalScore: sql`${userScoresTable.totalScore} + EXCLUDED.totalScore`,
+        },
+      });
+  }
+
+  private async updatePlayerScoreWithTransaction(
+    tx: NodePgDatabase,
+    entry: {
+      userId: string;
+      totalScore: number;
+    }
+  ): Promise<void> {
+    const { userId, totalScore } = entry;
+
+    // Atomic upsert: insert or increment totalScore on conflict
+    await tx
       .insert(userScoresTable)
       .values({
         userId,
