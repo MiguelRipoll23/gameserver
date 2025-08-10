@@ -160,17 +160,16 @@ export class WebSocketService implements WebSocketServer {
 
       if (result.ok) {
         console.log(`Deleted temporary data for user ${userName}`);
-        this.removeWebSocketUser(user);
-        this.matchPlayersService.deleteBySessionId(userSessionId);
       } else {
         console.error(`Failed to delete temporary data for user ${userName}`);
-        user.setWebSocket(null);
       }
-
-      this.notifyUsersCount();
     } catch (error) {
       console.error(`Error during disconnection for user ${userName}:`, error);
-      user.setWebSocket(null);
+    } finally {
+      // Always clean up in-memory data regardless of DB/KV operation success
+      this.removeWebSocketUser(user);
+      this.matchPlayersService.deleteBySessionId(userSessionId);
+      this.notifyUsersCount();
     }
   }
 
