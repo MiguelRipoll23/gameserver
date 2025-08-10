@@ -58,7 +58,7 @@ export class ChatService {
 
     const payload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.ChatMessage)
-      .fixedLengthString(user.getId(), 32)
+      .fixedLengthString(user.getNetworkId(), 32)
       .variableLengthString(message)
       .toArrayBuffer();
 
@@ -72,7 +72,7 @@ export class ChatService {
 
     // Ensure the host also receives the message
     const host = webSocketServer.getUserByToken(hostToken);
-    
+
     if (host) {
       webSocketServer.sendMessage(host, payload);
     }
