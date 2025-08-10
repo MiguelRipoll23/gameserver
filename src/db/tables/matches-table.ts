@@ -7,13 +7,9 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
-import { userSessionsTable } from "./user-sessions-table.ts";
 
 export const matchesTable = pgTable("matches", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
-  sessionId: varchar("session_id")
-    .notNull()
-    .references(() => userSessionsTable.id, { onDelete: "cascade" }),
   hostUserId: uuid("host_user_id")
     .notNull()
     .unique()

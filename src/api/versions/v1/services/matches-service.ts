@@ -20,7 +20,7 @@ export class MatchesService {
     // Get the user session from database
     const db = this.databaseService.get();
     const session = await db
-      .select({ id: userSessionsTable.id })
+      .select({ token: userSessionsTable.token })
       .from(userSessionsTable)
       .where(eq(userSessionsTable.userId, userId))
       .limit(1)
@@ -30,7 +30,6 @@ export class MatchesService {
       throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
     }
 
-    const sessionId = session.id;
     const { version, totalSlots, availableSlots, attributes } = body;
 
     try {
@@ -38,7 +37,6 @@ export class MatchesService {
       await db
         .insert(matchesTable)
         .values({
-          sessionId: sessionId,
           hostUserId: userId,
           version: version,
           totalSlots: totalSlots,
@@ -48,7 +46,6 @@ export class MatchesService {
         .onConflictDoUpdate({
           target: matchesTable.hostUserId,
           set: {
-            sessionId: sessionId,
             version: version,
             totalSlots: totalSlots,
             availableSlots: availableSlots,
@@ -95,8 +92,22 @@ export class MatchesService {
 
     // Get one extra item to determine if there are more results
     const matches = await db
-      .select()
+      .select({
+        id: matchesTable.id,
+        hostUserId: matchesTable.hostUserId,
+        version: matchesTable.version,
+        totalSlots: matchesTable.totalSlots,
+        availableSlots: matchesTable.availableSlots,
+        attributes: matchesTable.attributes,
+        createdAt: matchesTable.createdAt,
+        updatedAt: matchesTable.updatedAt,
+        token: userSessionsTable.token,
+      })
       .from(matchesTable)
+      .innerJoin(
+        userSessionsTable,
+        eq(matchesTable.hostUserId, userSessionsTable.userId)
+      )
       .where(and(...conditions))
       .orderBy(matchesTable.id)
       .limit(limit + 1);
@@ -108,7 +119,7 @@ export class MatchesService {
     // Transform the results into the expected response format
     return {
       results: results.map((match) => ({
-        sessionId: match.sessionId,
+        token: match.token,
       })),
       nextCursor: hasNextPage ? matches[matches.length - 1].id : undefined,
       hasMore: hasNextPage,

@@ -117,14 +117,14 @@ export class WebSocketService implements WebSocketServer {
       await db
         .insert(userSessionsTable)
         .values({
-          id: userSessionId,
           userId: userId,
+          token: userSessionId,
           publicIp: publicIp,
         })
         .onConflictDoUpdate({
           target: userSessionsTable.userId,
           set: {
-            id: userSessionId,
+            token: userSessionId,
             publicIp: publicIp,
             updatedAt: new Date(),
           },
@@ -150,10 +150,10 @@ export class WebSocketService implements WebSocketServer {
     try {
       const db = this.databaseService.get();
 
-      // Delete user session from database
+      // Delete user session from database using userId as primary key
       await db
         .delete(userSessionsTable)
-        .where(eq(userSessionsTable.id, userSessionId));
+        .where(eq(userSessionsTable.userId, userId));
 
       // Clear temporary KV data (keys, matches)
       const result = await this.kvService.deleteUserTemporaryData(userId);

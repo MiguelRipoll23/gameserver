@@ -1,5 +1,5 @@
 {
-  "id": "102d2fcf-f99d-447f-8c6e-227cd737a871",
+  "id": "b76f8565-6bd5-4bc3-8c78-8fe35c1433b7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -24,12 +24,6 @@
             "cache": "1",
             "cycle": false
           }
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "varchar",
-          "primaryKey": false,
-          "notNull": true
         },
         "host_user_id": {
           "name": "host_user_id",
@@ -78,19 +72,6 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "matches_session_id_user_sessions_id_fk": {
-          "name": "matches_session_id_user_sessions_id_fk",
-          "tableFrom": "matches",
-          "tableTo": "user_sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "matches_host_user_id_users_id_fk": {
           "name": "matches_host_user_id_users_id_fk",
           "tableFrom": "matches",
@@ -453,15 +434,15 @@
       "name": "user_sessions",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "varchar(44)",
-          "primaryKey": true,
-          "notNull": true
-        },
         "user_id": {
           "name": "user_id",
           "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "token": {
+          "name": "token",
+          "type": "varchar(44)",
           "primaryKey": false,
           "notNull": true
         },
@@ -510,11 +491,11 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "user_sessions_user_id_unique": {
-          "name": "user_sessions_user_id_unique",
+        "user_sessions_token_unique": {
+          "name": "user_sessions_token_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "user_id"
+            "token"
           ]
         }
       },

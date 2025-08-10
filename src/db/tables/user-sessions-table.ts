@@ -2,11 +2,10 @@ import { pgTable, varchar, timestamp, uuid, inet } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userSessionsTable = pgTable("user_sessions", {
-  id: varchar("id", { length: 44 }).primaryKey(),
   userId: uuid("user_id")
-    .notNull()
-    .unique()
+    .primaryKey()
     .references(() => usersTable.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 44 }).notNull().unique(),
   publicIp: inet("public_ip").notNull(),
   country: varchar("country"), // will be obtained from public ip later
   createdAt: timestamp("created_at", { withTimezone: true })

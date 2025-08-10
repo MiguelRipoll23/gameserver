@@ -1,6 +1,5 @@
 CREATE TABLE "matches" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "matches_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
-	"session_id" varchar NOT NULL,
 	"host_user_id" uuid NOT NULL,
 	"version" varchar(16) NOT NULL,
 	"total_slots" integer NOT NULL,
@@ -53,13 +52,13 @@ CREATE TABLE "user_scores" (
 );
 --> statement-breakpoint
 CREATE TABLE "user_sessions" (
-	"id" varchar(44) PRIMARY KEY NOT NULL,
-	"user_id" uuid NOT NULL,
+	"user_id" uuid PRIMARY KEY NOT NULL,
+	"token" varchar(44) NOT NULL,
 	"public_ip" "inet" NOT NULL,
 	"country" varchar,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "user_sessions_user_id_unique" UNIQUE("user_id")
+	CONSTRAINT "user_sessions_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
 CREATE TABLE "users" (
@@ -69,7 +68,6 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_display_name_unique" UNIQUE("display_name")
 );
 --> statement-breakpoint
-ALTER TABLE "matches" ADD CONSTRAINT "matches_session_id_user_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."user_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "matches" ADD CONSTRAINT "matches_host_user_id_users_id_fk" FOREIGN KEY ("host_user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_bans" ADD CONSTRAINT "user_bans_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_credentials" ADD CONSTRAINT "user_credentials_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

@@ -67,7 +67,7 @@ export type FindMatchesRequest = z.infer<typeof FindMatchesRequestSchema>;
 export const FindMatchesResponseSchema = z.object({
   results: z.array(
     z.object({
-      sessionId: z.string().describe("Session id used to join the match"),
+      token: z.string().describe("Token used to join the match"),
     })
   ),
   nextCursor: z
