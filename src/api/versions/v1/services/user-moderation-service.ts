@@ -81,53 +81,14 @@ export class UserModerationService {
   public async unbanUser(userId: string): Promise<void> {
     const db = this.databaseService.get();
 
-    // Check if user exists
-    let users;
+    // Perform atomic delete operation with returning to get deleted record
+    let deletedBan;
 
     try {
-      users = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, userId))
-        .limit(1);
-    } catch (error) {
-      console.error("Database error while checking user existence:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to verify user existence",
-        500
-      );
-    }
-
-    if (users.length === 0) {
-      throw new ServerError("USER_NOT_FOUND", "User not found", 404);
-    }
-
-    // Check if user is actually banned
-    let existingBan;
-
-    try {
-      existingBan = await db
-        .select()
-        .from(userBansTable)
+      deletedBan = await db
+        .delete(userBansTable)
         .where(eq(userBansTable.userId, userId))
-        .limit(1);
-    } catch (error) {
-      console.error("Database error while checking ban status:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to check ban status",
-        500
-      );
-    }
-
-    if (existingBan.length === 0) {
-      throw new ServerError("USER_NOT_BANNED", "User is not banned", 404);
-    }
-
-    // Remove ban record
-    try {
-      await db.delete(userBansTable).where(eq(userBansTable.userId, userId));
+        .returning();
     } catch (error) {
       console.error("Database error while removing ban:", error);
       throw new ServerError(
@@ -135,6 +96,32 @@ export class UserModerationService {
         "Failed to remove ban record",
         500
       );
+    }
+
+    // If no record was deleted, check if user exists to determine appropriate error
+    if (deletedBan.length === 0) {
+      let users;
+
+      try {
+        users = await db
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.id, userId))
+          .limit(1);
+      } catch (error) {
+        console.error("Database error while checking user existence:", error);
+        throw new ServerError(
+          "DATABASE_ERROR",
+          "Failed to verify user existence",
+          500
+        );
+      }
+
+      if (users.length === 0) {
+        throw new ServerError("USER_NOT_FOUND", "User not found", 404);
+      } else {
+        throw new ServerError("USER_NOT_BANNED", "User is not banned", 404);
+      }
     }
 
     console.log(`User ${userId} has been unbanned`);
