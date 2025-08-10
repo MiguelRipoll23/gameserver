@@ -1,5 +1,5 @@
 {
-  "id": "64e0f123-28b9-4d93-a236-755d1c3c457c",
+  "id": "102d2fcf-f99d-447f-8c6e-227cd737a871",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -202,6 +202,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "reason": {
+          "name": "reason",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -239,7 +245,15 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "user_bans_user_id_unique": {
+          "name": "user_bans_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -334,8 +348,14 @@
             "cycle": false
           }
         },
-        "user_id": {
-          "name": "user_id",
+        "reporter_user_id": {
+          "name": "reporter_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reported_user_id": {
+          "name": "reported_user_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -356,12 +376,25 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_reports_user_id_users_id_fk": {
-          "name": "user_reports_user_id_users_id_fk",
+        "user_reports_reporter_user_id_users_id_fk": {
+          "name": "user_reports_reporter_user_id_users_id_fk",
           "tableFrom": "user_reports",
           "tableTo": "users",
           "columnsFrom": [
-            "user_id"
+            "reporter_user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "user_reports_reported_user_id_users_id_fk": {
+          "name": "user_reports_reported_user_id_users_id_fk",
+          "tableFrom": "user_reports",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reported_user_id"
           ],
           "columnsTo": [
             "id"
@@ -380,8 +413,8 @@
       "name": "user_scores",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
+        "user_id": {
+          "name": "user_id",
           "type": "uuid",
           "primaryKey": true,
           "notNull": true
@@ -396,12 +429,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "user_scores_id_users_id_fk": {
-          "name": "user_scores_id_users_id_fk",
+        "user_scores_user_id_users_id_fk": {
+          "name": "user_scores_user_id_users_id_fk",
           "tableFrom": "user_scores",
           "tableTo": "users",
           "columnsFrom": [
-            "id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -422,7 +455,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "varchar",
+          "type": "varchar(44)",
           "primaryKey": true,
           "notNull": true
         },
@@ -432,8 +465,27 @@
           "primaryKey": false,
           "notNull": true
         },
+        "public_ip": {
+          "name": "public_ip",
+          "type": "inet",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "country": {
+          "name": "country",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
