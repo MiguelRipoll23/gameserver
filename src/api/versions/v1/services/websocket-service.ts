@@ -275,7 +275,7 @@ export class WebSocketService implements WebSocketServer {
       .unsignedInt16(totalSessions)
       .toArrayBuffer();
 
-    this.tunnelBroadcastChannel.postMessage({ payload });
+    this.onlineUsersBroadcastChannel.postMessage({ payload });
   }
 
   private sendOnlineUsersCountToUsers(totalSessions: number) {
