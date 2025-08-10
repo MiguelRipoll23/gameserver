@@ -16,31 +16,13 @@ import { eq } from "drizzle-orm";
 @injectable()
 export class UserModerationService {
   constructor(private databaseService = inject(DatabaseService)) {}
+
   public async banUser(body: BanUserRequest): Promise<void> {
     const { userId, reason, duration } = body;
     const db = this.databaseService.get();
 
     // Check if user exists
-    let users;
-
-    try {
-      users = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, userId))
-        .limit(1);
-    } catch (error) {
-      console.error("Database error while checking user existence:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to verify user existence",
-        500
-      );
-    }
-
-    if (users.length === 0) {
-      throw new ServerError("USER_NOT_FOUND", "User not found", 404);
-    }
+    await this.checkUserExists(userId);
 
     // Calculate expiration date
     const expiresAt = this.calculateExpirationDate(duration);
@@ -102,28 +84,7 @@ export class UserModerationService {
 
     // If no record was deleted, check if user exists to determine appropriate error
     if (deletedBan.length === 0) {
-      let users;
-
-      try {
-        users = await db
-          .select()
-          .from(usersTable)
-          .where(eq(usersTable.id, userId))
-          .limit(1);
-      } catch (error) {
-        console.error("Database error while checking user existence:", error);
-        throw new ServerError(
-          "DATABASE_ERROR",
-          "Failed to verify user existence",
-          500
-        );
-      }
-
-      if (users.length === 0) {
-        throw new ServerError("USER_NOT_FOUND", "User not found", 404);
-      } else {
-        throw new ServerError("USER_NOT_BANNED", "User is not banned", 404);
-      }
+      await this.checkUserExists(userId);
     }
 
     console.log(`User ${userId} has been unbanned`);
@@ -142,26 +103,7 @@ export class UserModerationService {
     const db = this.databaseService.get();
 
     // Check if user exists
-    let users;
-
-    try {
-      users = await db
-        .select()
-        .from(usersTable)
-        .where(eq(usersTable.id, userId))
-        .limit(1);
-    } catch (error) {
-      console.error("Database error while checking user existence:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to verify user existence",
-        500
-      );
-    }
-
-    if (users.length === 0) {
-      throw new ServerError("USER_NOT_FOUND", "User not found", 404);
-    }
+    await this.checkUserExists(userId);
 
     // Insert report into database
     try {
@@ -174,6 +116,33 @@ export class UserModerationService {
     } catch (error) {
       console.error("Database error while creating report:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to create report", 500);
+    }
+  }
+
+  private async checkUserExists(userId: string): Promise<void> {
+    const db = this.databaseService.get();
+
+    try {
+      const users = await db
+        .select()
+        .from(usersTable)
+        .where(eq(usersTable.id, userId))
+        .limit(1);
+
+      if (users.length === 0) {
+        throw new ServerError("USER_NOT_FOUND", "User not found", 404);
+      }
+    } catch (error) {
+      if (error instanceof ServerError) {
+        throw error;
+      }
+
+      console.error("Database error while checking user existence:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to verify user existence",
+        500
+      );
     }
   }
 
