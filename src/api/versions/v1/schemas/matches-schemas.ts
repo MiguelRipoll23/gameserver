@@ -74,6 +74,9 @@ export const FindMatchesResponseSchema = z.object({
     .number()
     .optional()
     .describe("Cursor for the next page of results"),
+  hasMore: z
+    .boolean()
+    .describe("Indicates if more pages are available for pagination"),
 });
 
 export type FindMatchesResponse = z.infer<typeof FindMatchesResponseSchema>;

@@ -10,4 +10,9 @@ export interface PaginatedResponse<T, TCursor = number> {
    * or bigint for large datasets to avoid precision issues with PostgreSQL BIGINT.
    */
   nextCursor?: TCursor;
+  /**
+   * Explicitly indicates if more pages are available for pagination.
+   * Prevents clients from misinterpreting a `0` value in `nextCursor`.
+   */
+  hasMore: boolean;
 }

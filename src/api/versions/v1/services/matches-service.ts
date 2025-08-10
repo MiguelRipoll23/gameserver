@@ -111,6 +111,7 @@ export class MatchesService {
         sessionId: match.sessionId,
       })),
       nextCursor: hasNextPage ? matches[matches.length - 1].id : undefined,
+      hasMore: hasNextPage,
     };
   }
 
