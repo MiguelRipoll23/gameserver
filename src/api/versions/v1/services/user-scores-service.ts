@@ -50,7 +50,7 @@ export class UserScoresService {
       await db.transaction(async (tx) => {
         // Update all player scores within a single transaction
         for (const playerScore of request) {
-          await this.updatePlayerScoreWithTransaction(tx, playerScore);
+          await this.updatePlayerScoreWithTransaction(tx, playerScore.userId, playerScore.totalScore);
         }
       });
     } catch (error) {
@@ -96,11 +96,10 @@ export class UserScoresService {
     }
   }
 
-  private async updatePlayerScore(entry: {
-    userId: string;
-    totalScore: number;
-  }): Promise<void> {
-    const { userId, totalScore } = entry;
+  private async updatePlayerScore(
+    userId: string,
+    totalScore: number
+  ): Promise<void> {
     const db = this.databaseService.get();
 
     // Atomic upsert: insert or increment totalScore on conflict
@@ -120,13 +119,9 @@ export class UserScoresService {
 
   private async updatePlayerScoreWithTransaction(
     tx: NodePgDatabase,
-    entry: {
-      userId: string;
-      totalScore: number;
-    }
+    userId: string,
+    totalScore: number
   ): Promise<void> {
-    const { userId, totalScore } = entry;
-
     // Atomic upsert: insert or increment totalScore on conflict
     await tx
       .insert(userScoresTable)
