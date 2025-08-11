@@ -23,34 +23,31 @@ export class ChatService {
     if (!this.isValidMessage(unfilteredMessageText, user)) return;
 
     console.log(
-      `Receiving chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`,
+      `Received chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`,
     );
 
-    const filteredMessage = this.filterMessageText(unfilteredMessageText);
-    const timestamp = Date.now();
     const originUserId = user.getNetworkId();
+    const filteredMessageText = this.filterMessageText(unfilteredMessageText);
+    const timestamp = Date.now();
+    const signaturePayload = BinaryWriter.build()
+      .fixedLengthString(originUserId, 32)
+      .variableLengthString(filteredMessageText)
+      .unsignedInt32(timestamp)
+      .toArrayBuffer();
 
-    const signaturePayload = this.buildSignaturePayload(
-      originUserId,
-      filteredMessage,
-      timestamp,
-    );
+    const signedPayload = await this.getSignedPayload(signaturePayload);
 
-    let signedPayload: ArrayBuffer;
-
-    try {
-      signedPayload = await this.signatureService.signArrayBuffer(
-        signaturePayload,
-      );
-    } catch (error) {
-      console.error(
-        `Failed to sign chat message from ${user.getName()}:`,
-        error,
+    if (signedPayload === null) {
+      console.warn(
+        `Failed to sign chat message from ${user.getName()}:`
       );
       return;
     }
 
-    const chatMessagePayload = this.buildChatMessagePayload(signedPayload);
+    const chatMessagePayload = BinaryWriter.build()
+      .unsignedInt8(WebSocketType.ChatMessage)
+      .arrayBuffer(signedPayload)
+      .toArrayBuffer();
 
     webSocketServer.sendMessage(user, chatMessagePayload);
   }
@@ -79,25 +76,6 @@ export class ChatService {
       return false;
     }
     return true;
-  }
-
-  private buildSignaturePayload(
-    userId: string,
-    message: string,
-    timestamp: number,
-  ): ArrayBuffer {
-    return BinaryWriter.build()
-      .fixedLengthString(userId, 32)
-      .variableLengthString(message)
-      .unsignedInt32(timestamp)
-      .toArrayBuffer();
-  }
-
-  private buildChatMessagePayload(signedPayload: ArrayBuffer): ArrayBuffer {
-    return BinaryWriter.build()
-      .unsignedInt8(WebSocketType.ChatMessage)
-      .arrayBuffer(signedPayload)
-      .toArrayBuffer();
   }
 
   private filterMessageText(text: string): string {
@@ -154,5 +132,19 @@ export class ChatService {
   private isWordBoundary(char: string): boolean {
     // Define word boundary characters (non-alphanumeric)
     return !/[a-zA-Z0-9]/.test(char);
+  }
+
+  private async getSignedPayload(signaturePayload: ArrayBuffer): Promise<ArrayBuffer | null> {
+    let signedPayload: ArrayBuffer | null = null;
+
+    try {
+      signedPayload = await this.signatureService.signArrayBuffer(
+        signaturePayload,
+      );
+    } catch (error) {
+      console.error(error);
+    }
+
+    return signedPayload;
   }
 }
