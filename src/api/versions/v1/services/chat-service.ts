@@ -16,13 +16,15 @@ export class ChatService {
   public async sendSignedChatMessage(
     webSocketServer: WebSocketServer,
     user: WebSocketUser,
-    reader: BinaryReader
+    reader: BinaryReader,
   ): Promise<void> {
     const unfilteredMessageText = reader.variableLengthString().trim();
 
     if (!this.isValidMessage(unfilteredMessageText, user)) return;
 
-    console.log(`Receiving chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`);
+    console.log(
+      `Receiving chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`,
+    );
 
     const filteredMessage = this.filterMessageText(unfilteredMessageText);
     const timestamp = Date.now();
@@ -31,17 +33,20 @@ export class ChatService {
     const signaturePayload = this.buildSignaturePayload(
       originUserId,
       filteredMessage,
-      timestamp
+      timestamp,
     );
 
     let signedPayload: ArrayBuffer;
 
     try {
       signedPayload = await this.signatureService.signArrayBuffer(
-        signaturePayload
+        signaturePayload,
       );
     } catch (error) {
-      console.error(`Failed to sign chat message from ${user.getName()}:`, error);
+      console.error(
+        `Failed to sign chat message from ${user.getName()}:`,
+        error,
+      );
       return;
     }
 
@@ -59,7 +64,7 @@ export class ChatService {
   private isNotEmpty(message: string, user: WebSocketUser): boolean {
     if (!message) {
       console.warn(
-        `Rejected chat message from ${user.getName()} because it is empty`
+        `Rejected chat message from ${user.getName()} because it is empty`,
       );
       return false;
     }
@@ -69,9 +74,7 @@ export class ChatService {
   private isWithinMaxLength(message: string, user: WebSocketUser): boolean {
     if (message.length > ChatService.MAX_CHAT_MESSAGE_LENGTH) {
       console.warn(
-        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${
-          ChatService.MAX_CHAT_MESSAGE_LENGTH
-        } characters`
+        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${ChatService.MAX_CHAT_MESSAGE_LENGTH} characters`,
       );
       return false;
     }
@@ -81,7 +84,7 @@ export class ChatService {
   private buildSignaturePayload(
     userId: string,
     message: string,
-    timestamp: number
+    timestamp: number,
   ): ArrayBuffer {
     return BinaryWriter.build()
       .fixedLengthString(userId, 32)
@@ -98,19 +101,58 @@ export class ChatService {
   }
 
   private filterMessageText(text: string): string {
-    let filteredText = text;
+    const textLower = text.toLowerCase();
+    const textArray = [...text]; // Convert to character array for safe modification
 
     for (const word of blockWords) {
-      const regex = new RegExp(`\\b${ChatService.escapeRegExp(word)}\\b`, "gi");
-      filteredText = filteredText.replace(regex, (matched) =>
-        "*".repeat(matched.length)
-      );
+      // Validate and sanitize block words
+      const sanitizedWord = this.validateAndSanitizeBlockWord(word);
+      if (!sanitizedWord) continue;
+
+      const wordLower = sanitizedWord.toLowerCase();
+      let searchIndex = 0;
+
+      while (searchIndex < textLower.length) {
+        const foundIndex = textLower.indexOf(wordLower, searchIndex);
+        if (foundIndex === -1) break;
+
+        // Check word boundaries manually for safety
+        const isWordStart = foundIndex === 0 ||
+          this.isWordBoundary(textLower.charAt(foundIndex - 1));
+        const isWordEnd = foundIndex + wordLower.length >= textLower.length ||
+          this.isWordBoundary(textLower.charAt(foundIndex + wordLower.length));
+
+        if (isWordStart && isWordEnd) {
+          // Replace characters with asterisks
+          for (let i = 0; i < wordLower.length; i++) {
+            textArray[foundIndex + i] = "*";
+          }
+        }
+
+        searchIndex = foundIndex + 1;
+      }
     }
 
-    return filteredText;
+    return textArray.join("");
   }
 
-  private static escapeRegExp(text: string): string {
-    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  private validateAndSanitizeBlockWord(word: string): string | null {
+    // Validate word: only allow alphanumeric characters and basic punctuation
+    if (typeof word !== "string" || word.length === 0 || word.length > 50) {
+      return null;
+    }
+
+    // Only allow safe characters: letters, numbers, spaces, hyphens, apostrophes
+    const safePattern = /^[a-zA-Z0-9\s\-']+$/;
+    if (!safePattern.test(word)) {
+      return null;
+    }
+
+    return word.trim();
+  }
+
+  private isWordBoundary(char: string): boolean {
+    // Define word boundary characters (non-alphanumeric)
+    return !/[a-zA-Z0-9]/.test(char);
   }
 }
