@@ -5,6 +5,8 @@ import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class CryptoService {
+  private static readonly IV_LENGTH = 12;
+
   constructor(private kvService = inject(KVService)) {}
 
   public async encryptForUser(
@@ -63,7 +65,7 @@ export class CryptoService {
     cryptoKey: CryptoKey,
     data: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const iv = crypto.getRandomValues(new Uint8Array(12)); // IV remains Uint8Array
+    const iv = crypto.getRandomValues(new Uint8Array(CryptoService.IV_LENGTH)); // IV remains Uint8Array
 
     // Encrypt the data using the cryptoKey
     const encryptedData = await crypto.subtle.encrypt(
@@ -90,7 +92,7 @@ export class CryptoService {
     const encryptedArray = new Uint8Array(encryptedData);
 
     // Guard against payloads that are too short for AES-GCM IV
-    if (encryptedArray.byteLength <= 12) {
+    if (encryptedArray.byteLength <= CryptoService.IV_LENGTH) {
       throw new ServerError(
         "INVALID_PAYLOAD",
         "Encrypted payload too short",
@@ -99,8 +101,8 @@ export class CryptoService {
     }
 
     // Extract IV (first 12 bytes) and encrypted data
-    const iv = encryptedArray.subarray(0, 12);
-    const data = encryptedArray.subarray(12);
+    const iv = encryptedArray.subarray(0, CryptoService.IV_LENGTH);
+    const data = encryptedArray.subarray(CryptoService.IV_LENGTH);
 
     // Decrypt the data using the cryptoKey
     try {
