@@ -29,9 +29,8 @@ export class SignatureService {
 
     if (loaded) {
       // Cache encoded public key after loading
-      this.encodedPublicKey = await this.exportPublicKeyToBase64(
-        this.publicKey!
-      );
+      const publicKey = this.getPublicKey();
+      this.encodedPublicKey = await this.exportPublicKeyToBase64(publicKey);
       return;
     }
 
