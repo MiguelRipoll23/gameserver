@@ -18,7 +18,7 @@ export class JWTService {
     if (secret === undefined) {
       throw new ServerError(
         "INVALID_SERVER_CONFIGURATION",
-        "Invalid server configuration",
+        "Missing JWT secret environment variable",
         500
       );
     }
