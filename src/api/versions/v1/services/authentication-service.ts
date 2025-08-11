@@ -23,7 +23,7 @@ import {
 } from "../schemas/authentication-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
-import { eq } from "drizzle-orm";
+import { eq, and, lt } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
 import { userBansTable } from "../../../../db/tables/user-bans-table.ts";
@@ -252,15 +252,20 @@ export class AuthenticationService {
     verification: VerifiedAuthenticationResponse
   ): Promise<void> {
     const { authenticationInfo } = verification;
-    credential.counter = authenticationInfo.newCounter;
-
-    const db = this.databaseService.get();
+    const newCounter = authenticationInfo.newCounter;
 
     try {
-      await db
-        .update(userCredentialsTable)
-        .set({ counter: credential.counter })
-        .where(eq(userCredentialsTable.id, credential.id));
+      await this.databaseService.withRlsCredential(credential.id, (tx) => {
+        return tx
+          .update(userCredentialsTable)
+          .set({ counter: newCounter })
+          .where(
+            and(
+              eq(userCredentialsTable.id, credential.id),
+              lt(userCredentialsTable.counter, newCounter)
+            )
+          );
+      });
     } catch (error) {
       console.error("Failed to update credential counter:", error);
       throw new ServerError(
