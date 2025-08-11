@@ -5,16 +5,29 @@ import {
   KV_REGISTRATION_OPTIONS,
   KV_AUTHENTICATION_OPTIONS,
   KV_CONFIGURATION,
-  KV_KEYS,
+  KV_USER_KEYS,
+  KV_SIGNATURE_KEYS,
 } from "../constants/kv-constants.ts";
 import { AuthenticationOptionsKV } from "../interfaces/kv/authentication-options-kv.ts";
 import { RegistrationOptionsKV } from "../interfaces/kv/registration-options-kv.ts";
 import { VersionKV } from "../interfaces/kv/version-kv.ts";
 import { ConfigurationType } from "../types/configuration-type.ts";
+import { SignatureKeysKV } from "../interfaces/kv/signature-keys-kv.ts";
 
 @injectable()
 export class KVService {
   constructor(private kvService = inject(BaseKVService)) {}
+
+  public async getSignatureKeys(): Promise<SignatureKeysKV | null> {
+    const entry: Deno.KvEntryMaybe<SignatureKeysKV> =
+      await this.getKv().get<SignatureKeysKV>([KV_SIGNATURE_KEYS]);
+
+    return entry.value;
+  }
+
+  public async setSignatureKeys(signatureKeys: SignatureKeysKV): Promise<void> {
+    await this.getKv().set([KV_SIGNATURE_KEYS], signatureKeys);
+  }
 
   public async getVersion(): Promise<VersionKV | null> {
     const entry: Deno.KvEntryMaybe<VersionKV> =
@@ -102,17 +115,17 @@ export class KVService {
     await this.getKv().set([KV_CONFIGURATION], configuration);
   }
 
-  public async getKey(userId: string): Promise<string | null> {
+  public async getUserKey(userId: string): Promise<string | null> {
     const entry: Deno.KvEntryMaybe<string> = await this.getKv().get<string>([
-      KV_KEYS,
+      KV_USER_KEYS,
       userId,
     ]);
 
     return entry.value;
   }
 
-  public async setKey(userId: string, key: string): Promise<void> {
-    await this.getKv().set([KV_KEYS, userId], key, {
+  public async setUserKey(userId: string, key: string): Promise<void> {
+    await this.getKv().set([KV_USER_KEYS, userId], key, {
       expireIn: 60 * 60 * 1_000,
     });
   }
@@ -120,7 +133,7 @@ export class KVService {
   public async deleteUserTemporaryData(
     userId: string
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
-    return await this.getKv().atomic().delete([KV_KEYS, userId]).commit();
+    return await this.getKv().atomic().delete([KV_USER_KEYS, userId]).commit();
   }
 
   private getKv(): Deno.Kv {

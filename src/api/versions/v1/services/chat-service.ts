@@ -1,80 +1,116 @@
 import { inject, injectable } from "@needle-di/core";
+import { SignatureService } from "./signature-service.ts";
+import { WebSocketServer } from "../interfaces/websocket-server-interface.ts";
+import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
-import { WebSocketUser } from "../models/websocket-user.ts";
-import { MatchPlayersService } from "./match-players-service.ts";
-import type { WebSocketServer } from "../interfaces/websocket-server-interface.ts";
 import blockWords from "../data/block-words.json" with { type: "json" };
-
-const MAX_CHAT_MESSAGE_LENGTH = 35;
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function filterMessage(message: string): string {
-  for (const word of blockWords as string[]) {
-    const regex = new RegExp(`\\b${escapeRegExp(word)}\\b`, "gi");
-    message = message.replace(
-      regex,
-      (matched: string) => "*".repeat(matched.length),
-    );
-  }
-  return message;
-}
 
 @injectable()
 export class ChatService {
-  constructor(
-    private matchPlayersService = inject(MatchPlayersService),
-  ) {}
+  private static readonly MAX_CHAT_MESSAGE_LENGTH = 35;
 
-  public handleChatMessage(
+  constructor(private readonly signatureService = inject(SignatureService)) {}
+
+  public async sendSignedChatMessage(
     webSocketServer: WebSocketServer,
     user: WebSocketUser,
-    reader: BinaryReader,
-  ): void {
-    let message = reader.variableLengthString().trim();
-    if (message.length === 0) {
-      console.warn(
-        `Rejected chat message from ${user.getName()} because it is empty`,
-      );
-      return;
-    }
-    if (message.length > MAX_CHAT_MESSAGE_LENGTH) {
-      console.warn(
-        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${MAX_CHAT_MESSAGE_LENGTH} characters`,
-      );
-      return;
-    }
-    message = filterMessage(message);
+    reader: BinaryReader
+  ): Promise<void> {
+    const unfilteredMessageText = reader.variableLengthString().trim();
 
-    const hostToken = user.getHostToken() ?? user.getToken();
+    if (!this.isValidMessage(unfilteredMessageText, user)) return;
 
-    console.log(
-      `Broadcasting chat message from ${user.getName()} to ${hostToken} with content: ${message}`,
+    console.log(`Receiving chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`);
+
+    const filteredMessage = this.filterMessageText(unfilteredMessageText);
+    const timestamp = Date.now();
+    const originUserId = user.getNetworkId();
+
+    const signaturePayload = this.buildSignaturePayload(
+      originUserId,
+      filteredMessage,
+      timestamp
     );
 
-    const payload = BinaryWriter.build()
-      .unsignedInt8(WebSocketType.ChatMessage)
-      .fixedLengthString(user.getNetworkId(), 32)
+    let signedPayload: ArrayBuffer;
+
+    try {
+      signedPayload = await this.signatureService.signArrayBuffer(
+        signaturePayload
+      );
+    } catch (error) {
+      console.error(`Failed to sign chat message from ${user.getName()}:`, error);
+      return;
+    }
+
+    const chatMessagePayload = this.buildChatMessagePayload(signedPayload);
+
+    webSocketServer.sendMessage(user, chatMessagePayload);
+  }
+
+  private isValidMessage(message: string, user: WebSocketUser): boolean {
+    return (
+      this.isNotEmpty(message, user) && this.isWithinMaxLength(message, user)
+    );
+  }
+
+  private isNotEmpty(message: string, user: WebSocketUser): boolean {
+    if (!message) {
+      console.warn(
+        `Rejected chat message from ${user.getName()} because it is empty`
+      );
+      return false;
+    }
+    return true;
+  }
+
+  private isWithinMaxLength(message: string, user: WebSocketUser): boolean {
+    if (message.length > ChatService.MAX_CHAT_MESSAGE_LENGTH) {
+      console.warn(
+        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${
+          ChatService.MAX_CHAT_MESSAGE_LENGTH
+        } characters`
+      );
+      return false;
+    }
+    return true;
+  }
+
+  private buildSignaturePayload(
+    userId: string,
+    message: string,
+    timestamp: number
+  ): ArrayBuffer {
+    return BinaryWriter.build()
+      .fixedLengthString(userId, 32)
       .variableLengthString(message)
+      .unsignedInt32(timestamp)
       .toArrayBuffer();
+  }
 
-    // Broadcast to all players in the match
-    for (const playerId of this.matchPlayersService.getPlayersByToken(hostToken)) {
-      const target = webSocketServer.getUserById(playerId);
-      if (target) {
-        webSocketServer.sendMessage(target, payload);
-      }
+  private buildChatMessagePayload(signedPayload: ArrayBuffer): ArrayBuffer {
+    return BinaryWriter.build()
+      .unsignedInt8(WebSocketType.ChatMessage)
+      .arrayBuffer(signedPayload)
+      .toArrayBuffer();
+  }
+
+  private filterMessageText(text: string): string {
+    let filteredText = text;
+
+    for (const word of blockWords) {
+      const regex = new RegExp(`\\b${ChatService.escapeRegExp(word)}\\b`, "gi");
+      filteredText = filteredText.replace(regex, (matched) =>
+        "*".repeat(matched.length)
+      );
     }
 
-    // Ensure the host also receives the message
-    const host = webSocketServer.getUserByToken(hostToken);
+    return filteredText;
+  }
 
-    if (host) {
-      webSocketServer.sendMessage(host, payload);
-    }
+  private static escapeRegExp(text: string): string {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 }

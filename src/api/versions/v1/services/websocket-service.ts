@@ -7,7 +7,6 @@ import {
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { MatchPlayersService } from "./match-players-service.ts";
 import { ChatService } from "./chat-service.ts";
 import type { WebSocketServer } from "../interfaces/websocket-server-interface.ts";
 import { WSMessageReceive } from "hono/ws";
@@ -30,7 +29,6 @@ export class WebSocketService implements WebSocketServer {
   constructor(
     private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
-    private matchPlayersService = inject(MatchPlayersService),
     private chatService = inject(ChatService),
     private dispatcher = inject(WebSocketDispatcherService)
   ) {
@@ -149,11 +147,11 @@ export class WebSocketService implements WebSocketServer {
       await this.deleteSessionByUserId(userId, userName);
       await this.deleteMatchByUserId(userId, userName);
       await this.deleteUserKeyValueData(userId, userName);
+      await this.notifyUsersCount();
     } catch (error) {
       console.error(`Error during disconnection for user ${userName}:`, error);
     } finally {
-      this.cleanupUserMemoryData(user);
-      this.notifyUsersCount();
+      this.removeWebSocketUser(user);
     }
   }
 
@@ -198,20 +196,6 @@ export class WebSocketService implements WebSocketServer {
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
     }
-  }
-
-  private cleanupUserMemoryData(user: WebSocketUser): void {
-    const userId = user.getId();
-    const userToken = user.getToken();
-
-    // Remove user from WebSocket maps
-    this.removeWebSocketUser(user);
-
-    // Remove user from any matches they hosted
-    this.matchPlayersService.deleteByToken(userToken);
-
-    // Remove user from any matches they joined as a player
-    this.matchPlayersService.removePlayerFromAllMatches(userId);
   }
 
   private addWebSocketUser(user: WebSocketUser): void {
@@ -370,31 +354,11 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  @CommandHandler(WebSocketType.MatchPlayer)
-  private handleMatchPlayerMessage(
-    user: WebSocketUser,
-    binaryReader: BinaryReader
-  ): void {
-    const isConnected = binaryReader.boolean();
-    const playerId = binaryReader.fixedLengthString(32);
-
-    const playerUser = this.usersById.get(playerId);
-    if (playerUser) {
-      playerUser.setHostToken(isConnected ? user.getToken() : null);
-    }
-
-    this.matchPlayersService.handleMatchPlayerMessage(
-      user,
-      isConnected,
-      playerId
-    );
-  }
-
   @CommandHandler(WebSocketType.ChatMessage)
   private handleChatMessage(
     user: WebSocketUser,
     binaryReader: BinaryReader
   ): void {
-    this.chatService.handleChatMessage(this, user, binaryReader);
+    this.chatService.sendSignedChatMessage(this, user, binaryReader);
   }
 }

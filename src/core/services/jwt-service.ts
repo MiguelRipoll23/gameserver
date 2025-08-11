@@ -16,7 +16,11 @@ export class JWTService {
     const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
 
     if (secret === undefined) {
-      throw new Error("Environment variable not set");
+      throw new ServerError(
+        "INVALID_SERVER_CONFIGURATION",
+        "Invalid server configuration",
+        500
+      );
     }
 
     const encodedSecret = btoa(secret);
@@ -27,7 +31,7 @@ export class JWTService {
         name: "HMAC",
         hash: "SHA-512",
       },
-      ["sign", "verify"],
+      ["sign", "verify"]
     );
 
     return this.key;
@@ -55,7 +59,7 @@ export class JWTService {
     return await create(
       { alg: "HS512", typ: "JWT" },
       { id: "management", name: "management", roles: ["management"] },
-      await this.getKey(),
+      await this.getKey()
     );
   }
 }

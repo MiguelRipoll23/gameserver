@@ -29,6 +29,7 @@ import { UserEntity } from "../../../../db/tables/users-table.ts";
 import { userBansTable } from "../../../../db/tables/user-bans-table.ts";
 import { desc } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
+import { SignatureService } from "./signature-service.ts";
 
 @injectable()
 export class AuthenticationService {
@@ -36,6 +37,7 @@ export class AuthenticationService {
     private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
     private jwtService = inject(JWTService),
+    private signatureService = inject(SignatureService),
     private iceService = inject(ICEService)
   ) {}
 
@@ -113,9 +115,11 @@ export class AuthenticationService {
       crypto.getRandomValues(new Uint8Array(32)).buffer
     );
 
-    await this.kvService.setKey(userId, userSymmetricKey);
+    await this.kvService.setUserKey(userId, userSymmetricKey);
 
-    // ICE servers
+    // Server configuration
+    const serverSignaturePublicKey =
+      await this.signatureService.getEncodedPublicKey();
     const rtcIceServers = await this.iceService.getServers();
 
     const response: AuthenticationResponse = {
@@ -124,6 +128,7 @@ export class AuthenticationService {
       userDisplayName,
       userPublicIp,
       userSymmetricKey,
+      serverSignaturePublicKey,
       rtcIceServers,
     };
 

@@ -79,6 +79,11 @@ export const VerifyAuthenticationResponseSchema = z.object({
     .describe(
       "Symmetric key generated for encrypting and decrypting the user's game session data"
     ),
+  serverSignaturePublicKey: z
+    .string()
+    .describe(
+      "Public key used to verify digital signatures from connected peers"
+    ),
   rtcIceServers: z
     .array(RTCIceServerSchema)
     .describe(

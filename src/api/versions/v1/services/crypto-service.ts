@@ -11,7 +11,7 @@ export class CryptoService {
     userId: string,
     data: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const key: string | null = await this.kvService.getKey(userId);
+    const key: string | null = await this.kvService.getUserKey(userId);
 
     if (key === null) {
       throw new ServerError(
@@ -37,7 +37,7 @@ export class CryptoService {
     userId: string,
     encryptedData: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const key: string | null = await this.kvService.getKey(userId);
+    const key: string | null = await this.kvService.getUserKey(userId);
 
     if (key === null) {
       throw new ServerError(
