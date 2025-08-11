@@ -57,27 +57,33 @@ export type VerifyAuthenticationRequest = z.infer<
 >;
 
 export const VerifyAuthenticationResponseSchema = z.object({
+  authenticationToken: z
+    .string()
+    .describe("The JWT to authenticate with the server"),
   userId: z
     .string()
     .length(36)
-    .describe("The user ID")
+    .describe("Unique identifier for the authenticated user (UUIDv4)")
     .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
-  displayName: z
+  userDisplayName: z
     .string()
-    .describe("The display name of the user")
+    .describe("The public display name chosen by the user")
     .openapi({ example: "MiguelRipoll23" }),
-  authenticationToken: z
-    .string()
-    .describe("The authentication token of the user"),
-  sessionKey: z.string().describe("The session key of the user"),
-  publicIp: z
+  userPublicIp: z
     .union([z.ipv4(), z.ipv6()])
     .nullable()
-    .describe("The public IP of the user")
+    .describe("The user's public IPv4 or IPv6 address, if available")
     .openapi({ example: "1.1.1.1" }),
+  userSymmetricKey: z
+    .string()
+    .describe(
+      "Symmetric key generated for encrypting and decrypting the user's game session data"
+    ),
   rtcIceServers: z
     .array(RTCIceServerSchema)
-    .describe("The RTC ICE servers for the user"),
+    .describe(
+      "List of ICE servers (STUN/TURN) to facilitate WebRTC connectivity for the user"
+    ),
 });
 
 export type AuthenticationResponse = z.infer<

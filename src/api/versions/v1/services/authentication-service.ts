@@ -95,35 +95,36 @@ export class AuthenticationService {
   ): Promise<AuthenticationResponse> {
     await this.ensureUserNotBanned(user);
 
-    const key = await this.jwtService.getKey();
-    const publicIp = connectionInfo.remote.address ?? null;
     const userId = user.id;
-    const displayName = user.displayName;
+    const userDisplayName = user.displayName;
+    const userPublicIp = connectionInfo.remote.address ?? null;
 
     // Create JWT for client authentication
+    const jwtKey = await this.jwtService.getKey();
+
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
-      { id: userId, name: displayName },
-      key
+      { id: userId, name: userDisplayName },
+      jwtKey
     );
 
-    // Add session key for encryption/decryption
-    const sessionKey: string = encodeBase64(
+    // Add user symmetric key for encryption/decryption
+    const userSymmetricKey: string = encodeBase64(
       crypto.getRandomValues(new Uint8Array(32)).buffer
     );
 
-    await this.kvService.setKey(userId, sessionKey);
+    await this.kvService.setKey(userId, userSymmetricKey);
 
     // ICE servers
-    const iceServers = await this.iceService.getServers();
+    const rtcIceServers = await this.iceService.getServers();
 
     const response: AuthenticationResponse = {
-      userId,
-      displayName,
       authenticationToken,
-      sessionKey,
-      publicIp: publicIp,
-      rtcIceServers: iceServers,
+      userId,
+      userDisplayName,
+      userPublicIp,
+      userSymmetricKey,
+      rtcIceServers,
     };
 
     return response;
