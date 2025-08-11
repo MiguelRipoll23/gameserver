@@ -74,21 +74,21 @@ export class AuthenticationService {
       transactionId
     );
 
-    const credentialDB = await this.getCredentialOrThrow(
+    const credential = await this.getCredentialOrThrow(
       authenticationResponse.id
     );
 
     const verification = await this.verifyAuthenticationResponse(
       authenticationResponse,
       authenticationOptions,
-      credentialDB
+      credential
     );
 
-    await this.updateCredentialCounter(credentialDB, verification);
+    await this.updateCredentialCounter(credential, verification);
 
-    const userKV = await this.getUserOrThrowError(credentialDB);
+    const user = await this.getUserOrThrowError(credential);
 
-    return await this.getResponseForUser(connectionInfo, userKV);
+    return await this.getResponseForUser(connectionInfo, user);
   }
 
   public async getResponseForUser(
@@ -217,7 +217,7 @@ export class AuthenticationService {
   private async verifyAuthenticationResponse(
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
-    credentialDB: UserCredentialEntity
+    credential: UserCredentialEntity
   ): Promise<VerifiedAuthenticationResponse> {
     try {
       const verification = await verifyAuthenticationResponse({
@@ -225,7 +225,7 @@ export class AuthenticationService {
         expectedChallenge: authenticationOptions.challenge,
         expectedOrigin: WebAuthnUtils.getRelyingPartyOrigin(),
         expectedRPID: WebAuthnUtils.getRelyingPartyID(),
-        credential: this.transformCredentialForWebAuthn(credentialDB),
+        credential: this.transformCredentialForWebAuthn(credential),
       });
 
       if (verification.verified === false) {
@@ -277,9 +277,9 @@ export class AuthenticationService {
   }
 
   private async getUserOrThrowError(
-    credentialDB: UserCredentialEntity
+    credential: UserCredentialEntity
   ): Promise<UserEntity> {
-    const userId = credentialDB.userId;
+    const userId = credential.userId;
     let users;
 
     try {
