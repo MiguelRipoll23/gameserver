@@ -10,9 +10,9 @@
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
     "drizzle-kit": "npm:drizzle-kit@^0.31.4",
     "drizzle-orm": "npm:drizzle-orm@^0.44.4",
-    "hono": "npm:hono@^4.8.12",
     "pg": "npm:pg@^8.16.3",
-    "zod": "npm:zod@^4.0.15"
+    "hono": "npm:hono@^4.9.0",
+    "zod": "npm:zod@^4.0.17"
   },
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
