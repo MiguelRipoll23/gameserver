@@ -12,4 +12,4 @@ const kvService = container.get(BaseKVService);
 await kvService.init();
 
 const httpService = container.get(HTTPService);
-httpService.listen();
+await httpService.listen();

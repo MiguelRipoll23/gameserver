@@ -39,14 +39,11 @@ export class SignatureService {
     await this.generateAndStoreKeys();
 
     // Cache encoded public key after generation
-    this.encodedPublicKey = await this.exportPublicKeyToBase64(this.publicKey!);
+    const publicKey = this.getPublicKey();
+    this.encodedPublicKey = await this.exportPublicKeyToBase64(publicKey);
   }
 
-  public async getEncodedPublicKey(): Promise<string> {
-    if (this.publicKey === null) {
-      await this.init();
-    }
-
+  public getEncodedPublicKey(): string {
     if (this.encodedPublicKey === null) {
       throw new ServerError(
         "INVALID_SERVER_CONFIGURATION",
