@@ -305,16 +305,17 @@ export class AuthenticationService {
   }
 
   private async ensureUserNotBanned(user: UserEntity): Promise<void> {
-    const db = this.databaseService.get();
     let userBans;
 
     try {
-      userBans = await db
-        .select({ expiresAt: userBansTable.expiresAt })
-        .from(userBansTable)
-        .where(eq(userBansTable.userId, user.id))
-        .orderBy(desc(userBansTable.createdAt))
-        .limit(1);
+      userBans = await this.databaseService.withRlsUser(user.id, (tx) => {
+        return tx
+          .select({ expiresAt: userBansTable.expiresAt })
+          .from(userBansTable)
+          .where(eq(userBansTable.userId, user.id))
+          .orderBy(desc(userBansTable.createdAt))
+          .limit(1);
+      });
     } catch (error) {
       console.error("Failed to query user bans:", error);
       throw new ServerError(
