@@ -345,10 +345,10 @@ export class WebSocketService implements WebSocketServer {
   }
 
   @CommandHandler(WebSocketType.ChatMessage)
-  private handleChatMessage(
+  private async handleChatMessage(
     user: WebSocketUser,
     binaryReader: BinaryReader
-  ): void {
-    this.chatService.sendSignedChatMessage(this, user, binaryReader);
+  ): Promise<void> {
+    await this.chatService.sendSignedChatMessage(this, user, binaryReader);
   }
 }
