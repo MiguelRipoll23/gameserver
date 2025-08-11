@@ -27,7 +27,7 @@ export class CryptoService {
         name: "AES-GCM",
         length: 256,
       },
-      ["encrypt", "decrypt"]
+      ["encrypt"]
     );
 
     return this.encryptData(cryptoKey, data);
@@ -53,7 +53,7 @@ export class CryptoService {
         name: "AES-GCM",
         length: 256,
       },
-      ["encrypt", "decrypt"]
+      ["decrypt"]
     );
 
     return this.decryptData(cryptoKey, encryptedData);
@@ -94,13 +94,13 @@ export class CryptoService {
       throw new ServerError(
         "INVALID_PAYLOAD",
         "Encrypted payload too short",
-        500
+        400
       );
     }
 
     // Extract IV (first 12 bytes) and encrypted data
-    const iv = encryptedArray.slice(0, 12);
-    const data = encryptedArray.slice(12);
+    const iv = encryptedArray.subarray(0, 12);
+    const data = encryptedArray.subarray(12);
 
     // Decrypt the data using the cryptoKey
     try {

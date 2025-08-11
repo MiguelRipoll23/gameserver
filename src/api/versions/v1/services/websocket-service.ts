@@ -134,7 +134,7 @@ export class WebSocketService implements WebSocketServer {
     }
 
     this.addWebSocketUser(webSocketUser);
-    this.notifyUsersCount();
+    await this.notifyUsersCount();
   }
 
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
@@ -234,7 +234,7 @@ export class WebSocketService implements WebSocketServer {
     const webSocket = user.getWebSocket();
 
     // Check if the WebSocket is null or closed
-    if (webSocket === undefined || webSocket?.readyState !== WebSocket.OPEN) {
+    if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
       return;
     }
 
