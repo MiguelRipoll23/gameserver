@@ -46,6 +46,7 @@ export class ChatService {
 
     const chatMessagePayload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.ChatMessage)
+      .arrayBuffer(signaturePayload)
       .arrayBuffer(signedPayload)
       .toArrayBuffer();
 
