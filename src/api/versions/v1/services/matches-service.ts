@@ -4,41 +4,57 @@ import {
   FindMatchesRequest,
   FindMatchesResponse,
 } from "../schemas/matches-schemas.ts";
-import { KVService } from "../../../../core/services/kv-service.ts";
-import { SessionKV } from "../interfaces/kv/session-kv.ts";
-import { MatchKV } from "../interfaces/kv/match-kv.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
+import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
+import { eq, and, sql } from "drizzle-orm";
 
 @injectable()
 export class MatchesService {
-  constructor(private kvService = inject(KVService)) {}
+  constructor(private databaseService = inject(DatabaseService)) {}
 
   public async advertise(
     userId: string,
     body: AdvertiseMatchRequest
   ): Promise<void> {
-    // Get the user session
-    const session: SessionKV | null = await this.kvService.getSession(userId);
+    // Get the user session from database
+    const db = this.databaseService.get();
+    const session = await db
+      .select({ token: userSessionsTable.token })
+      .from(userSessionsTable)
+      .where(eq(userSessionsTable.userId, userId))
+      .limit(1)
+      .then((rows) => rows[0]);
 
-    if (session === null) {
+    if (!session) {
       throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
     }
 
-    const { token } = session;
     const { version, totalSlots, availableSlots, attributes } = body;
 
-    const match: MatchKV = {
-      version: version,
-      token,
-      totalSlots: totalSlots,
-      availableSlots: availableSlots,
-      attributes: attributes ?? {},
-    };
-
-    const response: Deno.KvCommitResult | Deno.KvCommitError =
-      await this.kvService.setMatch(userId, match);
-
-    if (response.ok === false) {
+    try {
+      // Use upsert operation to insert or update match
+      await db
+        .insert(matchesTable)
+        .values({
+          hostUserId: userId,
+          version: version,
+          totalSlots: totalSlots,
+          availableSlots: availableSlots,
+          attributes: attributes ?? {},
+        })
+        .onConflictDoUpdate({
+          target: matchesTable.hostUserId,
+          set: {
+            version: version,
+            totalSlots: totalSlots,
+            availableSlots: availableSlots,
+            attributes: attributes ?? {},
+            updatedAt: new Date(),
+          },
+        });
+    } catch (error) {
+      console.error("Failed to create match:", error);
       throw new ServerError(
         "MATCH_CREATION_FAILED",
         "Match creation failed",
@@ -48,78 +64,82 @@ export class MatchesService {
   }
 
   public async find(body: FindMatchesRequest): Promise<FindMatchesResponse> {
-    const list: MatchKV[] = [];
-    const entries: Deno.KvListIterator<MatchKV> = this.kvService.listMatches();
+    const db = this.databaseService.get();
+    const limit = body.limit ?? 20; // Default to 20 items per page
 
-    for await (const entry of entries) {
-      if (list.length >= 50) break;
-      list.push(entry.value);
+    // Build the query conditions
+    const conditions = [
+      eq(matchesTable.version, body.clientVersion),
+      sql`${matchesTable.availableSlots} >= ${body.totalSlots}`,
+      sql`${matchesTable.updatedAt} >= NOW() - INTERVAL '5 minutes'`,
+    ];
+
+    // Add cursor condition if provided
+    if (body.cursor) {
+      conditions.push(sql`${matchesTable.id} > ${body.cursor}`);
     }
 
-    return this.filter(list, body);
+    // Add attribute conditions using jsonb operators
+    if (body.attributes) {
+      // FIX: not working correctly
+      /*       for (const [key, value] of Object.entries(body.attributes)) {
+        // Use ->> operator for exact value match (handles non-existent keys gracefully)
+        conditions.push(
+          sql`${matchesTable.attributes}->>${key} = ${JSON.stringify(value)}`
+        );
+      } */
+    }
+
+    // Get one extra item to determine if there are more results
+    const matches = await db
+      .select({
+        id: matchesTable.id,
+        hostUserId: matchesTable.hostUserId,
+        version: matchesTable.version,
+        totalSlots: matchesTable.totalSlots,
+        availableSlots: matchesTable.availableSlots,
+        attributes: matchesTable.attributes,
+        createdAt: matchesTable.createdAt,
+        updatedAt: matchesTable.updatedAt,
+        token: userSessionsTable.token,
+      })
+      .from(matchesTable)
+      .innerJoin(
+        userSessionsTable,
+        eq(matchesTable.hostUserId, userSessionsTable.userId)
+      )
+      .where(and(...conditions))
+      .orderBy(matchesTable.id)
+      .limit(limit + 1);
+
+    // Remove the extra item and use it to determine if there are more results
+    const hasNextPage = matches.length > limit;
+    const results = matches.slice(0, limit);
+
+    // Transform the results into the expected response format
+    return {
+      results: results.map((match) => ({
+        token: match.token,
+      })),
+      nextCursor: hasNextPage ? matches[matches.length - 1].id : undefined,
+      hasMore: hasNextPage,
+    };
   }
 
   public async delete(userId: string): Promise<void> {
-    const response: Deno.KvCommitResult | Deno.KvCommitError =
-      await this.kvService.deleteMatch(userId);
+    const db = this.databaseService.get();
 
-    if (response.ok === false) {
+    try {
+      await db.delete(matchesTable).where(eq(matchesTable.hostUserId, userId));
+
+      console.log(`Deleted match for user ${userId}`);
+    } catch (error) {
+      console.error("Failed to delete match:", error);
       throw new ServerError(
         "MATCH_DELETION_FAILED",
         "Match deletion failed",
         500
       );
     }
-  }
-
-  private filter(
-    matches: MatchKV[],
-    body: FindMatchesRequest
-  ): FindMatchesResponse {
-    const results: FindMatchesResponse = [];
-
-    for (const match of matches) {
-      if (this.isSameVersion(body, match) === false) {
-        continue;
-      }
-
-      if (this.hasAvailableSlots(body, match) === false) {
-        continue;
-      }
-
-      if (this.hasAttributes(body, match) === false) {
-        continue;
-      }
-
-      const { token } = match;
-
-      results.push({
-        token,
-      });
-    }
-
-    return results;
-  }
-
-  private isSameVersion(body: FindMatchesRequest, match: MatchKV): boolean {
-    return body.version === match.version;
-  }
-
-  private hasAvailableSlots(body: FindMatchesRequest, match: MatchKV): boolean {
-    return body.totalSlots <= match.availableSlots;
-  }
-
-  private hasAttributes(body: FindMatchesRequest, match: MatchKV): boolean {
-    for (const key in body.attributes) {
-      if (key in match.attributes === false) {
-        return false;
-      }
-
-      if (body.attributes[key] !== match.attributes[key]) {
-        return false;
-      }
-    }
-
-    return true;
   }
 }

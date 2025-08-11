@@ -6,13 +6,19 @@
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.1.2",
     "@simplewebauthn/types": "jsr:@simplewebauthn/types@^12.0.0",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
+    "@types/pg": "npm:@types/pg@^8.15.5",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
+    "drizzle-kit": "npm:drizzle-kit@^0.31.4",
+    "drizzle-orm": "npm:drizzle-orm@^0.44.4",
+    "pg": "npm:pg@^8.16.3",
     "hono": "npm:hono@^4.9.0",
     "zod": "npm:zod@^4.0.17"
   },
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
-    "check": "deno check src/main.ts"
+    "check": "deno check src/main.ts",
+    "migrate": "deno run -A --node-modules-dir npm:drizzle-kit generate",
+    "push": "deno run -A --node-modules-dir npm:drizzle-kit push"
   },
   "compilerOptions": {
     "experimentalDecorators": true

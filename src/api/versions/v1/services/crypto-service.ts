@@ -1,23 +1,25 @@
 import { inject, injectable } from "@needle-di/core";
-import { ServerError } from "../../api/versions/v1/models/server-error.ts";
-import { CryptoUtils } from "../utils/crypto-utils.ts";
+import { ServerError } from "../models/server-error.ts";
+import { CryptoUtils } from "../../../../core/utils/crypto-utils.ts";
 import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class CryptoService {
+  private static readonly IV_LENGTH = 12;
+
   constructor(private kvService = inject(KVService)) {}
 
   public async encryptForUser(
     userId: string,
-    data: ArrayBuffer,
+    data: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const key: string | null = await this.kvService.getKey(userId);
+    const key: string | null = await this.kvService.getUserKey(userId);
 
     if (key === null) {
       throw new ServerError(
-        "NO_SESSION_KEY",
-        "No session found for this user",
-        400,
+        "NO_USER_KEY",
+        "No user key found for this user",
+        400
       );
     }
 
@@ -27,7 +29,7 @@ export class CryptoService {
         name: "AES-GCM",
         length: 256,
       },
-      ["encrypt", "decrypt"],
+      ["encrypt"]
     );
 
     return this.encryptData(cryptoKey, data);
@@ -35,15 +37,15 @@ export class CryptoService {
 
   public async decryptForUser(
     userId: string,
-    encryptedData: ArrayBuffer,
+    encryptedData: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const key: string | null = await this.kvService.getKey(userId);
+    const key: string | null = await this.kvService.getUserKey(userId);
 
     if (key === null) {
       throw new ServerError(
-        "NO_SESSION_KEY",
-        "No session found for this user",
-        400,
+        "NO_USER_KEY",
+        "No user key found for this user",
+        400
       );
     }
 
@@ -53,7 +55,7 @@ export class CryptoService {
         name: "AES-GCM",
         length: 256,
       },
-      ["encrypt", "decrypt"],
+      ["decrypt"]
     );
 
     return this.decryptData(cryptoKey, encryptedData);
@@ -61,9 +63,9 @@ export class CryptoService {
 
   private async encryptData(
     cryptoKey: CryptoKey,
-    data: ArrayBuffer,
+    data: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const iv = crypto.getRandomValues(new Uint8Array(12)); // IV remains Uint8Array
+    const iv = crypto.getRandomValues(new Uint8Array(CryptoService.IV_LENGTH)); // IV remains Uint8Array
 
     // Encrypt the data using the cryptoKey
     const encryptedData = await crypto.subtle.encrypt(
@@ -72,7 +74,7 @@ export class CryptoService {
         iv,
       },
       cryptoKey,
-      data,
+      data
     );
 
     // Combine IV and encrypted data into a single ArrayBuffer
@@ -85,24 +87,41 @@ export class CryptoService {
 
   private async decryptData(
     cryptoKey: CryptoKey,
-    encryptedData: ArrayBuffer,
+    encryptedData: ArrayBuffer
   ): Promise<ArrayBuffer> {
     const encryptedArray = new Uint8Array(encryptedData);
 
+    // Guard against payloads that are too short for AES-GCM IV
+    if (encryptedArray.byteLength <= CryptoService.IV_LENGTH) {
+      throw new ServerError(
+        "INVALID_PAYLOAD",
+        "Encrypted payload too short",
+        400
+      );
+    }
+
     // Extract IV (first 12 bytes) and encrypted data
-    const iv = encryptedArray.slice(0, 12);
-    const data = encryptedArray.slice(12);
+    const iv = encryptedArray.subarray(0, CryptoService.IV_LENGTH);
+    const data = encryptedArray.subarray(CryptoService.IV_LENGTH);
 
     // Decrypt the data using the cryptoKey
-    const decryptedData = await crypto.subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv,
-      },
-      cryptoKey,
-      data,
-    );
+    try {
+      const decryptedData = await crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv,
+        },
+        cryptoKey,
+        data
+      );
 
-    return decryptedData;
+      return decryptedData;
+    } catch {
+      throw new ServerError(
+        "DECRYPT_FAILED",
+        "Invalid or corrupted ciphertext",
+        400
+      );
+    }
   }
 }

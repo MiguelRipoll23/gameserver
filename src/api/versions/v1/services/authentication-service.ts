@@ -1,7 +1,7 @@
 import { encodeBase64 } from "hono/utils/encode";
-import { UserKV } from "../interfaces/kv/user-kv.ts";
-import { KVService } from "../../../../core/services/kv-service.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { create } from "@wok/djwt";
+import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { inject, injectable } from "@needle-di/core";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
 import { ConnInfo } from "hono/conninfo";
@@ -13,7 +13,7 @@ import {
   VerifiedAuthenticationResponse,
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
-import { CredentialKV } from "../interfaces/kv/credential-kv.ts";
+import { AuthenticatorTransportFuture } from "@simplewebauthn/types";
 import { ServerError } from "../models/server-error.ts";
 import { ICEService } from "./ice-service.ts";
 import {
@@ -22,18 +22,27 @@ import {
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
-import { BAN_MESSAGE_TEMPLATE } from "../constants/api-constants.ts";
+import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
+import { eq, and, lt } from "drizzle-orm";
+import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
+import { UserEntity } from "../../../../db/tables/users-table.ts";
+import { userBansTable } from "../../../../db/tables/user-bans-table.ts";
+import { desc } from "drizzle-orm";
+import { KVService } from "./kv-service.ts";
+import { SignatureService } from "./signature-service.ts";
 
 @injectable()
 export class AuthenticationService {
   constructor(
     private kvService = inject(KVService),
+    private databaseService = inject(DatabaseService),
     private jwtService = inject(JWTService),
-    private iceService = inject(ICEService),
+    private signatureService = inject(SignatureService),
+    private iceService = inject(ICEService)
   ) {}
 
   public async getOptions(
-    authenticationRequest: GetAuthenticationOptionsRequest,
+    authenticationRequest: GetAuthenticationOptionsRequest
   ): Promise<object> {
     const { transactionId } = authenticationRequest;
     const options = await generateAuthenticationOptions({
@@ -51,89 +60,94 @@ export class AuthenticationService {
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    authenticationRequest: VerifyAuthenticationRequest,
+    authenticationRequest: VerifyAuthenticationRequest
   ): Promise<AuthenticationResponse> {
     const { transactionId } = authenticationRequest;
-    const authenticationResponse = authenticationRequest
-      .authenticationResponse as object as AuthenticationResponseJSON;
+    const authenticationResponse =
+      authenticationRequest.authenticationResponse as object as AuthenticationResponseJSON;
 
     const authenticationOptions = await this.getAuthenticationOptionsOrThrow(
-      transactionId,
+      transactionId
     );
 
     await this.kvService.deleteAuthenticationOptionsByTransactionId(
-      transactionId,
+      transactionId
     );
 
-    const credentialKV = await this.getCredentialOrThrow(
-      authenticationResponse.id,
+    const credential = await this.getCredentialOrThrow(
+      authenticationResponse.id
     );
 
     const verification = await this.verifyAuthenticationResponse(
       authenticationResponse,
       authenticationOptions,
-      credentialKV,
+      credential
     );
 
-    await this.updateCredentialCounter(credentialKV, verification);
+    await this.updateCredentialCounter(credential, verification);
 
-    const userKV = await this.getUserOrThrowError(credentialKV);
+    const user = await this.getUserOrThrowError(credential);
 
-    return await this.getResponseForUser(connectionInfo, userKV);
+    return await this.getResponseForUser(connectionInfo, user);
   }
 
   public async getResponseForUser(
     connectionInfo: ConnInfo,
-    user: UserKV,
+    user: UserEntity
   ): Promise<AuthenticationResponse> {
     await this.ensureUserNotBanned(user);
-    const key = await this.jwtService.getKey();
-    const publicIp = connectionInfo.remote.address ?? null;
-    const userId = user.userId;
-    const displayName = user.displayName;
+
+    const userId = user.id;
+    const userDisplayName = user.displayName;
+    const userPublicIp = connectionInfo.remote.address ?? null;
 
     // Create JWT for client authentication
+    const jwtKey = await this.jwtService.getKey();
+
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
-      { id: userId, name: displayName },
-      key,
+      { id: userId, name: userDisplayName },
+      jwtKey
     );
 
-    // Add session key for encryption/decryption
-    const sessionKey: string = encodeBase64(
-      crypto.getRandomValues(new Uint8Array(32)).buffer,
+    // Add user symmetric key for encryption/decryption
+    const userSymmetricKey: string = encodeBase64(
+      crypto.getRandomValues(new Uint8Array(32)).buffer
     );
 
-    await this.kvService.setKey(userId, sessionKey);
+    await this.kvService.setUserKey(userId, userSymmetricKey);
 
-    // ICE servers
-    const iceServers = await this.iceService.getServers();
+    // Server configuration
+    const serverSignaturePublicKey =
+      this.signatureService.getEncodedPublicKey();
+    const rtcIceServers = await this.iceService.getServers();
 
     const response: AuthenticationResponse = {
-      userId,
-      displayName,
       authenticationToken,
-      sessionKey,
-      publicIp: publicIp,
-      rtcIceServers: iceServers,
+      userId,
+      userDisplayName,
+      userPublicIp,
+      userSymmetricKey,
+      serverSignaturePublicKey,
+      rtcIceServers,
     };
 
     return response;
   }
 
   private async getAuthenticationOptionsOrThrow(
-    transactionId: string,
+    transactionId: string
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    const authenticationOptions = await this.kvService
-      .getAuthenticationOptionsByTransactionId(
-        transactionId,
+    const authenticationOptions =
+      await this.kvService.getAuthenticationOptionsByTransactionId(
+        transactionId
       );
 
     if (authenticationOptions === null) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_NOT_FOUND",
         "Authentication options not found",
-        400,
+        400
       );
     }
 
@@ -144,31 +158,66 @@ export class AuthenticationService {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_EXPIRED",
         "Authentication options expired",
-        400,
+        400
       );
     }
 
     return authenticationOptions.data;
   }
 
-  private async getCredentialOrThrow(id: string): Promise<CredentialKV> {
-    const credential = await this.kvService.getCredential(id);
+  private async getCredentialOrThrow(
+    id: string
+  ): Promise<UserCredentialEntity> {
+    let credentials;
 
-    if (credential === null) {
+    try {
+      credentials = await this.databaseService.withRlsCredential(id, (tx) => {
+        return tx
+          .select()
+          .from(userCredentialsTable)
+          .where(eq(userCredentialsTable.id, id))
+          .limit(1);
+      });
+    } catch (error) {
+      console.error("Failed to query credential:", error);
       throw new ServerError(
-        "CREDENTIAL_NOT_FOUND",
-        "Credential not found",
-        400,
+        "DATABASE_ERROR",
+        "Failed to retrieve credential",
+        500
       );
     }
 
-    return credential;
+    if (credentials.length === 0) {
+      throw new ServerError(
+        "CREDENTIAL_NOT_FOUND",
+        "Credential not found",
+        400
+      );
+    }
+
+    return credentials[0];
+  }
+
+  private transformCredentialForWebAuthn(credential: UserCredentialEntity) {
+    // Convert base64 string back to Uint8Array for WebAuthn usage
+    const publicKeyBuffer = new Uint8Array(
+      Base64Utils.base64UrlToArrayBuffer(credential.publicKey)
+    );
+
+    return {
+      id: credential.id,
+      publicKey: publicKeyBuffer,
+      counter: credential.counter,
+      transports: credential.transports as
+        | AuthenticatorTransportFuture[]
+        | undefined,
+    };
   }
 
   private async verifyAuthenticationResponse(
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
-    credentialKV: CredentialKV,
+    credential: UserCredentialEntity
   ): Promise<VerifiedAuthenticationResponse> {
     try {
       const verification = await verifyAuthenticationResponse({
@@ -176,19 +225,14 @@ export class AuthenticationService {
         expectedChallenge: authenticationOptions.challenge,
         expectedOrigin: WebAuthnUtils.getRelyingPartyOrigin(),
         expectedRPID: WebAuthnUtils.getRelyingPartyID(),
-        credential: {
-          id: credentialKV.id,
-          publicKey: credentialKV.publicKey,
-          counter: credentialKV.counter,
-          transports: credentialKV.transports,
-        },
+        credential: this.transformCredentialForWebAuthn(credential),
       });
 
       if (verification.verified === false) {
         throw new ServerError(
           "AUTHENTICATION_FAILED",
           "Authentication failed",
-          400,
+          400
         );
       }
 
@@ -198,47 +242,122 @@ export class AuthenticationService {
       throw new ServerError(
         "AUTHENTICATION_FAILED",
         "Authentication failed",
-        400,
+        400
       );
     }
   }
 
   private async updateCredentialCounter(
-    credential: CredentialKV,
-    verification: VerifiedAuthenticationResponse,
+    credential: UserCredentialEntity,
+    verification: VerifiedAuthenticationResponse
   ): Promise<void> {
     const { authenticationInfo } = verification;
-    credential.counter = authenticationInfo.newCounter;
+    const newCounter = authenticationInfo.newCounter;
 
-    await this.kvService.setCredential(credential.id, credential);
+    try {
+      await this.databaseService.withRlsCredential(credential.id, (tx) => {
+        return tx
+          .update(userCredentialsTable)
+          .set({ counter: newCounter })
+          .where(
+            and(
+              eq(userCredentialsTable.id, credential.id),
+              lt(userCredentialsTable.counter, newCounter)
+            )
+          );
+      });
+    } catch (error) {
+      console.error("Failed to update credential counter:", error);
+      throw new ServerError(
+        "CREDENTIAL_COUNTER_UPDATE_FAILED",
+        "Failed to update credential counter",
+        500
+      );
+    }
   }
 
   private async getUserOrThrowError(
-    credentialKV: CredentialKV,
-  ): Promise<UserKV> {
-    const userId = credentialKV.userId;
-    const user = await this.kvService.getUser(userId);
+    credential: UserCredentialEntity
+  ): Promise<UserEntity> {
+    const userId = credential.userId;
+    let users;
 
-    if (user === null) {
+    try {
+      users = await this.databaseService.withRlsUser(userId, (tx) => {
+        return tx
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.id, userId))
+          .limit(1);
+      });
+    } catch (error) {
+      console.error("Failed to query user:", error);
+      throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
+    }
+
+    if (users.length === 0) {
       throw new ServerError("USER_NOT_FOUND", "User not found", 400);
     }
+
+    const user = users[0];
 
     return user;
   }
 
-  private async ensureUserNotBanned(user: UserKV): Promise<void> {
-    if (user.ban) {
-      const { expiresAt, reason } = user.ban;
+  private async ensureUserNotBanned(user: UserEntity): Promise<void> {
+    let userBans;
 
-      if (expiresAt !== null && expiresAt < Date.now()) {
-        user.ban = undefined;
-        await this.kvService.setUser(user.userId, user);
-      } else {
-        const banType = expiresAt === null ? "permanently" : "temporarily";
-        const message = BAN_MESSAGE_TEMPLATE.replace("{type}", banType)
-          .replace("{reason}", reason.toLowerCase());
-        throw new ServerError("USER_BANNED", message, 403);
-      }
+    try {
+      userBans = await this.databaseService.withRlsUser(user.id, (tx) => {
+        return tx
+          .select({ expiresAt: userBansTable.expiresAt })
+          .from(userBansTable)
+          .where(eq(userBansTable.userId, user.id))
+          .orderBy(desc(userBansTable.createdAt))
+          .limit(1);
+      });
+    } catch (error) {
+      console.error("Failed to query user bans:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to retrieve user bans",
+        500
+      );
+    }
+
+    if (userBans.length === 0) {
+      return;
+    }
+
+    const latestBan = userBans[0];
+    const now = new Date();
+
+    // Permanent ban
+    if (!latestBan.expiresAt) {
+      throw new ServerError(
+        "USER_BANNED_PERMANENTLY",
+        "Your account has been permanently banned",
+        403
+      );
+    }
+
+    // Temporary ban still active
+    if (latestBan.expiresAt > now) {
+      const formattedDate = latestBan.expiresAt.toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "short",
+      });
+
+      throw new ServerError(
+        "USER_BANNED_TEMPORARILY",
+        `Your account is temporarily banned. The ban will expire on ${formattedDate}`,
+        403
+      );
     }
   }
 }

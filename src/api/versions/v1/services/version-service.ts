@@ -1,10 +1,10 @@
 import { inject, injectable } from "@needle-di/core";
-import { KVService } from "../../../../core/services/kv-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   GetVersionResponse,
   UpdateVersionRequest,
 } from "../schemas/version-schemas.ts";
+import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class VersionService {
@@ -17,7 +17,7 @@ export class VersionService {
       throw new ServerError(
         "MISSING_VERSION",
         "Missing version information on the server",
-        404,
+        404
       );
     }
 

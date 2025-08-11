@@ -16,7 +16,7 @@ export const GetAuthenticationOptionsRequestSchema = z.object({
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
-      example: "123e4567-e89b-12d3-a456-426614174000",
+      example: "00000000-0000-0000-0000-000000000000",
     }),
 });
 
@@ -45,7 +45,7 @@ export const VerifyAuthenticationRequestSchema = z.object({
     .uuid()
     .describe("The transaction ID for the authentication request")
     .openapi({
-      example: "123e4567-e89b-12d3-a456-426614174000",
+      example: "00000000-0000-0000-0000-000000000000",
     }),
   authenticationResponse: z
     .looseObject({})
@@ -57,20 +57,38 @@ export type VerifyAuthenticationRequest = z.infer<
 >;
 
 export const VerifyAuthenticationResponseSchema = z.object({
-  userId: z.string().length(32).describe("The user ID"),
-  displayName: z.string().describe("The display name of the user"),
   authenticationToken: z
     .string()
-    .describe("The authentication token of the user"),
-  sessionKey: z.string().describe("The session key of the user"),
-  publicIp: z
+    .describe("The JWT to authenticate with the server"),
+  userId: z
+    .string()
+    .length(36)
+    .describe("Unique identifier for the authenticated user (UUIDv4)")
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
+  userDisplayName: z
+    .string()
+    .describe("The public display name chosen by the user")
+    .openapi({ example: "MiguelRipoll23" }),
+  userPublicIp: z
     .union([z.ipv4(), z.ipv6()])
     .nullable()
-    .describe("The public IP of the user")
-    .openapi({ example: "…" }),
+    .describe("The user's public IPv4 or IPv6 address, if available")
+    .openapi({ example: "1.1.1.1" }),
+  userSymmetricKey: z
+    .string()
+    .describe(
+      "Symmetric key generated for encrypting and decrypting the user's game session data"
+    ),
+  serverSignaturePublicKey: z
+    .string()
+    .describe(
+      "Public key used to verify digital signatures from connected peers"
+    ),
   rtcIceServers: z
     .array(RTCIceServerSchema)
-    .describe("The RTC ICE servers for the user"),
+    .describe(
+      "List of ICE servers (STUN/TURN) to facilitate WebRTC connectivity for the user"
+    ),
 });
 
 export type AuthenticationResponse = z.infer<

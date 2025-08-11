@@ -1,6 +1,6 @@
 # Game server
 
-A game server built with Deno KV.
+A game server built for Deno.
 
 [Go to example game](https://miguelripoll23.github.io/hood-ball/)
 
@@ -10,6 +10,8 @@ A game server built with Deno KV.
 - Secure cloud-based game configuration to update game settings remotely
 - Server messages and notifications for connected players
 - Matchmaking using token-based pairing with tunneling support
+- Player and host identity verification
+- Chat messages integrity using digital signatures
 - Secure player score management
 
 ## Demo
