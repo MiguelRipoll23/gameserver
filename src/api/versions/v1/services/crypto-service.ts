@@ -15,8 +15,8 @@ export class CryptoService {
 
     if (key === null) {
       throw new ServerError(
-        "NO_SESSION_KEY",
-        "No session found for this user",
+        "NO_USER_KEY",
+        "No user key found for this user",
         400
       );
     }
@@ -41,8 +41,8 @@ export class CryptoService {
 
     if (key === null) {
       throw new ServerError(
-        "NO_SESSION_KEY",
-        "No session found for this user",
+        "NO_USER_KEY",
+        "No user key found for this user",
         400
       );
     }
