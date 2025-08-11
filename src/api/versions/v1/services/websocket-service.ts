@@ -80,7 +80,7 @@ export class WebSocketService implements WebSocketServer {
     const destinationUser = this.usersByToken.get(destinationToken) ?? null;
 
     if (destinationUser === null) {
-      console.info(`No user found for session id ${destinationToken}`);
+      console.info(`No user found for token ${destinationToken}`);
       return;
     }
 
@@ -260,7 +260,7 @@ export class WebSocketService implements WebSocketServer {
       this.sendMessage(destinationUser, payload);
     } else {
       console.log(
-        `Session id not found, broadcasting message...`,
+        `Token not found locally, broadcasting message...`,
         destinationToken
       );
       this.tunnelBroadcastChannel.postMessage({
@@ -282,36 +282,25 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private async notifyUsersCount(): Promise<void> {
-    const totalSessions = await this.getTotalSessions();
-
-    this.sendOnlineUsersCountToUsers(totalSessions);
-    this.sendOnlineUsersCountToServers(totalSessions);
-  }
-
   private async getTotalSessions(): Promise<number> {
     const db = this.databaseService.get();
     const result = await db.select({ count: count() }).from(userSessionsTable);
     return result[0]?.count ?? 0;
   }
 
-  private sendOnlineUsersCountToServers(totalSessions: number): void {
-    const payload = BinaryWriter.build()
+  private async notifyUsersCount(): Promise<void> {
+    const totalSessions = await this.getTotalSessions();
+    const onlinePlayersPayload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.OnlinePlayers)
       .unsignedInt16(totalSessions)
       .toArrayBuffer();
 
-    this.onlineUsersBroadcastChannel.postMessage({ payload });
-  }
-
-  private sendOnlineUsersCountToUsers(totalSessions: number) {
-    const payload = BinaryWriter.build()
-      .unsignedInt8(WebSocketType.OnlinePlayers)
-      .unsignedInt16(totalSessions)
-      .toArrayBuffer();
+    this.onlineUsersBroadcastChannel.postMessage({
+      payload: onlinePlayersPayload,
+    });
 
     for (const user of this.usersByToken.values()) {
-      this.sendMessage(user, payload);
+      this.sendMessage(user, onlinePlayersPayload);
     }
   }
 
