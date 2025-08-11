@@ -10,8 +10,13 @@ import blockWords from "../data/block-words.json" with { type: "json" };
 @injectable()
 export class ChatService {
   private static readonly MAX_CHAT_MESSAGE_LENGTH = 35;
+  private readonly censoredWords: string[];
 
-  constructor(private readonly signatureService = inject(SignatureService)) {}
+  constructor(private readonly signatureService = inject(SignatureService)) {
+    this.censoredWords = (blockWords as unknown as string[])
+      .map(word => this.validateAndSanitizeBlockWord(String(word)))
+      .filter((word): word is string => !!word);
+  }
 
   public async sendSignedChatMessage(
     webSocketServer: WebSocketServer,
@@ -83,12 +88,8 @@ export class ChatService {
     const textLower = this.toAsciiLowerCase(text);
     const textArray = [...text]; // Convert to character array for safe modification
 
-    for (const word of blockWords) {
-      // Validate and sanitize block words
-      const sanitizedWord = this.validateAndSanitizeBlockWord(word);
-      if (!sanitizedWord) continue;
-
-      const wordLower = this.toAsciiLowerCase(sanitizedWord);
+    for (const word of this.censoredWords) {
+      const wordLower = this.toAsciiLowerCase(word);
       let searchIndex = 0;
 
       while (searchIndex < textLower.length) {
