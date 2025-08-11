@@ -10,6 +10,8 @@ A game server built with Deno KV.
 - Secure cloud-based game configuration to update game settings remotely
 - Server messages and notifications for connected players
 - Matchmaking using token-based pairing with tunneling support
+- Player and host identity verification
+- Chat messages integrity using digital signatures
 - Secure player score management
 
 ## Demo
