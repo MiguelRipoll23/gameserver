@@ -80,7 +80,7 @@ export class ChatService {
   }
 
   private filterMessageText(text: string): string {
-    const textLower = text.toLowerCase();
+    const textLower = this.toAsciiLowerCase(text);
     const textArray = [...text]; // Convert to character array for safe modification
 
     for (const word of blockWords) {
@@ -88,7 +88,7 @@ export class ChatService {
       const sanitizedWord = this.validateAndSanitizeBlockWord(word);
       if (!sanitizedWord) continue;
 
-      const wordLower = sanitizedWord.toLowerCase();
+      const wordLower = this.toAsciiLowerCase(sanitizedWord);
       let searchIndex = 0;
 
       while (searchIndex < textLower.length) {
@@ -147,5 +147,9 @@ export class ChatService {
     }
 
     return signedPayload;
+  }
+
+  private toAsciiLowerCase(text: string): string {
+    return text.replace(/[A-Z]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 32));
   }
 }
