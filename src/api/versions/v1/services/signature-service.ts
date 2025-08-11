@@ -64,7 +64,7 @@ export class SignatureService {
     return crypto.subtle.sign(
       {
         name: SignatureService.ALGORITHM_NAME,
-        hash: SignatureService.SIGN_HASH,
+        hash: { name: SignatureService.SIGN_HASH },
       },
       privateKey,
       data
