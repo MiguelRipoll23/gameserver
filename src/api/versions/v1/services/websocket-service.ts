@@ -16,7 +16,7 @@ import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
 import { userSessionsTable, matchesTable } from "../../../../db/schema.ts";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 
 @injectable()
@@ -291,7 +291,8 @@ export class WebSocketService implements WebSocketServer {
 
   private async getTotalSessions(): Promise<number> {
     const db = this.databaseService.get();
-    return await db.$count(userSessionsTable);
+    const result = await db.select({ count: count() }).from(userSessionsTable);
+    return result[0]?.count ?? 0;
   }
 
   private sendOnlineUsersCountToServers(totalSessions: number): void {
