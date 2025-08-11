@@ -26,13 +26,13 @@ export class ChatService {
       `Received chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`,
     );
 
-    const originUserId = user.getNetworkId();
+    const userId = user.getNetworkId();
     const filteredMessageText = this.filterMessageText(unfilteredMessageText);
-    const timestamp = Date.now();
+    const timestampSeconds = Math.floor(Date.now() / 1000);
     const signaturePayload = BinaryWriter.build()
-      .fixedLengthString(originUserId, 32)
+      .fixedLengthString(userId, 32)
       .variableLengthString(filteredMessageText)
-      .unsignedInt32(timestamp)
+      .unsignedInt32(timestampSeconds)
       .toArrayBuffer();
 
     const signedPayload = await this.getSignedPayload(signaturePayload);
