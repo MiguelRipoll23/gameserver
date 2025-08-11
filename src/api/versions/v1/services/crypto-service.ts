@@ -89,20 +89,37 @@ export class CryptoService {
   ): Promise<ArrayBuffer> {
     const encryptedArray = new Uint8Array(encryptedData);
 
+    // Guard against payloads that are too short for AES-GCM IV
+    if (encryptedArray.byteLength <= 12) {
+      throw new ServerError(
+        "INVALID_PAYLOAD",
+        "Encrypted payload too short",
+        500
+      );
+    }
+
     // Extract IV (first 12 bytes) and encrypted data
     const iv = encryptedArray.slice(0, 12);
     const data = encryptedArray.slice(12);
 
     // Decrypt the data using the cryptoKey
-    const decryptedData = await crypto.subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv,
-      },
-      cryptoKey,
-      data
-    );
+    try {
+      const decryptedData = await crypto.subtle.decrypt(
+        {
+          name: "AES-GCM",
+          iv,
+        },
+        cryptoKey,
+        data
+      );
 
-    return decryptedData;
+      return decryptedData;
+    } catch {
+      throw new ServerError(
+        "DECRYPT_FAILED",
+        "Invalid or corrupted ciphertext",
+        400
+      );
+    }
   }
 }
