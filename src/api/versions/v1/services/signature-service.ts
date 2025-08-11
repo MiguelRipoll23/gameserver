@@ -73,8 +73,10 @@ export class SignatureService {
 
   private getPrivateKey(): CryptoKey {
     if (!this.privateKey) {
-      throw new Error(
-        "SignatureService: privateKey is not initialized. Call init() first."
+      throw new ServerError(
+        "INVALID_SERVER_CONFIGURATION",
+        "Invalid server configuration",
+        500
       );
     }
 
@@ -83,8 +85,10 @@ export class SignatureService {
 
   private getPublicKey(): CryptoKey {
     if (!this.publicKey) {
-      throw new Error(
-        "SignatureService: publicKey is not initialized. Call init() first."
+      throw new ServerError(
+        "INVALID_SERVER_CONFIGURATION",
+        "Invalid server configuration",
+        500
       );
     }
 
