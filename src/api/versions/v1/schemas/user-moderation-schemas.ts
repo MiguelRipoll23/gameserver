@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { PaginationSchema } from "./pagination-schemas.ts";
 
 export const BanDurationSchema = z
   .object({
@@ -85,3 +86,39 @@ export const ReportUserRequestSchema = z.object({
 });
 
 export type ReportUserRequest = z.infer<typeof ReportUserRequestSchema>;
+
+export const GetUserBansRequestSchema = z
+  .object({
+    userId: z
+      .string()
+      .length(36)
+      .describe("The user ID to get bans for")
+      .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
+  })
+  .and(PaginationSchema);
+
+export type GetUserBansRequest = z.infer<typeof GetUserBansRequestSchema>;
+
+export const UserBanResponseSchema = z.object({
+  id: z.number().describe("Ban ID"),
+  userId: z.string().describe("User ID"),
+  reason: z.string().describe("Ban reason"),
+  createdAt: z.string().describe("Ban creation date"),
+  updatedAt: z.string().nullable().describe("Ban update date"),
+  expiresAt: z.string().nullable().describe("Ban expiration date"),
+});
+
+export type UserBanResponse = z.infer<typeof UserBanResponseSchema>;
+
+export const GetUserBansResponseSchema = z.object({
+  data: z.array(UserBanResponseSchema),
+  nextCursor: z
+    .number()
+    .optional()
+    .describe("Cursor for the next page of results"),
+  hasMore: z
+    .boolean()
+    .describe("Indicates if more pages are available for pagination"),
+});
+
+export type GetUserBansResponse = z.infer<typeof GetUserBansResponseSchema>;

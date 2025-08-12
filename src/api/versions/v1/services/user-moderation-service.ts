@@ -5,13 +5,15 @@ import {
   BanUserRequest,
   ReportUserRequest,
   BanDuration,
+  GetUserBansRequest,
+  GetUserBansResponse,
 } from "../schemas/user-moderation-schemas.ts";
 import {
   usersTable,
   userReportsTable,
   userBansTable,
 } from "../../../../db/schema.ts";
-import { eq } from "drizzle-orm";
+import { eq, gt, and } from "drizzle-orm";
 import { KICK_USER_EVENT } from "../constants/event-constants.ts";
 
 @injectable()
@@ -129,6 +131,55 @@ export class UserModerationService {
       console.error("Database error while creating report:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to create report", 500);
     }
+  }
+
+  public async getUserBans(
+    params: GetUserBansRequest
+  ): Promise<GetUserBansResponse> {
+    const { userId, cursor, limit = 20 } = params;
+    const db = this.databaseService.get();
+
+    // Check if user exists
+    await this.checkUserExists(userId);
+
+    // Build query conditions
+    const conditions = [eq(userBansTable.userId, userId)];
+
+    if (cursor) {
+      conditions.push(gt(userBansTable.id, cursor));
+    }
+
+    // Fetch one extra item to determine if there are more results
+    const bans = await db
+      .select({
+        id: userBansTable.id,
+        userId: userBansTable.userId,
+        reason: userBansTable.reason,
+        createdAt: userBansTable.createdAt,
+        updatedAt: userBansTable.updatedAt,
+        expiresAt: userBansTable.expiresAt,
+      })
+      .from(userBansTable)
+      .where(conditions.length > 1 ? and(...conditions) : conditions[0])
+      .orderBy(userBansTable.id)
+      .limit(limit + 1);
+
+    // Remove the extra item and use it to determine if there are more results
+    const hasNextPage = bans.length > limit;
+    const results = bans.slice(0, limit);
+
+    return {
+      data: results.map((ban) => ({
+        id: ban.id,
+        userId: ban.userId,
+        reason: ban.reason,
+        createdAt: ban.createdAt.toISOString(),
+        updatedAt: ban.updatedAt?.toISOString() || null,
+        expiresAt: ban.expiresAt?.toISOString() || null,
+      })),
+      nextCursor: hasNextPage ? bans[bans.length - 1].id : undefined,
+      hasMore: hasNextPage,
+    };
   }
 
   private async checkUserExists(userId: string): Promise<void> {
