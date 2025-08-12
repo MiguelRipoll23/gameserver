@@ -81,26 +81,17 @@ export class UserModerationService {
   public async unbanUser(userId: string): Promise<void> {
     const db = this.databaseService.get();
 
-    // Perform atomic delete operation with returning to get deleted record
-    let deletedBan;
+    const deleted = await db
+      .delete(userBansTable)
+      .where(eq(userBansTable.userId, userId))
+      .returning();
 
-    try {
-      deletedBan = await db
-        .delete(userBansTable)
-        .where(eq(userBansTable.userId, userId))
-        .returning({ userId: userBansTable.userId });
-    } catch (error) {
-      console.error("Database error while removing ban:", error);
+    if (deleted.length === 0) {
       throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to remove ban record",
-        500
+        "USER_NOT_BANNED",
+        `User with id ${userId} is not banned`,
+        404
       );
-    }
-
-    // If no record was deleted, check if user exists to determine appropriate error
-    if (deletedBan.length === 0) {
-      await this.checkUserExists(userId);
     }
 
     console.log(`User ${userId} has been unbanned`);
