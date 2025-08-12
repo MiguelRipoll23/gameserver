@@ -1,7 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import { eq } from "drizzle-orm";
+import { eq, like, gt, asc, and } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   blockedWordsTable,
@@ -10,10 +10,10 @@ import {
 } from "../../../../db/tables/blocked-words-table.ts";
 import {
   BlockWordRequest,
-  CheckWordRequest,
+  GetBlockedWordsRequest,
   UnblockWordRequest,
   UpdateWordRequest,
-  WordBlockedResponse,
+  GetBlockedWordsResponse,
 } from "../schemas/text-moderation-schemas.ts";
 import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
 
@@ -51,31 +51,67 @@ export class TextModerationService {
     this.dispatchRefreshCacheEvent();
   }
 
-  public async isWordBlocked(
-    body: CheckWordRequest
-  ): Promise<WordBlockedResponse> {
-    const { word } = body;
-    const normalizedWord = this.normalizeWord(word);
-
-    if (normalizedWord.length === 0) {
-      throw new ServerError("VALIDATION_ERROR", "Word cannot be empty", 400);
-    }
-
+  public async getBlockedWords(
+    body: GetBlockedWordsRequest
+  ): Promise<GetBlockedWordsResponse> {
+    const { cursor, limit = 20, word } = body;
     const db = this.databaseService.get();
 
     try {
-      const blockedWord = await db
+      // Build where conditions
+      const conditions = [];
+
+      // Apply cursor-based pagination
+      if (cursor) {
+        conditions.push(gt(blockedWordsTable.id, cursor));
+      }
+
+      // Apply word filter if provided
+      if (word) {
+        const normalizedFilter = this.normalizeWord(word);
+        conditions.push(like(blockedWordsTable.word, `%${normalizedFilter}%`));
+      }
+
+      // Build the query with all conditions at once
+      const query = db
         .select()
         .from(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, normalizedWord))
-        .limit(1);
+        .orderBy(asc(blockedWordsTable.id));
+
+      // Apply conditions if any exist
+      const finalQuery =
+        conditions.length > 0
+          ? query.where(
+              conditions.length === 1 ? conditions[0] : and(...conditions)
+            )
+          : query;
+
+      // Get one extra item to check if there are more results
+      const results = await finalQuery.limit(limit + 1);
+
+      const hasMore = results.length > limit;
+      const data = hasMore ? results.slice(0, limit) : results;
+      const nextCursor =
+        hasMore && data.length > 0 ? data[data.length - 1].id : undefined;
 
       return {
-        blocked: blockedWord.length > 0,
+        results: data.map((item) => ({
+          id: item.id,
+          word: item.word,
+          notes: item.notes,
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt?.toISOString() || null,
+        })),
+        nextCursor,
+        hasMore,
       };
     } catch (error) {
-      console.error("Database error while checking word:", error);
-      throw new ServerError("DATABASE_ERROR", "Failed to check word", 500);
+      console.error("Database error while fetching blocked words:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to fetch blocked words",
+        500
+      );
     }
   }
 

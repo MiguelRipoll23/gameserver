@@ -1,4 +1,8 @@
 import { z } from "@hono/zod-openapi";
+import {
+  PaginationSchema,
+  PaginatedResponseSchema,
+} from "./pagination-schemas.ts";
 
 export const BlockWordRequestSchema = z.object({
   word: z
@@ -16,16 +20,19 @@ export const BlockWordRequestSchema = z.object({
 
 export type BlockWordRequest = z.infer<typeof BlockWordRequestSchema>;
 
-export const CheckWordRequestSchema = z.object({
+export const GetBlockedWordsRequestSchema = PaginationSchema.extend({
   word: z
     .string()
     .min(1)
     .max(255)
-    .describe("The word to check")
-    .openapi({ example: "example" }),
+    .optional()
+    .describe("Optional word filter")
+    .openapi({ example: "bad" }),
 });
 
-export type CheckWordRequest = z.infer<typeof CheckWordRequestSchema>;
+export type GetBlockedWordsRequest = z.infer<
+  typeof GetBlockedWordsRequestSchema
+>;
 
 export const UnblockWordRequestSchema = z.object({
   word: z
@@ -60,11 +67,19 @@ export const UpdateWordRequestSchema = z.object({
 
 export type UpdateWordRequest = z.infer<typeof UpdateWordRequestSchema>;
 
-export const WordBlockedResponseSchema = z.object({
-  blocked: z
-    .boolean()
-    .describe("Whether the word is blocked")
-    .openapi({ example: true }),
+export const BlockedWordSchema = z.object({
+  id: z.number().int().describe("Unique identifier for the blocked word"),
+  word: z.string().describe("The blocked word"),
+  notes: z.string().nullable().describe("Notes about why this word is blocked"),
+  createdAt: z.string().describe("When the word was first blocked"),
+  updatedAt: z.string().nullable().describe("When the word was last updated"),
 });
 
-export type WordBlockedResponse = z.infer<typeof WordBlockedResponseSchema>;
+export type BlockedWord = z.infer<typeof BlockedWordSchema>;
+
+export const GetBlockedWordsResponseSchema =
+  PaginatedResponseSchema(BlockedWordSchema);
+
+export type GetBlockedWordsResponse = z.infer<
+  typeof GetBlockedWordsResponseSchema
+>;

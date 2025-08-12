@@ -3,10 +3,10 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { TextModerationService } from "../../services/text-moderation-service.ts";
 import {
   BlockWordRequestSchema,
-  CheckWordRequestSchema,
+  GetBlockedWordsRequestSchema,
   UnblockWordRequestSchema,
   UpdateWordRequestSchema,
-  WordBlockedResponseSchema,
+  GetBlockedWordsResponseSchema,
 } from "../../schemas/text-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -24,35 +24,29 @@ export class ManagementTextModerationRouter {
   }
 
   private setRoutes(): void {
-    this.registerCheckWordRoute();
+    this.registerGetBlockedWordsRoute();
     this.registerBlockWordRoute();
     this.registerUpdateWordRoute();
     this.registerUnblockWordRoute();
   }
 
-  private registerCheckWordRoute(): void {
+  private registerGetBlockedWordsRoute(): void {
     this.app.openapi(
       createRoute({
-        method: "post",
-        path: "/check-word",
-        summary: "Check word",
-        description: "Checks if a specific word is in the blocked words list",
+        method: "get",
+        path: "/blocked-words",
+        summary: "Get blocked words",
+        description: "Gets a paginated list of blocked words with optional filtering",
         tags: ["Text moderation"],
         request: {
-          body: {
-            content: {
-              "application/json": {
-                schema: CheckWordRequestSchema,
-              },
-            },
-          },
+          query: GetBlockedWordsRequestSchema,
         },
         responses: {
           200: {
-            description: "Word check result",
+            description: "Paginated list of blocked words",
             content: {
               "application/json": {
-                schema: WordBlockedResponseSchema,
+                schema: GetBlockedWordsResponseSchema,
               },
             },
           },
@@ -62,8 +56,8 @@ export class ManagementTextModerationRouter {
         },
       }),
       async (c) => {
-        const validated = c.req.valid("json");
-        const result = await this.textModerationService.isWordBlocked(
+        const validated = c.req.valid("query");
+        const result = await this.textModerationService.getBlockedWords(
           validated
         );
         return c.json(result, 200);
