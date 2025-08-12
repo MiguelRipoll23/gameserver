@@ -3,7 +3,7 @@ import { DEFAULT_ICE_SERVERS } from "../constants/api-constants.ts";
 import {
   ENV_CLOUDFLARE_CALLS_TOKEN,
   ENV_CLOUDFLARE_CALLS_URL,
-} from "../constants/env-constants.ts";
+} from "../constants/environment-constants.ts";
 import { RTCIceServer } from "../schemas/authentication-schemas.ts";
 
 @injectable()

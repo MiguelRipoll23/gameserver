@@ -62,4 +62,15 @@ export class ServerResponse {
       },
     },
   };
+
+  public static Conflict = {
+    409: {
+      description: "Responds with conflict",
+      content: {
+        "application/json": {
+          schema: ErrorResponseSchema,
+        },
+      },
+    },
+  };
 }

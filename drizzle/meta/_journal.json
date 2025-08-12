@@ -8,6 +8,48 @@
       "when": 1754861898388,
       "tag": "0000_tan_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1754994284664,
+      "tag": "0001_daffy_clint_barton",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1754996791146,
+      "tag": "0002_misty_morph",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1755000172899,
+      "tag": "0003_groovy_valkyrie",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1755003900700,
+      "tag": "0004_sticky_captain_flint",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1755006688988,
+      "tag": "0005_pretty_talisman",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1755010362798,
+      "tag": "0006_bright_shadow_king",
+      "breakpoints": true
     }
   ]
 }

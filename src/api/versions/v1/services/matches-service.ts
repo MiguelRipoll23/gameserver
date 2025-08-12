@@ -129,17 +129,19 @@ export class MatchesService {
   public async delete(userId: string): Promise<void> {
     const db = this.databaseService.get();
 
-    try {
-      await db.delete(matchesTable).where(eq(matchesTable.hostUserId, userId));
+    const deleted = await db
+      .delete(matchesTable)
+      .where(eq(matchesTable.hostUserId, userId))
+      .returning();
 
-      console.log(`Deleted match for user ${userId}`);
-    } catch (error) {
-      console.error("Failed to delete match:", error);
+    if (deleted.length === 0) {
       throw new ServerError(
-        "MATCH_DELETION_FAILED",
-        "Match deletion failed",
-        500
+        "MATCH_NOT_FOUND",
+        `Match with host user id ${userId} does not exist`,
+        404
       );
     }
+
+    console.log(`Deleted match for user ${userId}`);
   }
 }

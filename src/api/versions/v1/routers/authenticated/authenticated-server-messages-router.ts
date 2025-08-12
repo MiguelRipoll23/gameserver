@@ -1,11 +1,11 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { ServerMessagesService } from "../../services/server-messages-service.ts";
-import { GetMessageResponseSchema } from "../../schemas/messages-schemas.ts";
+import { GetServerMessageResponseSchema } from "../../schemas/server-messages-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
-export class AuthenticatedMessagesRouter {
+export class AuthenticatedServerMessagesRouter {
   private app: OpenAPIHono;
 
   constructor(private serverMessagesService = inject(ServerMessagesService)) {
@@ -35,7 +35,7 @@ export class AuthenticatedMessagesRouter {
             description: "Responds with data",
             content: {
               "application/json": {
-                schema: GetMessageResponseSchema,
+                schema: GetServerMessageResponseSchema,
               },
             },
           },

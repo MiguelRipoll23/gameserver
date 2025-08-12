@@ -1,6 +1,6 @@
 import { z } from "@hono/zod-openapi";
 
-export const CreateMessageRequestSchema = z.object({
+export const CreateServerMessageRequestSchema = z.object({
   title: z
     .string()
     .describe("The message title")
@@ -10,9 +10,11 @@ export const CreateMessageRequestSchema = z.object({
   }),
 });
 
-export type CreateMessageRequest = z.infer<typeof CreateMessageRequestSchema>;
+export type CreateServerMessageRequest = z.infer<
+  typeof CreateServerMessageRequestSchema
+>;
 
-export const DeleteMessageRequestSchema = z.object({
+export const DeleteServerMessageRequestSchema = z.object({
   id: z.coerce
     .number()
     .int()
@@ -23,9 +25,11 @@ export const DeleteMessageRequestSchema = z.object({
     }),
 });
 
-export type DeleteMessageRequest = z.infer<typeof DeleteMessageRequestSchema>;
+export type DeleteServerMessageRequest = z.infer<
+  typeof DeleteServerMessageRequestSchema
+>;
 
-export const GetMessageResponseSchema = z.array(
+export const GetServerMessageResponseSchema = z.array(
   z.object({
     id: z.number().describe("The message ID").openapi({ example: 1 }),
     title: z
@@ -46,9 +50,11 @@ export const GetMessageResponseSchema = z.array(
   })
 );
 
-export type GetMessageResponse = z.infer<typeof GetMessageResponseSchema>;
+export type GetServerMessageResponse = z.infer<
+  typeof GetServerMessageResponseSchema
+>;
 
-export const UpdateMessageRequestSchema = z.object({
+export const UpdateServerMessageRequestSchema = z.object({
   id: z.coerce
     .number()
     .int()
@@ -65,4 +71,6 @@ export const UpdateMessageRequestSchema = z.object({
     .openapi({ example: "This message has been updated." }),
 });
 
-export type UpdateMessageRequest = z.infer<typeof UpdateMessageRequestSchema>;
+export type UpdateServerMessageRequest = z.infer<
+  typeof UpdateServerMessageRequestSchema
+>;

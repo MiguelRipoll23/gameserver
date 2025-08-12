@@ -1,19 +1,8 @@
 import { z } from "@hono/zod-openapi";
-
-export const PaginationSchema = z.object({
-  cursor: z
-    .number()
-    .optional()
-    .describe("ID of the last item from previous page")
-    .openapi({ example: 10 }),
-  limit: z
-    .number()
-    .min(1)
-    .max(100)
-    .optional()
-    .describe("Maximum number of items to return")
-    .openapi({ example: 20 }),
-});
+import {
+  PaginationSchema,
+  PaginatedResponseSchema,
+} from "./pagination-schemas.ts";
 
 export const AdvertiseMatchRequestSchema = z.object({
   version: z
@@ -48,7 +37,7 @@ export const FindMatchesRequestSchema = z
       .describe("Version of the client")
       .openapi({ example: "0.0.1-alpha.1" }),
     attributes: z
-      .record(z.string(), z.any())
+      .record(z.string(), z.unknown())
       .optional()
       .describe("Key-value attributes describing the match")
       .openapi({
@@ -64,19 +53,11 @@ export const FindMatchesRequestSchema = z
 
 export type FindMatchesRequest = z.infer<typeof FindMatchesRequestSchema>;
 
-export const FindMatchesResponseSchema = z.object({
-  results: z.array(
-    z.object({
-      token: z.string().describe("Token used to join the match"),
-    })
-  ),
-  nextCursor: z
-    .number()
-    .optional()
-    .describe("Cursor for the next page of results"),
-  hasMore: z
-    .boolean()
-    .describe("Indicates if more pages are available for pagination"),
+export const MatchResultSchema = z.object({
+  token: z.string().describe("Token used to join the match"),
 });
+
+export const FindMatchesResponseSchema =
+  PaginatedResponseSchema(MatchResultSchema);
 
 export type FindMatchesResponse = z.infer<typeof FindMatchesResponseSchema>;

@@ -2,7 +2,7 @@ import { create, Payload, verify } from "@wok/djwt";
 import { CryptoUtils } from "../utils/crypto-utils.ts";
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
-import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/env-constants.ts";
+import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
 
 @injectable()
 export class JWTService {
@@ -58,7 +58,11 @@ export class JWTService {
   public async getManagementToken() {
     return await create(
       { alg: "HS512", typ: "JWT" },
-      { id: "management", name: "management", roles: ["management"] },
+      {
+        id: "00000000-0000-0000-0000-000000000000",
+        name: "Management",
+        roles: ["management"],
+      },
       await this.getKey()
     );
   }

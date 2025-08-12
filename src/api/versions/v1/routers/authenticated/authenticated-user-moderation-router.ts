@@ -2,7 +2,7 @@ import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { UserModerationService } from "../../services/user-moderation-service.ts";
 import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
-import { ReportUserRequestSchema } from "../../schemas/moderation-schemas.ts";
+import { ReportUserRequestSchema } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
@@ -29,7 +29,7 @@ export class AuthenticatedUserModerationRouter {
         path: "/report",
         summary: "Report user",
         description: "Reports a user for breaking the rules",
-        tags: ["User moderation"],
+        tags: ["User reports"],
         request: {
           body: {
             content: {

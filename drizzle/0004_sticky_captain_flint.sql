@@ -1,0 +1,3 @@
+ALTER TABLE "user_roles" DROP CONSTRAINT "user_roles_user_id_role_id_pk";--> statement-breakpoint
+ALTER TABLE "user_roles" ADD COLUMN "id" integer PRIMARY KEY NOT NULL GENERATED ALWAYS AS IDENTITY (sequence name "user_roles_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1);--> statement-breakpoint
+ALTER TABLE "user_roles" ADD CONSTRAINT "unique_user_role" UNIQUE("user_id","role_id");

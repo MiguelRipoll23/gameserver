@@ -1,5 +1,5 @@
 import { injectable } from "@needle-di/core";
-import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
+import { SEND_NOTIFICATION_EVENT } from "../constants/event-constants.ts";
 import { ServerError } from "../models/server-error.ts";
 
 @injectable()
@@ -12,11 +12,11 @@ export class NotificationService {
       throw new ServerError(
         "EMPTY_NOTIFICATION_MESSAGE",
         "Notification message cannot be empty",
-        400,
+        400
       );
     }
 
-    const customEvent = new CustomEvent(NOTIFICATION_EVENT, {
+    const customEvent = new CustomEvent(SEND_NOTIFICATION_EVENT, {
       detail: {
         message,
       },

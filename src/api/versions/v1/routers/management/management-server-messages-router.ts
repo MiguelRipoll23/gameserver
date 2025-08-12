@@ -2,14 +2,14 @@ import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { ServerMessagesService } from "../../services/server-messages-service.ts";
 import {
-  CreateMessageRequestSchema,
-  DeleteMessageRequestSchema,
-  UpdateMessageRequestSchema,
-} from "../../schemas/messages-schemas.ts";
+  CreateServerMessageRequestSchema,
+  DeleteServerMessageRequestSchema,
+  UpdateServerMessageRequestSchema,
+} from "../../schemas/server-messages-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
-export class ManagementMessageRouter {
+export class ManagementServerMessagesRouter {
   private app: OpenAPIHono;
 
   constructor(private serverMessagesService = inject(ServerMessagesService)) {
@@ -40,7 +40,7 @@ export class ManagementMessageRouter {
           body: {
             content: {
               "application/json": {
-                schema: CreateMessageRequestSchema,
+                schema: CreateServerMessageRequestSchema,
               },
             },
           },
@@ -71,11 +71,11 @@ export class ManagementMessageRouter {
           "Update existing server message shown to the player after connecting to server",
         tags: ["Server message"],
         request: {
-          params: DeleteMessageRequestSchema,
+          params: DeleteServerMessageRequestSchema,
           body: {
             content: {
               "application/json": {
-                schema: UpdateMessageRequestSchema,
+                schema: UpdateServerMessageRequestSchema,
               },
             },
           },
@@ -111,7 +111,7 @@ export class ManagementMessageRouter {
           "Server messages shown to the player after connecting to server",
         tags: ["Server message"],
         request: {
-          params: DeleteMessageRequestSchema,
+          params: DeleteServerMessageRequestSchema,
         },
         responses: {
           ...ServerResponse.NoContent,
