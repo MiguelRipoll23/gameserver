@@ -186,7 +186,10 @@ export class UserModerationService {
             reason: report.reason,
             automatic: report.automatic,
           })),
-          nextCursor: hasNextPage ? reports[reports.length - 1].id : undefined,
+          nextCursor:
+            hasNextPage && reports.length >= limit
+              ? results[limit - 1].id
+              : undefined,
           hasMore: hasNextPage,
         };
       });
@@ -250,7 +253,10 @@ export class UserModerationService {
             updatedAt: ban.updatedAt?.toISOString() || null,
             expiresAt: ban.expiresAt?.toISOString() || null,
           })),
-          nextCursor: hasNextPage ? bans[bans.length - 1].id : undefined,
+          nextCursor:
+            hasNextPage && results.length > 0
+              ? results[results.length - 1].id
+              : undefined,
           hasMore: hasNextPage,
         };
       });
