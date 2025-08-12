@@ -14,6 +14,7 @@ export class ChatService {
   private static readonly MAX_CHAT_MESSAGE_LENGTH = 35;
   private blockedWords: string[] = [];
   private cacheInitialized = false;
+  private initializationPromise: Promise<void> | null = null;
   private refreshBlockedWordsCacheBroadcastChannel: BroadcastChannel;
 
   constructor(
@@ -65,9 +66,25 @@ export class ChatService {
   }
 
   private async ensureCacheInitialized(): Promise<void> {
-    if (!this.cacheInitialized) {
-      await this.refreshBlockedWordsCache();
+    if (this.cacheInitialized) {
+      return;
     }
+
+    if (this.initializationPromise) {
+      await this.initializationPromise;
+      return;
+    }
+
+    this.initializationPromise = (async () => {
+      try {
+        await this.refreshBlockedWordsCache();
+        this.cacheInitialized = true;
+      } finally {
+        this.initializationPromise = null;
+      }
+    })();
+
+    await this.initializationPromise;
   }
 
   public async sendSignedChatMessage(
