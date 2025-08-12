@@ -8,6 +8,13 @@
       "when": 1754861898388,
       "tag": "0000_tan_juggernaut",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1754994284664,
+      "tag": "0001_daffy_clint_barton",
+      "breakpoints": true
     }
   ]
 }
