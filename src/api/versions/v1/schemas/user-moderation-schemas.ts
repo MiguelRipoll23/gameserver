@@ -7,7 +7,6 @@ export const BanDurationSchema = z
       .number()
       .int()
       .min(1)
-      .max(60)
       .describe("Value of the ban duration")
       .openapi({ example: 1 }),
     unit: z

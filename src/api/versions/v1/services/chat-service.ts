@@ -187,21 +187,23 @@ export class ChatService {
     return textArray.join("");
   }
 
-  private validateBlockedWordsFromDatabase(blockedWords: BlockedWordEntity[]): string[] {
+  private validateBlockedWordsFromDatabase(
+    blockedWords: BlockedWordEntity[]
+  ): string[] {
     const validWords: string[] = [];
     let invalidCount = 0;
 
     for (const blockedWord of blockedWords) {
       const validatedWord = this.validateAndSanitizeBlockWord(blockedWord.word);
-      
+
       if (validatedWord) {
         validWords.push(validatedWord);
       } else {
         invalidCount++;
         console.warn(
           `Invalid blocked word found in database: "${blockedWord.word}" (ID: ${blockedWord.id}). ` +
-          `Word does not meet validation criteria and will be skipped. ` +
-          `Consider removing this word from the database or updating it to meet validation requirements.`
+            `Word does not meet validation criteria and will be skipped. ` +
+            `Consider removing this word from the database or updating it to meet validation requirements.`
         );
       }
     }
@@ -209,7 +211,7 @@ export class ChatService {
     if (invalidCount > 0) {
       console.warn(
         `Total of ${invalidCount} invalid blocked words were skipped during cache refresh. ` +
-        `These words exist in the database but do not meet validation criteria.`
+          `These words exist in the database but do not meet validation criteria.`
       );
     }
 
