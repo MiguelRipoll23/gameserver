@@ -4,7 +4,7 @@ import { TextModerationService } from "../../services/text-moderation-service.ts
 import {
   BlockWordRequestSchema,
   GetBlockedWordsRequestSchema,
-  UnblockWordRequestSchema,
+  UnblockWordParamSchema,
   UpdateWordRequestSchema,
   GetBlockedWordsResponseSchema,
 } from "../../schemas/text-moderation-schemas.ts";
@@ -36,7 +36,8 @@ export class ManagementTextModerationRouter {
         method: "get",
         path: "/blocked-words",
         summary: "Get blocked words",
-        description: "Gets a paginated list of blocked words with optional filtering",
+        description:
+          "Gets a paginated list of blocked words with optional filtering",
         tags: ["Text moderation"],
         request: {
           query: GetBlockedWordsRequestSchema,
@@ -135,19 +136,13 @@ export class ManagementTextModerationRouter {
   private registerUnblockWordRoute(): void {
     this.app.openapi(
       createRoute({
-        method: "post",
-        path: "/unblock-word",
+        method: "delete",
+        path: "/blocked-words/{word}",
         summary: "Unblock word",
         description: "Removes a word from the blocked words list",
         tags: ["Text moderation"],
         request: {
-          body: {
-            content: {
-              "application/json": {
-                schema: UnblockWordRequestSchema,
-              },
-            },
-          },
+          params: UnblockWordParamSchema,
         },
         responses: {
           ...ServerResponse.NoContent,
@@ -158,8 +153,8 @@ export class ManagementTextModerationRouter {
         },
       }),
       async (c) => {
-        const validated = c.req.valid("json");
-        await this.textModerationService.unblockWord(validated);
+        const word = c.req.param("word");
+        await this.textModerationService.unblockWord({ word });
         return c.body(null, 204);
       }
     );

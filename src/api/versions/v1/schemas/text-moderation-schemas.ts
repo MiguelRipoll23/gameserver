@@ -34,7 +34,7 @@ export type GetBlockedWordsRequest = z.infer<
   typeof GetBlockedWordsRequestSchema
 >;
 
-export const UnblockWordRequestSchema = z.object({
+export const UnblockWordParamSchema = z.object({
   word: z
     .string()
     .min(1)
@@ -43,7 +43,7 @@ export const UnblockWordRequestSchema = z.object({
     .openapi({ example: "word" }),
 });
 
-export type UnblockWordRequest = z.infer<typeof UnblockWordRequestSchema>;
+export type UnblockWordParam = z.infer<typeof UnblockWordParamSchema>;
 
 export const UpdateWordRequestSchema = z.object({
   word: z

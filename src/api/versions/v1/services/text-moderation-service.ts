@@ -11,7 +11,6 @@ import {
 import {
   BlockWordRequest,
   GetBlockedWordsRequest,
-  UnblockWordRequest,
   UpdateWordRequest,
   GetBlockedWordsResponse,
 } from "../schemas/text-moderation-schemas.ts";
@@ -115,7 +114,7 @@ export class TextModerationService {
     }
   }
 
-  public async unblockWord(body: UnblockWordRequest): Promise<void> {
+  public async unblockWord(body: { word: string }): Promise<void> {
     const { word } = body;
     const normalizedWord = this.normalizeWord(word);
     const db = this.databaseService.get();
