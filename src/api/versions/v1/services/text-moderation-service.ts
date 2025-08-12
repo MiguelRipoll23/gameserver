@@ -11,6 +11,7 @@ import {
   BlockWordRequest,
   CheckWordRequest,
   UnblockWordRequest,
+  UpdateWordRequest,
   WordBlockedResponse,
 } from "../schemas/text-moderation-schemas.ts";
 import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
@@ -121,6 +122,65 @@ export class TextModerationService {
       }
       console.error("Database error while unblocking word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to unblock word", 500);
+    }
+
+    this.dispatchRefreshCacheEvent();
+  }
+
+  public async updateWord(body: UpdateWordRequest): Promise<void> {
+    const { word, newWord, notes } = body;
+    const normalizedCurrentWord = this.normalizeWord(word);
+    const normalizedNewWord = this.normalizeWord(newWord);
+    const db = this.databaseService.get();
+
+    try {
+      // Check if the current word exists and is blocked
+      const existingWord = await db
+        .select()
+        .from(blockedWordsTable)
+        .where(eq(blockedWordsTable.word, normalizedCurrentWord))
+        .limit(1);
+
+      if (existingWord.length === 0) {
+        throw new ServerError(
+          "WORD_NOT_BLOCKED",
+          `Word "${word}" is not currently blocked`,
+          404
+        );
+      }
+
+      // If the new word is different from the current word, check if it already exists
+      if (normalizedCurrentWord !== normalizedNewWord) {
+        const existingNewWord = await db
+          .select()
+          .from(blockedWordsTable)
+          .where(eq(blockedWordsTable.word, normalizedNewWord))
+          .limit(1);
+
+        if (existingNewWord.length > 0) {
+          throw new ServerError(
+            "WORD_ALREADY_BLOCKED",
+            `Word "${newWord}" is already blocked`,
+            409
+          );
+        }
+      }
+
+      // Update the blocked word
+      await db
+        .update(blockedWordsTable)
+        .set({
+          word: normalizedNewWord,
+          notes,
+          updatedAt: new Date(),
+        })
+        .where(eq(blockedWordsTable.word, normalizedCurrentWord));
+    } catch (error) {
+      if (error instanceof ServerError) {
+        throw error;
+      }
+      console.error("Database error while updating word:", error);
+      throw new ServerError("DATABASE_ERROR", "Failed to update word", 500);
     }
 
     this.dispatchRefreshCacheEvent();

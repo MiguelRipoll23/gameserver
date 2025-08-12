@@ -6,6 +6,7 @@ import {
   BlockWordRequestSchema,
   CheckWordRequestSchema,
   UnblockWordRequestSchema,
+  UpdateWordRequestSchema,
   WordBlockedResponseSchema,
 } from "../../schemas/text-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
@@ -29,6 +30,7 @@ export class ManagementTextModerationRouter {
   private setRoutes(): void {
     this.registerCheckWordRoute();
     this.registerBlockWordRoute();
+    this.registerUpdateWordRoute();
     this.registerUnblockWordRoute();
   }
 
@@ -101,6 +103,40 @@ export class ManagementTextModerationRouter {
       async (c) => {
         const validated = c.req.valid("json");
         await this.textModerationService.blockWord(validated);
+        return c.body(null, 204);
+      }
+    );
+  }
+
+  private registerUpdateWordRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "put",
+        path: "/update-word",
+        summary: "Update word",
+        description: "Updates an existing word in the blocked words list",
+        tags: ["Text moderation"],
+        request: {
+          body: {
+            content: {
+              "application/json": {
+                schema: UpdateWordRequestSchema,
+              },
+            },
+          },
+        },
+        responses: {
+          ...ServerResponse.NoContent,
+          ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
+          ...ServerResponse.Forbidden,
+          ...ServerResponse.NotFound,
+          ...ServerResponse.Conflict,
+        },
+      }),
+      async (c) => {
+        const validated = c.req.valid("json");
+        await this.textModerationService.updateWord(validated);
         return c.body(null, 204);
       }
     );
