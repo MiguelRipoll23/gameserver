@@ -4,7 +4,7 @@ import { UserModerationService } from "../../services/user-moderation-service.ts
 import {
   BanUserRequestSchema,
   UnbanUserRequestSchema,
-} from "../../schemas/moderation-schemas.ts";
+} from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()

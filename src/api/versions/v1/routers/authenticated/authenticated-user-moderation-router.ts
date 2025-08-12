@@ -2,7 +2,7 @@ import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { UserModerationService } from "../../services/user-moderation-service.ts";
 import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
-import { ReportUserRequestSchema } from "../../schemas/moderation-schemas.ts";
+import { ReportUserRequestSchema } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()

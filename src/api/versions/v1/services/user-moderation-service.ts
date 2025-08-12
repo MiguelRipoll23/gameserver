@@ -5,7 +5,7 @@ import {
   BanUserRequest,
   ReportUserRequest,
   BanDuration,
-} from "../schemas/moderation-schemas.ts";
+} from "../schemas/user-moderation-schemas.ts";
 import {
   usersTable,
   userReportsTable,
