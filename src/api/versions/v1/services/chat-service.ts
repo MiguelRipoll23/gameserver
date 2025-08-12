@@ -6,7 +6,7 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
-import { REFRESH_BLOCKED_WORDS_CACHE_CHANNEL } from "../constants/broadcast-channel-constants.ts";
+import { REFRESH_BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL } from "../constants/broadcast-channel-constants.ts";
 import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
 
 @injectable()
@@ -21,7 +21,7 @@ export class ChatService {
     private readonly textModerationService = inject(TextModerationService)
   ) {
     this.refreshBlockedWordsCacheBroadcastChannel = new BroadcastChannel(
-      REFRESH_BLOCKED_WORDS_CACHE_CHANNEL
+      REFRESH_BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL
     );
     this.addEventListeners();
     this.addBroadcastChannelListeners();
