@@ -27,6 +27,8 @@ import { eq, and, lt } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
 import { userBansTable } from "../../../../db/tables/user-bans-table.ts";
+import { userRolesTable } from "../../../../db/tables/user-roles-table.ts";
+import { rolesTable } from "../../../../db/tables/roles-table.ts";
 import { desc } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import { SignatureService } from "./signature-service.ts";
@@ -101,12 +103,15 @@ export class AuthenticationService {
     const userDisplayName = user.displayName;
     const userPublicIp = connectionInfo.remote.address ?? null;
 
+    // Fetch user roles
+    const userRoles = await this.getUserRoles(userId);
+
     // Create JWT for client authentication
     const jwtKey = await this.jwtService.getKey();
 
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
-      { id: userId, name: userDisplayName },
+      { id: userId, name: userDisplayName, roles: userRoles },
       jwtKey
     );
 
@@ -302,6 +307,29 @@ export class AuthenticationService {
     const user = users[0];
 
     return user;
+  }
+
+  private async getUserRoles(userId: string): Promise<string[]> {
+    let userRoleResults;
+
+    try {
+      userRoleResults = await this.databaseService.withRlsUser(userId, (tx) => {
+        return tx
+          .select({ name: rolesTable.name })
+          .from(userRolesTable)
+          .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+          .where(eq(userRolesTable.userId, userId));
+      });
+    } catch (error) {
+      console.error("Failed to query user roles:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to retrieve user roles",
+        500
+      );
+    }
+
+    return userRoleResults.map((role) => role.name);
   }
 
   private async ensureUserNotBanned(user: UserEntity): Promise<void> {
