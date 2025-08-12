@@ -91,7 +91,7 @@ export class ManagementUserRolesRouter {
       createRoute({
         method: "post",
         path: "/add",
-        summary: "Add role to user",
+        summary: "Add user role",
         description: "Assigns a role to a specific user",
         tags: ["User roles"],
         request: {
@@ -129,7 +129,7 @@ export class ManagementUserRolesRouter {
       createRoute({
         method: "delete",
         path: "/remove",
-        summary: "Remove role from user",
+        summary: "Remove user role",
         description: "Removes a role from a specific user",
         tags: ["User roles"],
         request: {
