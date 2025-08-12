@@ -8,6 +8,7 @@ import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { REFRESH_BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL } from "../constants/broadcast-channel-constants.ts";
 import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
+import { BlockedWordEntity } from "../../../../db/tables/blocked-words-table.ts";
 
 @injectable()
 export class ChatService {
@@ -47,11 +48,7 @@ export class ChatService {
     try {
       const blockedWords =
         await this.textModerationService.getAllBlockedWords();
-      this.blockedWords = blockedWords
-        .map((blockedWord) =>
-          this.validateAndSanitizeBlockWord(blockedWord.word)
-        )
-        .filter((word): word is string => !!word);
+      this.blockedWords = this.validateBlockedWordsFromDatabase(blockedWords);
       this.cacheInitialized = true;
       console.log(
         `Loaded ${this.blockedWords.length} blocked words into cache`
@@ -188,6 +185,35 @@ export class ChatService {
     }
 
     return textArray.join("");
+  }
+
+  private validateBlockedWordsFromDatabase(blockedWords: BlockedWordEntity[]): string[] {
+    const validWords: string[] = [];
+    let invalidCount = 0;
+
+    for (const blockedWord of blockedWords) {
+      const validatedWord = this.validateAndSanitizeBlockWord(blockedWord.word);
+      
+      if (validatedWord) {
+        validWords.push(validatedWord);
+      } else {
+        invalidCount++;
+        console.warn(
+          `Invalid blocked word found in database: "${blockedWord.word}" (ID: ${blockedWord.id}). ` +
+          `Word does not meet validation criteria and will be skipped. ` +
+          `Consider removing this word from the database or updating it to meet validation requirements.`
+        );
+      }
+    }
+
+    if (invalidCount > 0) {
+      console.warn(
+        `Total of ${invalidCount} invalid blocked words were skipped during cache refresh. ` +
+        `These words exist in the database but do not meet validation criteria.`
+      );
+    }
+
+    return validWords;
   }
 
   private validateAndSanitizeBlockWord(word: string): string | null {
