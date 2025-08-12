@@ -7,3 +7,5 @@ export { userReportsTable } from "./tables/user-reports-table.ts";
 export { userBansTable } from "./tables/user-bans-table.ts";
 export { userScoresTable } from "./tables/user-scores-table.ts";
 export { blockedWordsTable } from "./tables/blocked-words-table.ts";
+export { rolesTable } from "./tables/roles-table.ts";
+export { userRolesTable } from "./tables/user-roles-table.ts";
