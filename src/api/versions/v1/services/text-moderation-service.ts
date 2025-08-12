@@ -13,6 +13,7 @@ import {
   UnblockWordRequest,
   WordBlockedResponse,
 } from "../schemas/text-moderation-schemas.ts";
+import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
 
 @injectable()
 export class TextModerationService {
@@ -53,6 +54,8 @@ export class TextModerationService {
       console.error("Database error while blocking word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to block word", 500);
     }
+
+    this.dispatchRefreshCacheEvent();
   }
 
   public async isWordBlocked(
@@ -108,6 +111,8 @@ export class TextModerationService {
       console.error("Database error while unblocking word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to unblock word", 500);
     }
+
+    this.dispatchRefreshCacheEvent();
   }
 
   public async getAllBlockedWords(): Promise<BlockedWordEntity[]> {
@@ -123,5 +128,15 @@ export class TextModerationService {
         500
       );
     }
+  }
+
+  private dispatchRefreshCacheEvent(): void {
+    const customEvent = new CustomEvent(REFRESH_BLOCKED_WORDS_CACHE, {
+      detail: {
+        message: null,
+      },
+    });
+
+    dispatchEvent(customEvent);
   }
 }

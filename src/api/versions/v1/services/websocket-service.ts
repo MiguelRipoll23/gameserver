@@ -46,8 +46,8 @@ export class WebSocketService implements WebSocketServer {
       SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL
     );
     this.kickUserBroadcastChannel = new BroadcastChannel(KICK_USER_CHANNEL);
-    this.addBroadcastChannelListeners();
     this.addEventListeners();
+    this.addBroadcastChannelListeners();
     this.dispatcher.registerCommandHandlers(this);
   }
 
@@ -73,6 +73,19 @@ export class WebSocketService implements WebSocketServer {
     } catch (error) {
       console.error(error);
     }
+  }
+
+  private addEventListeners(): void {
+    addEventListener(SEND_NOTIFICATION_EVENT, (event): void => {
+      // deno-lint-ignore no-explicit-any
+      this.sendNotificationToUsers((event as CustomEvent<any>).detail.message);
+    });
+
+    addEventListener(KICK_USER_EVENT, (event): void => {
+      // deno-lint-ignore no-explicit-any
+      const { userId } = (event as CustomEvent<any>).detail;
+      this.kickUser(userId);
+    });
   }
 
   private addBroadcastChannelListeners(): void {
@@ -124,19 +137,6 @@ export class WebSocketService implements WebSocketServer {
         `User with ID ${userId} not found in current server instance`
       );
     }
-  }
-
-  private addEventListeners(): void {
-    addEventListener(SEND_NOTIFICATION_EVENT, (event): void => {
-      // deno-lint-ignore no-explicit-any
-      this.sendNotificationToUsers((event as CustomEvent<any>).detail.message);
-    });
-
-    addEventListener(KICK_USER_EVENT, (event): void => {
-      // deno-lint-ignore no-explicit-any
-      const { userId } = (event as CustomEvent<any>).detail;
-      this.kickUser(userId);
-    });
   }
 
   private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {

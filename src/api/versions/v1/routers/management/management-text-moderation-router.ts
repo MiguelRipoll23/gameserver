@@ -30,7 +30,6 @@ export class ManagementTextModerationRouter {
     this.registerCheckWordRoute();
     this.registerBlockWordRoute();
     this.registerUnblockWordRoute();
-    this.registerRefreshCacheRoute();
   }
 
   private registerCheckWordRoute(): void {
@@ -135,29 +134,6 @@ export class ManagementTextModerationRouter {
       async (c) => {
         const validated = c.req.valid("json");
         await this.textModerationService.unblockWord(validated);
-        return c.body(null, 204);
-      }
-    );
-  }
-
-  private registerRefreshCacheRoute(): void {
-    this.app.openapi(
-      createRoute({
-        method: "post",
-        path: "/refresh-cache",
-        summary: "Refresh cache",
-        description: "Refreshes the cached blocked words list for moderation",
-        tags: ["Text moderation"],
-        responses: {
-          ...ServerResponse.NoContent,
-          ...ServerResponse.Unauthorized,
-          ...ServerResponse.Forbidden,
-        },
-      }),
-      async (c) => {
-        // Refresh the cache on this server (which will also broadcast to other servers)
-        await this.chatService.refreshBlockedWordsCache();
-
         return c.body(null, 204);
       }
     );

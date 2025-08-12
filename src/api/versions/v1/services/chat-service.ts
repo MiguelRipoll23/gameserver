@@ -7,68 +7,66 @@ import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { REFRESH_BLOCKED_WORDS_CACHE_CHANNEL } from "../constants/broadcast-channel-constants.ts";
+import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
 
 @injectable()
 export class ChatService {
   private static readonly MAX_CHAT_MESSAGE_LENGTH = 35;
-  private censoredWords: string[] = [];
+  private blockedWords: string[] = [];
   private cacheInitialized = false;
-  private broadcastChannel: BroadcastChannel;
+  private refreshBlockedWordsCacheBroadcastChannel: BroadcastChannel;
 
   constructor(
     private readonly signatureService = inject(SignatureService),
     private readonly textModerationService = inject(TextModerationService)
   ) {
-    // Set up broadcast channel to listen for cache update notifications
-    this.broadcastChannel = new BroadcastChannel(
+    this.refreshBlockedWordsCacheBroadcastChannel = new BroadcastChannel(
       REFRESH_BLOCKED_WORDS_CACHE_CHANNEL
     );
-    this.broadcastChannel.addEventListener(
+    this.addEventListeners();
+    this.addBroadcastChannelListeners();
+  }
+
+  private addEventListeners(): void {
+    addEventListener(REFRESH_BLOCKED_WORDS_CACHE, (): void => {
+      this.refreshBlockedWordsCache();
+    });
+  }
+
+  private addBroadcastChannelListeners(): void {
+    this.refreshBlockedWordsCacheBroadcastChannel.addEventListener(
       "message",
-      this.handleCacheUpdateMessage.bind(this)
+      this.refreshBlockedWordsCache.bind(this)
     );
   }
 
-  private handleCacheUpdateMessage(): void {
-    console.log("Received broadcast message to refresh blocked words cache");
-    this.refreshBlockedWordsCache();
-  }
+  private async refreshBlockedWordsCache(): Promise<void> {
+    console.log("Refreshing blocked words cache...");
 
-  private async loadCensoredWords(): Promise<void> {
     try {
       const blockedWords =
         await this.textModerationService.getAllBlockedWords();
-      this.censoredWords = blockedWords
+      this.blockedWords = blockedWords
         .map((blockedWord) =>
           this.validateAndSanitizeBlockWord(blockedWord.word)
         )
         .filter((word): word is string => !!word);
       this.cacheInitialized = true;
       console.log(
-        `Loaded ${this.censoredWords.length} blocked words into cache`
+        `Loaded ${this.blockedWords.length} blocked words into cache`
       );
     } catch (error) {
       console.error("Failed to load censored words from database:", error);
-      this.censoredWords = [];
+      this.blockedWords = [];
       this.cacheInitialized = false;
     }
-  }
 
-  public async refreshBlockedWordsCache(): Promise<void> {
-    console.log("Refreshing blocked words cache...");
-    await this.loadCensoredWords();
-
-    // Broadcast to other servers to refresh their cache
-    const broadcastChannel = new BroadcastChannel(
-      REFRESH_BLOCKED_WORDS_CACHE_CHANNEL
-    );
-    broadcastChannel.postMessage(null);
-    broadcastChannel.close();
+    this.refreshBlockedWordsCacheBroadcastChannel.postMessage(null);
   }
 
   private async ensureCacheInitialized(): Promise<void> {
     if (!this.cacheInitialized) {
-      await this.loadCensoredWords();
+      await this.refreshBlockedWordsCache();
     }
   }
 
@@ -145,7 +143,7 @@ export class ChatService {
     const textLower = this.toAsciiLowerCase(text);
     const textArray = [...text]; // Convert to character array for safe modification
 
-    for (const word of this.censoredWords) {
+    for (const word of this.blockedWords) {
       const wordLower = this.toAsciiLowerCase(word);
       let searchIndex = 0;
 
