@@ -2,6 +2,7 @@ import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { eq } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   blockedWordsTable,
   type BlockedWordEntity,
@@ -26,29 +27,19 @@ export class TextModerationService {
     const db = this.databaseService.get();
 
     try {
-      // Check if word is already blocked using normalized word
-      const existingWord = await db
-        .select()
-        .from(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, normalizedWord))
-        .limit(1);
+      await db.transaction(async (tx) => {
+        // Check if word is already blocked using normalized word
+        await this.checkWordNotBlocked(tx, normalizedWord, word);
 
-      if (existingWord.length > 0) {
-        throw new ServerError(
-          "WORD_ALREADY_BLOCKED",
-          `Word "${word}" is already blocked`,
-          409
-        );
-      }
+        // Insert the new blocked word with normalized value
+        const insertData: BlockedWordInsertEntity = {
+          word: normalizedWord,
+          notes,
+          updatedAt: new Date(),
+        };
 
-      // Insert the new blocked word with normalized value
-      const insertData: BlockedWordInsertEntity = {
-        word: normalizedWord,
-        notes,
-        updatedAt: new Date(),
-      };
-
-      await db.insert(blockedWordsTable).values(insertData);
+        await tx.insert(blockedWordsTable).values(insertData);
+      });
     } catch (error) {
       if (error instanceof ServerError) {
         throw error;
@@ -94,25 +85,15 @@ export class TextModerationService {
     const db = this.databaseService.get();
 
     try {
-      // Check if word exists and is blocked using normalized word
-      const existingWord = await db
-        .select()
-        .from(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, normalizedWord))
-        .limit(1);
+      await db.transaction(async (tx) => {
+        // Check if word exists and is blocked using normalized word
+        await this.checkWordIsBlocked(tx, normalizedWord, word);
 
-      if (existingWord.length === 0) {
-        throw new ServerError(
-          "WORD_NOT_BLOCKED",
-          `Word "${word}" is not currently blocked`,
-          404
-        );
-      }
-
-      // Delete the blocked word using normalized word
-      await db
-        .delete(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, normalizedWord));
+        // Delete the blocked word using normalized word
+        await tx
+          .delete(blockedWordsTable)
+          .where(eq(blockedWordsTable.word, normalizedWord));
+      });
     } catch (error) {
       if (error instanceof ServerError) {
         throw error;
@@ -131,47 +112,25 @@ export class TextModerationService {
     const db = this.databaseService.get();
 
     try {
-      // Check if the current word exists and is blocked
-      const existingWord = await db
-        .select()
-        .from(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, normalizedCurrentWord))
-        .limit(1);
+      await db.transaction(async (tx) => {
+        // Check if the current word exists and is blocked
+        await this.checkWordIsBlocked(tx, normalizedCurrentWord, word);
 
-      if (existingWord.length === 0) {
-        throw new ServerError(
-          "WORD_NOT_BLOCKED",
-          `Word "${word}" is not currently blocked`,
-          404
-        );
-      }
-
-      // If the new word is different from the current word, check if it already exists
-      if (normalizedCurrentWord !== normalizedNewWord) {
-        const existingNewWord = await db
-          .select()
-          .from(blockedWordsTable)
-          .where(eq(blockedWordsTable.word, normalizedNewWord))
-          .limit(1);
-
-        if (existingNewWord.length > 0) {
-          throw new ServerError(
-            "WORD_ALREADY_BLOCKED",
-            `Word "${newWord}" is already blocked`,
-            409
-          );
+        // If the new word is different from the current word, check if it already exists
+        if (normalizedCurrentWord !== normalizedNewWord) {
+          await this.checkWordNotBlocked(tx, normalizedNewWord, newWord);
         }
-      }
 
-      // Update the blocked word
-      await db
-        .update(blockedWordsTable)
-        .set({
-          word: normalizedNewWord,
-          notes,
-          updatedAt: new Date(),
-        })
-        .where(eq(blockedWordsTable.word, normalizedCurrentWord));
+        // Update the blocked word
+        await tx
+          .update(blockedWordsTable)
+          .set({
+            word: normalizedNewWord,
+            notes,
+            updatedAt: new Date(),
+          })
+          .where(eq(blockedWordsTable.word, normalizedCurrentWord));
+      });
     } catch (error) {
       if (error instanceof ServerError) {
         throw error;
@@ -200,6 +159,46 @@ export class TextModerationService {
 
   private normalizeWord(word: string): string {
     return word.trim().toLowerCase().normalize("NFKC"); // Unicode normalization to handle homoglyphs
+  }
+
+  private async checkWordIsBlocked(
+    tx: NodePgDatabase,
+    normalizedWord: string,
+    originalWord: string
+  ): Promise<void> {
+    const existingWord = await tx
+      .select()
+      .from(blockedWordsTable)
+      .where(eq(blockedWordsTable.word, normalizedWord))
+      .limit(1);
+
+    if (existingWord.length === 0) {
+      throw new ServerError(
+        "WORD_NOT_BLOCKED",
+        `Word "${originalWord}" is not currently blocked`,
+        404
+      );
+    }
+  }
+
+  private async checkWordNotBlocked(
+    tx: NodePgDatabase,
+    normalizedWord: string,
+    originalWord: string
+  ): Promise<void> {
+    const existingWord = await tx
+      .select()
+      .from(blockedWordsTable)
+      .where(eq(blockedWordsTable.word, normalizedWord))
+      .limit(1);
+
+    if (existingWord.length > 0) {
+      throw new ServerError(
+        "WORD_ALREADY_BLOCKED",
+        `Word "${originalWord}" is already blocked`,
+        409
+      );
+    }
   }
 
   private dispatchRefreshCacheEvent(): void {

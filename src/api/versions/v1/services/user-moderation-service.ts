@@ -1,6 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   BanUserRequest,
   ReportUserRequest,
@@ -26,26 +27,34 @@ export class UserModerationService {
     const { userId, reason, duration } = body;
     const db = this.databaseService.get();
 
-    // Check if user exists
-    await this.checkUserExists(userId);
-
     // Calculate expiration date
     const expiresAt = this.calculateExpirationDate(duration);
 
-    // Create ban record atomically with explicit conflict target
+    // Create ban record atomically with user existence check
     let insertedBan;
 
     try {
-      insertedBan = await db
-        .insert(userBansTable)
-        .values({
-          userId,
-          reason,
-          expiresAt,
-        })
-        .onConflictDoNothing({ target: [userBansTable.userId] })
-        .returning({ id: userBansTable.id });
+      insertedBan = await db.transaction(async (tx) => {
+        // Check if user exists
+        await this.checkUserExists(tx, userId);
+
+        // Create ban record with explicit conflict target
+        const result = await tx
+          .insert(userBansTable)
+          .values({
+            userId,
+            reason,
+            expiresAt,
+          })
+          .onConflictDoNothing({ target: [userBansTable.userId] })
+          .returning({ id: userBansTable.id });
+
+        return result;
+      });
     } catch (error) {
+      if (error instanceof ServerError) {
+        throw error;
+      }
       console.error("Database error while creating ban record:", error);
       throw new ServerError(
         "DATABASE_ERROR",
@@ -109,18 +118,24 @@ export class UserModerationService {
 
     const db = this.databaseService.get();
 
-    // Check if user exists
-    await this.checkUserExists(userId);
-
-    // Insert report into database
+    // Insert report into database with user existence check
     try {
-      await db.insert(userReportsTable).values({
-        reporterUserId,
-        reportedUserId: userId,
-        reason,
-        automatic,
+      await db.transaction(async (tx) => {
+        // Check if user exists
+        await this.checkUserExists(tx, userId);
+
+        // Insert report
+        await tx.insert(userReportsTable).values({
+          reporterUserId,
+          reportedUserId: userId,
+          reason,
+          automatic,
+        });
       });
     } catch (error) {
+      if (error instanceof ServerError) {
+        throw error;
+      }
       console.error("Database error while creating report:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to create report", 500);
     }
@@ -132,45 +147,60 @@ export class UserModerationService {
     const { userId, cursor, limit = 20 } = params;
     const db = this.databaseService.get();
 
-    // Check if user exists
-    await this.checkUserExists(userId);
+    // Check if user exists and fetch reports in transaction
+    try {
+      return await db.transaction(async (tx) => {
+        // Check if user exists
+        await this.checkUserExists(tx, userId);
 
-    // Build query conditions
-    const conditions = [eq(userReportsTable.reportedUserId, userId)];
+        // Build query conditions
+        const conditions = [eq(userReportsTable.reportedUserId, userId)];
 
-    if (cursor) {
-      conditions.push(gt(userReportsTable.id, cursor));
+        if (cursor) {
+          conditions.push(gt(userReportsTable.id, cursor));
+        }
+
+        // Fetch one extra item to determine if there are more results
+        const reports = await tx
+          .select({
+            id: userReportsTable.id,
+            reporterUserId: userReportsTable.reporterUserId,
+            reportedUserId: userReportsTable.reportedUserId,
+            reason: userReportsTable.reason,
+            automatic: userReportsTable.automatic,
+          })
+          .from(userReportsTable)
+          .where(conditions.length > 1 ? and(...conditions) : conditions[0])
+          .orderBy(userReportsTable.id)
+          .limit(limit + 1);
+
+        // Remove the extra item and use it to determine if there are more results
+        const hasNextPage = reports.length > limit;
+        const results = reports.slice(0, limit);
+
+        return {
+          data: results.map((report) => ({
+            id: report.id,
+            reporterUserId: report.reporterUserId,
+            reportedUserId: report.reportedUserId,
+            reason: report.reason,
+            automatic: report.automatic,
+          })),
+          nextCursor: hasNextPage ? reports[reports.length - 1].id : undefined,
+          hasMore: hasNextPage,
+        };
+      });
+    } catch (error) {
+      if (error instanceof ServerError) {
+        throw error;
+      }
+      console.error("Database error while fetching user reports:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to fetch user reports",
+        500
+      );
     }
-
-    // Fetch one extra item to determine if there are more results
-    const reports = await db
-      .select({
-        id: userReportsTable.id,
-        reporterUserId: userReportsTable.reporterUserId,
-        reportedUserId: userReportsTable.reportedUserId,
-        reason: userReportsTable.reason,
-        automatic: userReportsTable.automatic,
-      })
-      .from(userReportsTable)
-      .where(conditions.length > 1 ? and(...conditions) : conditions[0])
-      .orderBy(userReportsTable.id)
-      .limit(limit + 1);
-
-    // Remove the extra item and use it to determine if there are more results
-    const hasNextPage = reports.length > limit;
-    const results = reports.slice(0, limit);
-
-    return {
-      data: results.map((report) => ({
-        id: report.id,
-        reporterUserId: report.reporterUserId,
-        reportedUserId: report.reportedUserId,
-        reason: report.reason,
-        automatic: report.automatic,
-      })),
-      nextCursor: hasNextPage ? reports[reports.length - 1].id : undefined,
-      hasMore: hasNextPage,
-    };
   }
 
   public async getUserBans(
@@ -179,54 +209,66 @@ export class UserModerationService {
     const { userId, cursor, limit = 20 } = params;
     const db = this.databaseService.get();
 
-    // Check if user exists
-    await this.checkUserExists(userId);
+    // Check if user exists and fetch bans in transaction
+    try {
+      return await db.transaction(async (tx) => {
+        // Check if user exists
+        await this.checkUserExists(tx, userId);
 
-    // Build query conditions
-    const conditions = [eq(userBansTable.userId, userId)];
+        // Build query conditions
+        const conditions = [eq(userBansTable.userId, userId)];
 
-    if (cursor) {
-      conditions.push(gt(userBansTable.id, cursor));
+        if (cursor) {
+          conditions.push(gt(userBansTable.id, cursor));
+        }
+
+        // Fetch one extra item to determine if there are more results
+        const bans = await tx
+          .select({
+            id: userBansTable.id,
+            userId: userBansTable.userId,
+            reason: userBansTable.reason,
+            createdAt: userBansTable.createdAt,
+            updatedAt: userBansTable.updatedAt,
+            expiresAt: userBansTable.expiresAt,
+          })
+          .from(userBansTable)
+          .where(conditions.length > 1 ? and(...conditions) : conditions[0])
+          .orderBy(userBansTable.id)
+          .limit(limit + 1);
+
+        // Remove the extra item and use it to determine if there are more results
+        const hasNextPage = bans.length > limit;
+        const results = bans.slice(0, limit);
+
+        return {
+          data: results.map((ban) => ({
+            id: ban.id,
+            userId: ban.userId,
+            reason: ban.reason,
+            createdAt: ban.createdAt.toISOString(),
+            updatedAt: ban.updatedAt?.toISOString() || null,
+            expiresAt: ban.expiresAt?.toISOString() || null,
+          })),
+          nextCursor: hasNextPage ? bans[bans.length - 1].id : undefined,
+          hasMore: hasNextPage,
+        };
+      });
+    } catch (error) {
+      if (error instanceof ServerError) {
+        throw error;
+      }
+      console.error("Database error while fetching user bans:", error);
+      throw new ServerError("DATABASE_ERROR", "Failed to fetch user bans", 500);
     }
-
-    // Fetch one extra item to determine if there are more results
-    const bans = await db
-      .select({
-        id: userBansTable.id,
-        userId: userBansTable.userId,
-        reason: userBansTable.reason,
-        createdAt: userBansTable.createdAt,
-        updatedAt: userBansTable.updatedAt,
-        expiresAt: userBansTable.expiresAt,
-      })
-      .from(userBansTable)
-      .where(conditions.length > 1 ? and(...conditions) : conditions[0])
-      .orderBy(userBansTable.id)
-      .limit(limit + 1);
-
-    // Remove the extra item and use it to determine if there are more results
-    const hasNextPage = bans.length > limit;
-    const results = bans.slice(0, limit);
-
-    return {
-      data: results.map((ban) => ({
-        id: ban.id,
-        userId: ban.userId,
-        reason: ban.reason,
-        createdAt: ban.createdAt.toISOString(),
-        updatedAt: ban.updatedAt?.toISOString() || null,
-        expiresAt: ban.expiresAt?.toISOString() || null,
-      })),
-      nextCursor: hasNextPage ? bans[bans.length - 1].id : undefined,
-      hasMore: hasNextPage,
-    };
   }
 
-  private async checkUserExists(userId: string): Promise<void> {
-    const db = this.databaseService.get();
-
+  private async checkUserExists(
+    tx: NodePgDatabase,
+    userId: string
+  ): Promise<void> {
     try {
-      const users = await db
+      const users = await tx
         .select()
         .from(usersTable)
         .where(eq(usersTable.id, userId))
