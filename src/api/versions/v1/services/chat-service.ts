@@ -1,34 +1,91 @@
 import { inject, injectable } from "@needle-di/core";
 import { SignatureService } from "./signature-service.ts";
+import { TextModerationService } from "./text-moderation-service.ts";
 import { WebSocketServer } from "../interfaces/websocket-server-interface.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
-import blockWords from "../data/block-words.json" with { type: "json" };
+import { REFRESH_BLOCKED_WORDS_CACHE_CHANNEL } from "../constants/api-constants.ts";
 
 @injectable()
 export class ChatService {
   private static readonly MAX_CHAT_MESSAGE_LENGTH = 35;
-  private readonly censoredWords: string[];
+  private censoredWords: string[] = [];
+  private cacheInitialized = false;
+  private broadcastChannel: BroadcastChannel;
 
-  constructor(private readonly signatureService = inject(SignatureService)) {
-    this.censoredWords = (blockWords as unknown as string[])
-      .map(word => this.validateAndSanitizeBlockWord(String(word)))
-      .filter((word): word is string => !!word);
+  constructor(
+    private readonly signatureService = inject(SignatureService),
+    private readonly textModerationService = inject(TextModerationService)
+  ) {
+    // Set up broadcast channel to listen for cache update notifications
+    this.broadcastChannel = new BroadcastChannel(
+      REFRESH_BLOCKED_WORDS_CACHE_CHANNEL
+    );
+    this.broadcastChannel.addEventListener(
+      "message",
+      this.handleCacheUpdateMessage.bind(this)
+    );
+  }
+
+  private handleCacheUpdateMessage(): void {
+    console.log("Received broadcast message to refresh blocked words cache");
+    this.refreshBlockedWordsCache();
+  }
+
+  private async loadCensoredWords(): Promise<void> {
+    try {
+      const blockedWords =
+        await this.textModerationService.getAllBlockedWords();
+      this.censoredWords = blockedWords
+        .map((blockedWord) =>
+          this.validateAndSanitizeBlockWord(blockedWord.word)
+        )
+        .filter((word): word is string => !!word);
+      this.cacheInitialized = true;
+      console.log(
+        `Loaded ${this.censoredWords.length} blocked words into cache`
+      );
+    } catch (error) {
+      console.error("Failed to load censored words from database:", error);
+      this.censoredWords = [];
+      this.cacheInitialized = false;
+    }
+  }
+
+  public async refreshBlockedWordsCache(): Promise<void> {
+    console.log("Refreshing blocked words cache...");
+    await this.loadCensoredWords();
+
+    // Broadcast to other servers to refresh their cache
+    const broadcastChannel = new BroadcastChannel(
+      REFRESH_BLOCKED_WORDS_CACHE_CHANNEL
+    );
+    broadcastChannel.postMessage(null);
+    broadcastChannel.close();
+  }
+
+  private async ensureCacheInitialized(): Promise<void> {
+    if (!this.cacheInitialized) {
+      await this.loadCensoredWords();
+    }
   }
 
   public async sendSignedChatMessage(
     webSocketServer: WebSocketServer,
     user: WebSocketUser,
-    reader: BinaryReader,
+    reader: BinaryReader
   ): Promise<void> {
+    // Ensure cache is initialized before processing message
+    await this.ensureCacheInitialized();
+
     const unfilteredMessageText = reader.variableLengthString().trim();
 
     if (!this.isValidMessage(unfilteredMessageText, user)) return;
 
     console.log(
-      `Received chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`,
+      `Received chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`
     );
 
     const userId = user.getNetworkId();
@@ -43,9 +100,7 @@ export class ChatService {
     const signedPayload = await this.getSignedPayload(signaturePayload);
 
     if (signedPayload === null) {
-      console.warn(
-        `Failed to sign chat message from ${user.getName()}:`
-      );
+      console.warn(`Failed to sign chat message from ${user.getName()}:`);
       return;
     }
 
@@ -67,7 +122,7 @@ export class ChatService {
   private isNotEmpty(message: string, user: WebSocketUser): boolean {
     if (!message) {
       console.warn(
-        `Rejected chat message from ${user.getName()} because it is empty`,
+        `Rejected chat message from ${user.getName()} because it is empty`
       );
       return false;
     }
@@ -77,7 +132,9 @@ export class ChatService {
   private isWithinMaxLength(message: string, user: WebSocketUser): boolean {
     if (message.length > ChatService.MAX_CHAT_MESSAGE_LENGTH) {
       console.warn(
-        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${ChatService.MAX_CHAT_MESSAGE_LENGTH} characters`,
+        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${
+          ChatService.MAX_CHAT_MESSAGE_LENGTH
+        } characters`
       );
       return false;
     }
@@ -97,9 +154,11 @@ export class ChatService {
         if (foundIndex === -1) break;
 
         // Check word boundaries manually for safety
-        const isWordStart = foundIndex === 0 ||
+        const isWordStart =
+          foundIndex === 0 ||
           this.isWordBoundary(textLower.charAt(foundIndex - 1));
-        const isWordEnd = foundIndex + wordLower.length >= textLower.length ||
+        const isWordEnd =
+          foundIndex + wordLower.length >= textLower.length ||
           this.isWordBoundary(textLower.charAt(foundIndex + wordLower.length));
 
         if (isWordStart && isWordEnd) {
@@ -136,12 +195,14 @@ export class ChatService {
     return !/[a-zA-Z0-9]/.test(char);
   }
 
-  private async getSignedPayload(signaturePayload: ArrayBuffer): Promise<ArrayBuffer | null> {
+  private async getSignedPayload(
+    signaturePayload: ArrayBuffer
+  ): Promise<ArrayBuffer | null> {
     let signedPayload: ArrayBuffer | null = null;
 
     try {
       signedPayload = await this.signatureService.signArrayBuffer(
-        signaturePayload,
+        signaturePayload
       );
     } catch (error) {
       console.error(error);
@@ -151,6 +212,8 @@ export class ChatService {
   }
 
   private toAsciiLowerCase(text: string): string {
-    return text.replace(/[A-Z]/g, (char) => String.fromCharCode(char.charCodeAt(0) + 32));
+    return text.replace(/[A-Z]/g, (char) =>
+      String.fromCharCode(char.charCodeAt(0) + 32)
+    );
   }
 }
