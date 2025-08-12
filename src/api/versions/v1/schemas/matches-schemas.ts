@@ -37,7 +37,7 @@ export const FindMatchesRequestSchema = z
       .describe("Version of the client")
       .openapi({ example: "0.0.1-alpha.1" }),
     attributes: z
-      .record(z.string(), z.any())
+      .record(z.string(), z.unknown())
       .optional()
       .describe("Key-value attributes describing the match")
       .openapi({
@@ -49,7 +49,7 @@ export const FindMatchesRequestSchema = z
       .describe("Total number of slots available in the match")
       .openapi({ example: 4 }),
   })
-  .and(PaginationSchema);
+  .extend(PaginationSchema);
 
 export type FindMatchesRequest = z.infer<typeof FindMatchesRequestSchema>;
 
