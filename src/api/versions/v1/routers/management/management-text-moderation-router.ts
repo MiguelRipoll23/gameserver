@@ -1,7 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { TextModerationService } from "../../services/text-moderation-service.ts";
-import { ChatService } from "../../services/chat-service.ts";
 import {
   BlockWordRequestSchema,
   CheckWordRequestSchema,
@@ -15,10 +14,7 @@ import { ServerResponse } from "../../models/server-response.ts";
 export class ManagementTextModerationRouter {
   private app: OpenAPIHono;
 
-  constructor(
-    private textModerationService = inject(TextModerationService),
-    private chatService = inject(ChatService)
-  ) {
+  constructor(private textModerationService = inject(TextModerationService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
