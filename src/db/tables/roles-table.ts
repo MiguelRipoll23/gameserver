@@ -1,4 +1,5 @@
 import { pgTable, varchar, timestamp, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const rolesTable = pgTable("roles", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -9,7 +10,8 @@ export const rolesTable = pgTable("roles", {
     .notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
-    .notNull(),
+    .notNull()
+    .$onUpdate(() => sql`now()`),
 });
 
 export type RoleEntity = typeof rolesTable.$inferSelect;
