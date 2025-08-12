@@ -20,14 +20,6 @@ import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
 export class TextModerationService {
   constructor(private databaseService = inject(DatabaseService)) {}
 
-  /**
-   * Normalizes a word for case-insensitive comparison and storage.
-   * Applies trimming, lowercasing, and Unicode normalization (NFKC) to avoid homoglyph issues.
-   */
-  private normalizeWord(word: string): string {
-    return word.trim().toLowerCase().normalize("NFKC"); // Unicode normalization to handle homoglyphs
-  }
-
   public async blockWord(body: BlockWordRequest): Promise<void> {
     const { word, notes } = body;
     const normalizedWord = this.normalizeWord(word);
@@ -73,6 +65,11 @@ export class TextModerationService {
   ): Promise<WordBlockedResponse> {
     const { word } = body;
     const normalizedWord = this.normalizeWord(word);
+
+    if (normalizedWord.length === 0) {
+      throw new ServerError("VALIDATION_ERROR", "Word cannot be empty", 400);
+    }
+
     const db = this.databaseService.get();
 
     try {
@@ -199,6 +196,10 @@ export class TextModerationService {
         500
       );
     }
+  }
+
+  private normalizeWord(word: string): string {
+    return word.trim().toLowerCase().normalize("NFKC"); // Unicode normalization to handle homoglyphs
   }
 
   private dispatchRefreshCacheEvent(): void {
