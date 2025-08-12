@@ -15,6 +15,13 @@
       "when": 1754994284664,
       "tag": "0001_daffy_clint_barton",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1754996791146,
+      "tag": "0002_misty_morph",
+      "breakpoints": true
     }
   ]
 }

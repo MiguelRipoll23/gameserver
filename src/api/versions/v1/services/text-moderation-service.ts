@@ -19,16 +19,25 @@ import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
 export class TextModerationService {
   constructor(private databaseService = inject(DatabaseService)) {}
 
+  /**
+   * Normalizes a word for case-insensitive comparison and storage.
+   * Applies trimming, lowercasing, and Unicode normalization (NFKC) to avoid homoglyph issues.
+   */
+  private normalizeWord(word: string): string {
+    return word.trim().toLowerCase().normalize("NFKC"); // Unicode normalization to handle homoglyphs
+  }
+
   public async blockWord(body: BlockWordRequest): Promise<void> {
     const { word, notes } = body;
+    const normalizedWord = this.normalizeWord(word);
     const db = this.databaseService.get();
 
     try {
-      // Check if word is already blocked
+      // Check if word is already blocked using normalized word
       const existingWord = await db
         .select()
         .from(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, word.toLowerCase()))
+        .where(eq(blockedWordsTable.word, normalizedWord))
         .limit(1);
 
       if (existingWord.length > 0) {
@@ -39,9 +48,9 @@ export class TextModerationService {
         );
       }
 
-      // Insert the new blocked word
+      // Insert the new blocked word with normalized value
       const insertData: BlockedWordInsertEntity = {
-        word: word.toLowerCase(),
+        word: normalizedWord,
         notes,
         updatedAt: new Date(),
       };
@@ -62,13 +71,14 @@ export class TextModerationService {
     body: CheckWordRequest
   ): Promise<WordBlockedResponse> {
     const { word } = body;
+    const normalizedWord = this.normalizeWord(word);
     const db = this.databaseService.get();
 
     try {
       const blockedWord = await db
         .select()
         .from(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, word.toLowerCase()))
+        .where(eq(blockedWordsTable.word, normalizedWord))
         .limit(1);
 
       return {
@@ -82,14 +92,15 @@ export class TextModerationService {
 
   public async unblockWord(body: UnblockWordRequest): Promise<void> {
     const { word } = body;
+    const normalizedWord = this.normalizeWord(word);
     const db = this.databaseService.get();
 
     try {
-      // Check if word exists and is blocked
+      // Check if word exists and is blocked using normalized word
       const existingWord = await db
         .select()
         .from(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, word.toLowerCase()))
+        .where(eq(blockedWordsTable.word, normalizedWord))
         .limit(1);
 
       if (existingWord.length === 0) {
@@ -100,10 +111,10 @@ export class TextModerationService {
         );
       }
 
-      // Delete the blocked word
+      // Delete the blocked word using normalized word
       await db
         .delete(blockedWordsTable)
-        .where(eq(blockedWordsTable.word, word.toLowerCase()));
+        .where(eq(blockedWordsTable.word, normalizedWord));
     } catch (error) {
       if (error instanceof ServerError) {
         throw error;

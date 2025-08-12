@@ -4,12 +4,11 @@ export const BlockWordRequestSchema = z.object({
   word: z
     .string()
     .min(1)
-    .max(100)
+    .max(255)
     .describe("The word to block")
     .openapi({ example: "badword" }),
   notes: z
     .string()
-    .max(255)
     .optional()
     .describe("Optional notes about why this word is blocked")
     .openapi({ example: "Contains inappropriate content" }),
@@ -21,7 +20,7 @@ export const CheckWordRequestSchema = z.object({
   word: z
     .string()
     .min(1)
-    .max(100)
+    .max(255)
     .describe("The word to check")
     .openapi({ example: "example" }),
 });
@@ -32,7 +31,7 @@ export const UnblockWordRequestSchema = z.object({
   word: z
     .string()
     .min(1)
-    .max(100)
+    .max(255)
     .describe("The word to unblock")
     .openapi({ example: "word" }),
 });
