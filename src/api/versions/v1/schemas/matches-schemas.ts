@@ -49,7 +49,7 @@ export const FindMatchesRequestSchema = z
       .describe("Total number of slots available in the match")
       .openapi({ example: 4 }),
   })
-  .extend(PaginationSchema);
+  .merge(PaginationSchema);
 
 export type FindMatchesRequest = z.infer<typeof FindMatchesRequestSchema>;
 
