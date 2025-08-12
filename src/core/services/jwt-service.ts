@@ -58,7 +58,11 @@ export class JWTService {
   public async getManagementToken() {
     return await create(
       { alg: "HS512", typ: "JWT" },
-      { id: "management", name: "management", roles: ["management"] },
+      {
+        id: "00000000-0000-0000-0000-000000000000",
+        name: "Management",
+        roles: ["management"],
+      },
       await this.getKey()
     );
   }
