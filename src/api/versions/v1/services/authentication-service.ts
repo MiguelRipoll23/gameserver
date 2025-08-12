@@ -22,12 +22,12 @@ import {
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
-import { 
-  usersTable, 
+import {
+  usersTable,
   userCredentialsTable,
   userBansTable,
   userRolesTable,
-  rolesTable
+  rolesTable,
 } from "../../../../db/schema.ts";
 import { eq, and, lt } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
