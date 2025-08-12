@@ -29,7 +29,7 @@ export class AuthenticatedUserModerationRouter {
         path: "/report",
         summary: "Report user",
         description: "Reports a user for breaking the rules",
-        tags: ["User moderation"],
+        tags: ["User reports"],
         request: {
           body: {
             content: {

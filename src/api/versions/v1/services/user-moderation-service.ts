@@ -7,6 +7,8 @@ import {
   BanDuration,
   GetUserBansRequest,
   GetUserBansResponse,
+  GetUserReportsRequest,
+  GetUserReportsResponse,
 } from "../schemas/user-moderation-schemas.ts";
 import {
   usersTable,
@@ -131,6 +133,53 @@ export class UserModerationService {
       console.error("Database error while creating report:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to create report", 500);
     }
+  }
+
+  public async getUserReports(
+    params: GetUserReportsRequest
+  ): Promise<GetUserReportsResponse> {
+    const { userId, cursor, limit = 20 } = params;
+    const db = this.databaseService.get();
+
+    // Check if user exists
+    await this.checkUserExists(userId);
+
+    // Build query conditions
+    const conditions = [eq(userReportsTable.reportedUserId, userId)];
+
+    if (cursor) {
+      conditions.push(gt(userReportsTable.id, cursor));
+    }
+
+    // Fetch one extra item to determine if there are more results
+    const reports = await db
+      .select({
+        id: userReportsTable.id,
+        reporterUserId: userReportsTable.reporterUserId,
+        reportedUserId: userReportsTable.reportedUserId,
+        reason: userReportsTable.reason,
+        automatic: userReportsTable.automatic,
+      })
+      .from(userReportsTable)
+      .where(conditions.length > 1 ? and(...conditions) : conditions[0])
+      .orderBy(userReportsTable.id)
+      .limit(limit + 1);
+
+    // Remove the extra item and use it to determine if there are more results
+    const hasNextPage = reports.length > limit;
+    const results = reports.slice(0, limit);
+
+    return {
+      data: results.map((report) => ({
+        id: report.id,
+        reporterUserId: report.reporterUserId,
+        reportedUserId: report.reportedUserId,
+        reason: report.reason,
+        automatic: report.automatic,
+      })),
+      nextCursor: hasNextPage ? reports[reports.length - 1].id : undefined,
+      hasMore: hasNextPage,
+    };
   }
 
   public async getUserBans(

@@ -122,3 +122,40 @@ export const GetUserBansResponseSchema = z.object({
 });
 
 export type GetUserBansResponse = z.infer<typeof GetUserBansResponseSchema>;
+
+export const GetUserReportsRequestSchema = z
+  .object({
+    userId: z
+      .string()
+      .length(36)
+      .describe("The user ID to get reports for")
+      .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
+  })
+  .and(PaginationSchema);
+
+export type GetUserReportsRequest = z.infer<typeof GetUserReportsRequestSchema>;
+
+export const UserReportResponseSchema = z.object({
+  id: z.number().describe("Report ID"),
+  reporterUserId: z.string().describe("Reporter user ID"),
+  reportedUserId: z.string().describe("Reported user ID"),
+  reason: z.string().describe("Report reason"),
+  automatic: z.boolean().describe("Whether the report was automatic"),
+});
+
+export type UserReportResponse = z.infer<typeof UserReportResponseSchema>;
+
+export const GetUserReportsResponseSchema = z.object({
+  data: z.array(UserReportResponseSchema),
+  nextCursor: z
+    .number()
+    .optional()
+    .describe("Cursor for the next page of results"),
+  hasMore: z
+    .boolean()
+    .describe("Indicates if more pages are available for pagination"),
+});
+
+export type GetUserReportsResponse = z.infer<
+  typeof GetUserReportsResponseSchema
+>;

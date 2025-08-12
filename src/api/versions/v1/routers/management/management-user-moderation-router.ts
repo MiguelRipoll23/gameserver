@@ -5,6 +5,7 @@ import {
   BanUserRequestSchema,
   UnbanUserRequestSchema,
   GetUserBansResponseSchema,
+  GetUserReportsResponseSchema,
 } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -22,9 +23,69 @@ export class ManagementUserModerationRouter {
   }
 
   private setRoutes(): void {
+    this.registerGetUserReportsRoute();
     this.registerGetUserBansRoute();
     this.registerBanUserRoute();
     this.registerUnbanUserRoute();
+  }
+
+  private registerGetUserReportsRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "get",
+        path: "/reports/:userId",
+        summary: "Get user reports",
+        description:
+          "Retrieves all reports for a specific user with pagination",
+        tags: ["User reports"],
+        request: {
+          params: z.object({
+            userId: z
+              .string()
+              .length(36)
+              .describe("The user ID to get reports for"),
+          }),
+          query: z.object({
+            cursor: z
+              .string()
+              .optional()
+              .transform((val) => (val ? parseInt(val, 10) : undefined))
+              .describe("ID of the last item from previous page"),
+            limit: z
+              .string()
+              .optional()
+              .transform((val) => (val ? parseInt(val, 10) : undefined))
+              .describe("Maximum number of items to return"),
+          }),
+        },
+        responses: {
+          200: {
+            description: "Responds with user reports data",
+            content: {
+              "application/json": {
+                schema: GetUserReportsResponseSchema,
+              },
+            },
+          },
+          ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
+          ...ServerResponse.Forbidden,
+          ...ServerResponse.NotFound,
+        },
+      }),
+      async (c) => {
+        const userId = c.req.param("userId");
+        const { cursor, limit } = c.req.valid("query");
+
+        const response = await this.userModerationService.getUserReports({
+          userId,
+          cursor,
+          limit,
+        });
+
+        return c.json(response, 200);
+      }
+    );
   }
 
   private registerGetUserBansRoute(): void {
