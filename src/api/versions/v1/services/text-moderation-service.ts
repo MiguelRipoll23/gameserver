@@ -3,8 +3,8 @@ import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { eq, like, gt, asc, and } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { blockedWordsTable } from "../../../../db/schema.ts";
 import {
-  blockedWordsTable,
   type BlockedWordEntity,
   type BlockedWordInsertEntity,
 } from "../../../../db/tables/blocked-words-table.ts";

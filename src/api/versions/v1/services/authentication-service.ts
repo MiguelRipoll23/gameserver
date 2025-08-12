@@ -22,13 +22,16 @@ import {
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
-import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
+import { 
+  usersTable, 
+  userCredentialsTable,
+  userBansTable,
+  userRolesTable,
+  rolesTable
+} from "../../../../db/schema.ts";
 import { eq, and, lt } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
-import { userBansTable } from "../../../../db/tables/user-bans-table.ts";
-import { userRolesTable } from "../../../../db/tables/user-roles-table.ts";
-import { rolesTable } from "../../../../db/tables/roles-table.ts";
 import { desc } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import { SignatureService } from "./signature-service.ts";
