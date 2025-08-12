@@ -12,6 +12,7 @@ import {
   userBansTable,
 } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
+import { KICK_USER_EVENT } from "../constants/event-constants.ts";
 
 @injectable()
 export class UserModerationService {
@@ -62,6 +63,15 @@ export class UserModerationService {
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
       }`
     );
+
+    // Dispatch kick user event to notify WebSocket service
+    const kickUserEvent = new CustomEvent(KICK_USER_EVENT, {
+      detail: {
+        userId,
+      },
+    });
+
+    dispatchEvent(kickUserEvent);
   }
 
   public async unbanUser(userId: string): Promise<void> {

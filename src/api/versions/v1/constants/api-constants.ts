@@ -5,6 +5,3 @@ export const DEFAULT_ICE_SERVERS = [
   { urls: "stun:stun3.l.google.com:19302" },
   { urls: "stun:stun4.l.google.com:19302" },
 ];
-
-export const REFRESH_BLOCKED_WORDS_CACHE_CHANNEL =
-  "refresh_blocked_words_cache";

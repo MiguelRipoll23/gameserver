@@ -6,7 +6,7 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
-import { REFRESH_BLOCKED_WORDS_CACHE_CHANNEL } from "../constants/api-constants.ts";
+import { REFRESH_BLOCKED_WORDS_CACHE_CHANNEL } from "../constants/broadcast-channel-constants.ts";
 
 @injectable()
 export class ChatService {

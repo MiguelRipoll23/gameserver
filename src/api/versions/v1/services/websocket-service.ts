@@ -1,9 +1,8 @@
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
-import { NOTIFICATION_EVENT } from "../constants/event-constants.ts";
 import {
-  ONLINE_USERS_CHANNEL,
-  TUNNEL_CHANNEL,
-} from "../constants/websocket-constants.ts";
+  SEND_NOTIFICATION_EVENT,
+  KICK_USER_EVENT,
+} from "../constants/event-constants.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
@@ -18,11 +17,17 @@ import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
 import { userSessionsTable, matchesTable } from "../../../../db/schema.ts";
 import { count, eq } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
+import {
+  KICK_USER_CHANNEL,
+  NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL,
+  SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL,
+} from "../constants/broadcast-channel-constants.ts";
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
-  private tunnelBroadcastChannel: BroadcastChannel;
-  private onlineUsersBroadcastChannel: BroadcastChannel;
+  private notifyOnlineUsersCountBroadcastChannel: BroadcastChannel;
+  private sendTunnelMessageBroadcastChannel: BroadcastChannel;
+  private kickUserBroadcastChannel: BroadcastChannel;
   private usersById: Map<string, WebSocketUser>;
   private usersByToken: Map<string, WebSocketUser>;
 
@@ -34,10 +39,13 @@ export class WebSocketService implements WebSocketServer {
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
-    this.tunnelBroadcastChannel = new BroadcastChannel(TUNNEL_CHANNEL);
-    this.onlineUsersBroadcastChannel = new BroadcastChannel(
-      ONLINE_USERS_CHANNEL
+    this.notifyOnlineUsersCountBroadcastChannel = new BroadcastChannel(
+      NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL
     );
+    this.sendTunnelMessageBroadcastChannel = new BroadcastChannel(
+      SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL
+    );
+    this.kickUserBroadcastChannel = new BroadcastChannel(KICK_USER_CHANNEL);
     this.addBroadcastChannelListeners();
     this.addEventListeners();
     this.dispatcher.registerCommandHandlers(this);
@@ -68,11 +76,14 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private addBroadcastChannelListeners(): void {
-    this.tunnelBroadcastChannel.onmessage =
+    this.sendTunnelMessageBroadcastChannel.onmessage =
       this.handleTunnelBroadcastChannelMessage.bind(this);
 
-    this.onlineUsersBroadcastChannel.onmessage =
+    this.notifyOnlineUsersCountBroadcastChannel.onmessage =
       this.handleOnlineUsersBroadcastChannelMessage.bind(this);
+
+    this.kickUserBroadcastChannel.onmessage =
+      this.handleKickUserBroadcastChannelMessage.bind(this);
   }
 
   private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
@@ -95,10 +106,36 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
+  private handleKickUserBroadcastChannelMessage(event: MessageEvent): void {
+    const { userId } = event.data;
+    const user = this.usersById.get(userId);
+
+    if (user) {
+      console.log(`Kicking user ${user.getName()} (ID: ${userId}) due to ban`);
+      const webSocket = user.getWebSocket();
+
+      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+        webSocket.close(1000, "User has been banned");
+      }
+
+      // The handleDisconnection will be called automatically when the WebSocket closes
+    } else {
+      console.info(
+        `User with ID ${userId} not found in current server instance`
+      );
+    }
+  }
+
   private addEventListeners(): void {
-    addEventListener(NOTIFICATION_EVENT, (event): void => {
+    addEventListener(SEND_NOTIFICATION_EVENT, (event): void => {
       // deno-lint-ignore no-explicit-any
       this.sendNotificationToUsers((event as CustomEvent<any>).detail.message);
+    });
+
+    addEventListener(KICK_USER_EVENT, (event): void => {
+      // deno-lint-ignore no-explicit-any
+      const { userId } = (event as CustomEvent<any>).detail;
+      this.kickUser(userId);
     });
   }
 
@@ -263,7 +300,7 @@ export class WebSocketService implements WebSocketServer {
         `Token not found locally, broadcasting message...`,
         destinationToken
       );
-      this.tunnelBroadcastChannel.postMessage({
+      this.sendTunnelMessageBroadcastChannel.postMessage({
         destinationToken,
         payload,
       });
@@ -295,12 +332,33 @@ export class WebSocketService implements WebSocketServer {
       .unsignedInt16(totalSessions)
       .toArrayBuffer();
 
-    this.onlineUsersBroadcastChannel.postMessage({
+    this.notifyOnlineUsersCountBroadcastChannel.postMessage({
       payload: onlinePlayersPayload,
     });
 
     for (const user of this.usersByToken.values()) {
       this.sendMessage(user, onlinePlayersPayload);
+    }
+  }
+
+  private kickUser(userId: string): void {
+    const user = this.usersById.get(userId);
+
+    if (user) {
+      // User is connected to this server instance, kick them directly
+      const webSocket = user.getWebSocket();
+
+      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+        webSocket.close(1000, "User has been banned");
+        console.log(`Kicked user ${user.getName()} due to ban`);
+      }
+    } else {
+      // User not found locally, broadcast to other server instances
+      console.log(
+        `User with ID ${userId} not found locally, broadcasting kick message to other servers`
+      );
+
+      this.kickUserBroadcastChannel.postMessage({ userId });
     }
   }
 
