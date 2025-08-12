@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 export const PaginationSchema = z.object({
   cursor: z
     .number()
+    .positive()
     .optional()
     .describe("ID of the last item from previous page")
     .openapi({ example: 10 }),
