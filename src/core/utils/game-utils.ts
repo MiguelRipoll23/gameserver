@@ -1,4 +1,4 @@
-import { ENV_GAME_URL } from "../../api/versions/v1/constants/env-constants.ts";
+import { ENV_GAME_URL } from "../../api/versions/v1/constants/environment-constants.ts";
 
 export class GameUtils {
   public static getURL(): string {

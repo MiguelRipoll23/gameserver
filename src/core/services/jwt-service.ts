@@ -2,7 +2,7 @@ import { create, Payload, verify } from "@wok/djwt";
 import { CryptoUtils } from "../utils/crypto-utils.ts";
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
-import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/env-constants.ts";
+import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
 
 @injectable()
 export class JWTService {
