@@ -56,9 +56,9 @@ export type UserRoleResponse = z.infer<typeof UserRoleResponseSchema>;
 export const GetUserRolesResponseSchema = z.object({
   data: z.array(UserRoleResponseSchema),
   nextCursor: z
-    .number()
+    .string()
     .optional()
-    .describe("Cursor for the next page of results"),
+    .describe("Encoded cursor for the next page of results"),
   hasMore: z
     .boolean()
     .describe("Indicates if more pages are available for pagination"),

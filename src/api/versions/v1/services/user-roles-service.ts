@@ -13,7 +13,8 @@ import {
   userRolesTable,
   rolesTable,
 } from "../../../../db/schema.ts";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or, lt } from "drizzle-orm";
+import { Buffer } from "node:buffer";
 
 @injectable()
 export class UserRolesService {
@@ -29,8 +30,41 @@ export class UserRolesService {
       // Check if user exists
       await this.checkUserExists(db, userId);
 
+      // Decode cursor if provided
+      let cursorTimestamp: Date | null = null;
+      let cursorRoleId: string | null = null;
+
+      if (cursor !== undefined) {
+        try {
+          const decoded = this.decodeCursor(cursor);
+          cursorTimestamp = decoded.timestamp;
+          cursorRoleId = decoded.roleId;
+        } catch (error) {
+          // Invalid cursor, fall back to first page
+          console.warn(
+            "Invalid cursor provided, falling back to first page:",
+            error
+          );
+        }
+      }
+
       // Build the query with joins
-      let query = db
+      const whereConditions = [eq(userRolesTable.userId, userId)];
+
+      // Apply cursor-based pagination if cursor is provided and valid
+      if (cursorTimestamp && cursorRoleId) {
+        whereConditions.push(
+          or(
+            lt(userRolesTable.createdAt, cursorTimestamp)!,
+            and(
+              eq(userRolesTable.createdAt, cursorTimestamp),
+              lt(userRolesTable.roleId, cursorRoleId)
+            )!
+          )!
+        );
+      }
+
+      const query = db
         .select({
           userId: userRolesTable.userId,
           roleId: userRolesTable.roleId,
@@ -40,20 +74,9 @@ export class UserRolesService {
         })
         .from(userRolesTable)
         .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
-        .where(eq(userRolesTable.userId, userId))
-        .orderBy(desc(userRolesTable.createdAt))
+        .where(and(...whereConditions))
+        .orderBy(desc(userRolesTable.createdAt), userRolesTable.roleId)
         .limit(limit + 1); // Fetch one extra to check if there are more
-
-      // Apply cursor-based pagination if cursor is provided
-      if (cursor !== undefined) {
-        query = query.where(
-          and(
-            eq(userRolesTable.userId, userId)
-            // Since we're using timestamp-based pagination, we need to adjust this
-            // For simplicity, we'll use a simpler approach
-          )
-        );
-      }
 
       const results = await query;
 
@@ -70,14 +93,21 @@ export class UserRolesService {
         createdAt: row.createdAt.toISOString(),
       }));
 
+      // Generate next cursor if there are more results
+      let nextCursor: string | undefined;
+      if (hasMore && data.length > 0) {
+        const lastItem = data[data.length - 1];
+        nextCursor = this.encodeCursor(lastItem.createdAt, lastItem.roleId);
+      }
+
       return {
         data: formattedData,
         hasMore,
-        nextCursor: hasMore ? data.length : undefined,
+        nextCursor,
       };
     } catch (error) {
       console.error("Error getting user roles:", error);
-      throw new ServerError("Failed to get user roles", 500);
+      throw new ServerError("DATABASE_ERROR", "Failed to get user roles", 500);
     }
   }
 
@@ -106,7 +136,11 @@ export class UserRolesService {
           .returning({ userId: userRolesTable.userId });
 
         if (result.length === 0) {
-          throw new ServerError("User already has this role", 409);
+          throw new ServerError(
+            "ROLE_ALREADY_EXISTS",
+            "User already has this role",
+            409
+          );
         }
       });
     } catch (error) {
@@ -114,7 +148,7 @@ export class UserRolesService {
         throw error;
       }
       console.error("Error adding user role:", error);
-      throw new ServerError("Failed to add user role", 500);
+      throw new ServerError("DATABASE_ERROR", "Failed to add user role", 500);
     }
   }
 
@@ -142,7 +176,11 @@ export class UserRolesService {
           .returning({ userId: userRolesTable.userId });
 
         if (result.length === 0) {
-          throw new ServerError("User does not have this role", 404);
+          throw new ServerError(
+            "ROLE_NOT_FOUND",
+            "User does not have this role",
+            404
+          );
         }
       });
     } catch (error) {
@@ -150,12 +188,53 @@ export class UserRolesService {
         throw error;
       }
       console.error("Error removing user role:", error);
-      throw new ServerError("Failed to remove user role", 500);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to remove user role",
+        500
+      );
+    }
+  }
+
+  /**
+   * Encodes a cursor from timestamp and roleId for stable pagination
+   */
+  private encodeCursor(timestamp: Date, roleId: string): string {
+    const cursor = {
+      timestamp: timestamp.getTime(),
+      roleId: roleId,
+    };
+    return Buffer.from(JSON.stringify(cursor)).toString("base64");
+  }
+
+  /**
+   * Decodes a cursor to extract timestamp and roleId
+   */
+  private decodeCursor(cursor: string): { timestamp: Date; roleId: string } {
+    try {
+      const decoded = JSON.parse(
+        Buffer.from(cursor, "base64").toString("utf-8")
+      );
+
+      if (!decoded.timestamp || !decoded.roleId) {
+        throw new Error("Invalid cursor format: missing timestamp or roleId");
+      }
+
+      return {
+        timestamp: new Date(decoded.timestamp),
+        roleId: decoded.roleId,
+      };
+    } catch (error) {
+      throw new Error(
+        `Failed to decode cursor: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   }
 
   private async checkUserExists(
-    db: NodePgDatabase<any>,
+    db: NodePgDatabase<Record<string, never>>,
     userId: string
   ): Promise<void> {
     const user = await db
@@ -165,12 +244,12 @@ export class UserRolesService {
       .limit(1);
 
     if (user.length === 0) {
-      throw new ServerError("User not found", 404);
+      throw new ServerError("USER_NOT_FOUND", "User not found", 404);
     }
   }
 
   private async checkRoleExists(
-    db: NodePgDatabase<any>,
+    db: NodePgDatabase<Record<string, never>>,
     roleId: string
   ): Promise<void> {
     const role = await db
@@ -180,7 +259,7 @@ export class UserRolesService {
       .limit(1);
 
     if (role.length === 0) {
-      throw new ServerError("Role not found", 404);
+      throw new ServerError("ROLE_NOT_FOUND", "Role not found", 404);
     }
   }
 }
