@@ -2,13 +2,9 @@ import { z } from "@hono/zod-openapi";
 
 export const PaginationSchema = z.object({
   cursor: z
-    .string()
+    .number()
     .optional()
-    .describe("Encoded cursor for pagination")
-    .openapi({
-      example:
-        "eyJ0aW1lc3RhbXAiOjE2OTQ5NzYwMDAwMDAsInJvbGVJZCI6IjExMTExMTExLTExMTEtMTExMS0xMTExLTExMTExMTExMTExMSJ9",
-    }),
+    .describe("Cursor for pagination (ID of last item from previous page)"),
   limit: z
     .number()
     .min(1)
@@ -24,18 +20,18 @@ export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(
   dataSchema: T
 ) =>
   z.object({
-    data: z.array(dataSchema),
+    results: z.array(dataSchema),
     nextCursor: z
-      .string()
+      .number()
       .optional()
-      .describe("Encoded cursor for the next page of results"),
+      .describe("Cursor for the next page of results"),
     hasMore: z
       .boolean()
       .describe("Indicates if more pages are available for pagination"),
   });
 
 export type PaginatedResponse<T> = {
-  data: T[];
-  nextCursor?: string;
+  results: T[];
+  nextCursor?: number;
   hasMore: boolean;
 };

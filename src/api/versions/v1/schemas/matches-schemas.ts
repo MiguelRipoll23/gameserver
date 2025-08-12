@@ -1,5 +1,8 @@
 import { z } from "@hono/zod-openapi";
-import { PaginationSchema } from "./pagination-schemas.ts";
+import {
+  PaginationSchema,
+  PaginatedResponseSchema,
+} from "./pagination-schemas.ts";
 
 export const AdvertiseMatchRequestSchema = z.object({
   version: z
@@ -50,19 +53,11 @@ export const FindMatchesRequestSchema = z
 
 export type FindMatchesRequest = z.infer<typeof FindMatchesRequestSchema>;
 
-export const FindMatchesResponseSchema = z.object({
-  results: z.array(
-    z.object({
-      token: z.string().describe("Token used to join the match"),
-    })
-  ),
-  nextCursor: z
-    .number()
-    .optional()
-    .describe("Cursor for the next page of results"),
-  hasMore: z
-    .boolean()
-    .describe("Indicates if more pages are available for pagination"),
+export const MatchResultSchema = z.object({
+  token: z.string().describe("Token used to join the match"),
 });
+
+export const FindMatchesResponseSchema =
+  PaginatedResponseSchema(MatchResultSchema);
 
 export type FindMatchesResponse = z.infer<typeof FindMatchesResponseSchema>;

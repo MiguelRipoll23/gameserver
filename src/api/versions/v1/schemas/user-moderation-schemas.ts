@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { PaginationSchema } from "./pagination-schemas.ts";
+import { PaginatedResponseSchema } from "./pagination-schemas.ts";
 
 export const BanDurationSchema = z
   .object({
@@ -86,15 +86,24 @@ export const ReportUserRequestSchema = z.object({
 
 export type ReportUserRequest = z.infer<typeof ReportUserRequestSchema>;
 
-export const GetUserBansRequestSchema = z
-  .object({
-    userId: z
-      .string()
-      .length(36)
-      .describe("The user ID to get bans for")
-      .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
-  })
-  .and(PaginationSchema);
+export const GetUserBansRequestSchema = z.object({
+  userId: z
+    .string()
+    .length(36)
+    .describe("The user ID to get bans for")
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
+  cursor: z
+    .number()
+    .optional()
+    .describe("Cursor for pagination (ID of last item from previous page)"),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Maximum number of items to return")
+    .openapi({ example: 20 }),
+});
 
 export type GetUserBansRequest = z.infer<typeof GetUserBansRequestSchema>;
 
@@ -109,28 +118,30 @@ export const UserBanResponseSchema = z.object({
 
 export type UserBanResponse = z.infer<typeof UserBanResponseSchema>;
 
-export const GetUserBansResponseSchema = z.object({
-  data: z.array(UserBanResponseSchema),
-  nextCursor: z
-    .number()
-    .optional()
-    .describe("Cursor for the next page of results"),
-  hasMore: z
-    .boolean()
-    .describe("Indicates if more pages are available for pagination"),
-});
+export const GetUserBansResponseSchema = PaginatedResponseSchema(
+  UserBanResponseSchema
+);
 
 export type GetUserBansResponse = z.infer<typeof GetUserBansResponseSchema>;
 
-export const GetUserReportsRequestSchema = z
-  .object({
-    userId: z
-      .string()
-      .length(36)
-      .describe("The user ID to get reports for")
-      .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
-  })
-  .and(PaginationSchema);
+export const GetUserReportsRequestSchema = z.object({
+  userId: z
+    .string()
+    .length(36)
+    .describe("The user ID to get reports for")
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
+  cursor: z
+    .number()
+    .optional()
+    .describe("Cursor for pagination (ID of last item from previous page)"),
+  limit: z
+    .number()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe("Maximum number of items to return")
+    .openapi({ example: 20 }),
+});
 
 export type GetUserReportsRequest = z.infer<typeof GetUserReportsRequestSchema>;
 
@@ -144,16 +155,9 @@ export const UserReportResponseSchema = z.object({
 
 export type UserReportResponse = z.infer<typeof UserReportResponseSchema>;
 
-export const GetUserReportsResponseSchema = z.object({
-  data: z.array(UserReportResponseSchema),
-  nextCursor: z
-    .number()
-    .optional()
-    .describe("Cursor for the next page of results"),
-  hasMore: z
-    .boolean()
-    .describe("Indicates if more pages are available for pagination"),
-});
+export const GetUserReportsResponseSchema = PaginatedResponseSchema(
+  UserReportResponseSchema
+);
 
 export type GetUserReportsResponse = z.infer<
   typeof GetUserReportsResponseSchema

@@ -1,10 +1,9 @@
-import { pgTable, varchar, timestamp, uuid } from "drizzle-orm/pg-core";
+import { pgTable, varchar, timestamp, integer } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const rolesTable = pgTable("roles", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   name: varchar("name", { length: 50 }).notNull().unique(),
-  description: varchar("description", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

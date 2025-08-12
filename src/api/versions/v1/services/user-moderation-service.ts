@@ -179,7 +179,7 @@ export class UserModerationService {
         const results = reports.slice(0, limit);
 
         return {
-          data: results.map((report) => ({
+          results: results.map((report) => ({
             id: report.id,
             reporterUserId: report.reporterUserId,
             reportedUserId: report.reportedUserId,
@@ -245,7 +245,7 @@ export class UserModerationService {
         const results = bans.slice(0, limit);
 
         return {
-          data: results.map((ban) => ({
+          results: results.map((ban) => ({
             id: ban.id,
             userId: ban.userId,
             reason: ban.reason,

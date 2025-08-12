@@ -29,6 +29,27 @@
       "when": 1755000172899,
       "tag": "0003_groovy_valkyrie",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1755003900700,
+      "tag": "0004_sticky_captain_flint",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1755006688988,
+      "tag": "0005_pretty_talisman",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1755010362798,
+      "tag": "0006_bright_shadow_king",
+      "breakpoints": true
     }
   ]
 }
