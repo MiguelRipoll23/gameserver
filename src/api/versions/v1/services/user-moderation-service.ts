@@ -129,7 +129,7 @@ export class UserModerationService {
           reporterUserId,
           reportedUserId: userId,
           reason,
-          automatic,
+          automatic: automatic ?? false,
         });
       });
     } catch (error) {
