@@ -7,6 +7,7 @@ import { ManagementConfigurationRouter } from "./management/management-configura
 import { ManagementVersionRouter } from "./management/management-version-router.ts";
 import { ManagementUserModerationRouter } from "./management/management-user-moderation-router.ts";
 import { ManagementTextModerationRouter } from "./management/management-text-moderation-router.ts";
+import { ManagementUserRolesRouter } from "./management/management-user-roles-router.ts";
 
 @injectable()
 export class V1ManagementUserRouter {
@@ -19,7 +20,8 @@ export class V1ManagementUserRouter {
     private messageRouter = inject(ManagementMessageRouter),
     private notificationRouter = inject(ManagementNotificationRouter),
     private userModerationRouter = inject(ManagementUserModerationRouter),
-    private textModerationRouter = inject(ManagementTextModerationRouter)
+    private textModerationRouter = inject(ManagementTextModerationRouter),
+    private userRolesRouter = inject(ManagementUserRolesRouter)
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();
@@ -41,6 +43,7 @@ export class V1ManagementUserRouter {
   private setRoutes(): void {
     this.app.route("/game-version", this.versionRouter.getRouter());
     this.app.route("/user-moderation", this.userModerationRouter.getRouter());
+    this.app.route("/user-roles", this.userRolesRouter.getRouter());
     this.app.route("/text-moderation", this.textModerationRouter.getRouter());
     this.app.route("/game-configuration", this.configurationRouter.getRouter());
     this.app.route("/server-messages", this.messageRouter.getRouter());
