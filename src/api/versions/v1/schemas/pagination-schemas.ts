@@ -1,17 +1,17 @@
 import { z } from "@hono/zod-openapi";
 
 export const PaginationSchema = z.object({
-  cursor: z
+  cursor: z.coerce
     .number()
     .optional()
     .describe("Cursor for pagination (ID of last item from previous page)"),
-  limit: z
+  limit: z.coerce
     .number()
     .min(1)
     .max(100)
     .optional()
     .describe("Maximum number of items to return")
-    .openapi({ example: 20 }),
+    .openapi({ example: 10 }),
 });
 
 export type PaginationParams = z.infer<typeof PaginationSchema>;

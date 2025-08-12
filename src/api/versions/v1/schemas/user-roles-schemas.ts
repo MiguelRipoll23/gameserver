@@ -1,5 +1,8 @@
 import { z } from "@hono/zod-openapi";
-import { PaginatedResponseSchema } from "./pagination-schemas.ts";
+import {
+  PaginatedResponseSchema,
+  PaginationSchema,
+} from "./pagination-schemas.ts";
 
 export const AddUserRoleRequestSchema = z.object({
   userId: z
@@ -33,26 +36,18 @@ export const RemoveUserRoleRequestSchema = z.object({
 
 export type RemoveUserRoleRequest = z.infer<typeof RemoveUserRoleRequestSchema>;
 
-export const GetUserRolesRequestSchema = z.object({
+export const GetUserRolesRequestSchema = PaginationSchema.extend({
   userId: z
     .string()
     .length(36)
     .describe("The user ID to get roles for")
     .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
-  cursor: z
-    .number()
-    .optional()
-    .describe("Cursor for pagination (ID of last item from previous page)"),
-  limit: z
-    .number()
-    .min(1)
-    .max(100)
-    .optional()
-    .describe("Maximum number of items to return")
-    .openapi({ example: 20 }),
 });
 
 export type GetUserRolesRequest = z.infer<typeof GetUserRolesRequestSchema>;
+
+// Query-only schema for HTTP routes (without userId since it comes from path)
+export const GetUserRolesQuerySchema = PaginationSchema;
 
 export const UserRoleResponseSchema = z.object({
   userId: z.string().describe("User ID"),

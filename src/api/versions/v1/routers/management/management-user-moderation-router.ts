@@ -6,6 +6,8 @@ import {
   UnbanUserRequestSchema,
   GetUserBansResponseSchema,
   GetUserReportsResponseSchema,
+  GetUserBansQuerySchema,
+  GetUserReportsQuerySchema,
 } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -45,18 +47,7 @@ export class ManagementUserModerationRouter {
               .length(36)
               .describe("The user ID to get reports for"),
           }),
-          query: z.object({
-            cursor: z
-              .string()
-              .optional()
-              .transform((val) => (val ? parseInt(val, 10) : undefined))
-              .describe("ID of the last item from previous page"),
-            limit: z
-              .string()
-              .optional()
-              .transform((val) => (val ? parseInt(val, 10) : undefined))
-              .describe("Maximum number of items to return"),
-          }),
+          query: GetUserReportsQuerySchema,
         },
         responses: {
           200: {
@@ -103,18 +94,7 @@ export class ManagementUserModerationRouter {
               .length(36)
               .describe("The user ID to get bans for"),
           }),
-          query: z.object({
-            cursor: z
-              .string()
-              .optional()
-              .transform((val) => (val ? parseInt(val, 10) : undefined))
-              .describe("ID of the last item from previous page"),
-            limit: z
-              .string()
-              .optional()
-              .transform((val) => (val ? parseInt(val, 10) : undefined))
-              .describe("Maximum number of items to return"),
-          }),
+          query: GetUserBansQuerySchema,
         },
         responses: {
           200: {

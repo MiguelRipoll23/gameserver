@@ -1,5 +1,8 @@
 import { z } from "@hono/zod-openapi";
-import { PaginatedResponseSchema } from "./pagination-schemas.ts";
+import {
+  PaginatedResponseSchema,
+  PaginationSchema,
+} from "./pagination-schemas.ts";
 
 export const BanDurationSchema = z
   .object({
@@ -86,26 +89,18 @@ export const ReportUserRequestSchema = z.object({
 
 export type ReportUserRequest = z.infer<typeof ReportUserRequestSchema>;
 
-export const GetUserBansRequestSchema = z.object({
+export const GetUserBansRequestSchema = PaginationSchema.extend({
   userId: z
     .string()
     .length(36)
     .describe("The user ID to get bans for")
     .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
-  cursor: z
-    .number()
-    .optional()
-    .describe("Cursor for pagination (ID of last item from previous page)"),
-  limit: z
-    .number()
-    .min(1)
-    .max(100)
-    .optional()
-    .describe("Maximum number of items to return")
-    .openapi({ example: 20 }),
 });
 
 export type GetUserBansRequest = z.infer<typeof GetUserBansRequestSchema>;
+
+// Query-only schema for HTTP routes (without userId since it comes from path)
+export const GetUserBansQuerySchema = PaginationSchema;
 
 export const UserBanResponseSchema = z.object({
   userId: z.string().describe("User ID"),
@@ -123,26 +118,18 @@ export const GetUserBansResponseSchema = PaginatedResponseSchema(
 
 export type GetUserBansResponse = z.infer<typeof GetUserBansResponseSchema>;
 
-export const GetUserReportsRequestSchema = z.object({
+export const GetUserReportsRequestSchema = PaginationSchema.extend({
   userId: z
     .string()
     .length(36)
     .describe("The user ID to get reports for")
     .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
-  cursor: z
-    .number()
-    .optional()
-    .describe("Cursor for pagination (ID of last item from previous page)"),
-  limit: z
-    .number()
-    .min(1)
-    .max(100)
-    .optional()
-    .describe("Maximum number of items to return")
-    .openapi({ example: 20 }),
 });
 
 export type GetUserReportsRequest = z.infer<typeof GetUserReportsRequestSchema>;
+
+// Query-only schema for HTTP routes (without userId since it comes from path)
+export const GetUserReportsQuerySchema = PaginationSchema;
 
 export const UserReportResponseSchema = z.object({
   reporterUserId: z.string().describe("Reporter user ID"),

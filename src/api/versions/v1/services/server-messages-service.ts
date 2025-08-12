@@ -1,10 +1,10 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import {
-  CreateMessageRequest,
-  GetMessageResponse,
-  UpdateMessageRequest,
-} from "../schemas/messages-schemas.ts";
+  CreateServerMessageRequest,
+  GetServerMessageResponse,
+  UpdateServerMessageRequest,
+} from "../schemas/server-messages-schemas.ts";
 import { serverMessagesTable } from "../../../../db/schema.ts";
 import { desc, eq } from "drizzle-orm";
 import { ServerError } from "../models/server-error.ts";
@@ -13,7 +13,7 @@ import { ServerError } from "../models/server-error.ts";
 export class ServerMessagesService {
   constructor(private databaseService = inject(DatabaseService)) {}
 
-  public async list(): Promise<GetMessageResponse> {
+  public async list(): Promise<GetServerMessageResponse> {
     const db = this.databaseService.get();
     const messages = await db
       .select()
@@ -30,7 +30,9 @@ export class ServerMessagesService {
     }));
   }
 
-  public async create(messageRequest: CreateMessageRequest): Promise<void> {
+  public async create(
+    messageRequest: CreateServerMessageRequest
+  ): Promise<void> {
     const db = this.databaseService.get();
     await db.insert(serverMessagesTable).values({
       title: messageRequest.title,
@@ -55,8 +57,8 @@ export class ServerMessagesService {
   }
 
   public async update(
-    messageRequest: UpdateMessageRequest
-  ): Promise<GetMessageResponse[number]> {
+    messageRequest: UpdateServerMessageRequest
+  ): Promise<GetServerMessageResponse[number]> {
     const db = this.databaseService.get();
 
     const updated = await db

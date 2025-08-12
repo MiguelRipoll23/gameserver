@@ -5,6 +5,7 @@ import {
   AddUserRoleRequestSchema,
   RemoveUserRoleRequestSchema,
   GetUserRolesResponseSchema,
+  GetUserRolesQuerySchema,
 } from "../../schemas/user-roles-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -43,18 +44,7 @@ export class ManagementUserRolesRouter {
               .length(36)
               .describe("The user ID to get roles for"),
           }),
-          query: z.object({
-            cursor: z
-              .string()
-              .optional()
-              .transform((val) => (val ? parseInt(val, 10) : undefined))
-              .describe("ID of the last item from previous page"),
-            limit: z
-              .string()
-              .optional()
-              .transform((val) => (val ? parseInt(val, 10) : undefined))
-              .describe("Maximum number of items to return"),
-          }),
+          query: GetUserRolesQuerySchema,
         },
         responses: {
           200: {
