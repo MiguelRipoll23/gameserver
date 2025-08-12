@@ -108,7 +108,6 @@ export const GetUserBansRequestSchema = z.object({
 export type GetUserBansRequest = z.infer<typeof GetUserBansRequestSchema>;
 
 export const UserBanResponseSchema = z.object({
-  id: z.number().describe("Ban ID"),
   userId: z.string().describe("User ID"),
   reason: z.string().describe("Ban reason"),
   createdAt: z.string().describe("Ban creation date"),
@@ -146,7 +145,6 @@ export const GetUserReportsRequestSchema = z.object({
 export type GetUserReportsRequest = z.infer<typeof GetUserReportsRequestSchema>;
 
 export const UserReportResponseSchema = z.object({
-  id: z.number().describe("Report ID"),
   reporterUserId: z.string().describe("Reporter user ID"),
   reportedUserId: z.string().describe("Reported user ID"),
   reason: z.string().describe("Report reason"),

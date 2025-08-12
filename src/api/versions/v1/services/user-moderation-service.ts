@@ -180,7 +180,6 @@ export class UserModerationService {
 
         return {
           results: results.map((report) => ({
-            id: report.id,
             reporterUserId: report.reporterUserId,
             reportedUserId: report.reportedUserId,
             reason: report.reason,
@@ -246,7 +245,6 @@ export class UserModerationService {
 
         return {
           results: results.map((ban) => ({
-            id: ban.id,
             userId: ban.userId,
             reason: ban.reason,
             createdAt: ban.createdAt.toISOString(),
