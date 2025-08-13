@@ -2,7 +2,7 @@
 
 A game server built for Deno.
 
-[Go to example game](https://miguelripoll23.github.io/hood-ball/)
+[Go to example game](https://hoodball.vercel.app)
 
 ## Features
 
