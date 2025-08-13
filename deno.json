@@ -16,6 +16,7 @@
   },
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
+    "debug": "deno run --inspect-wait --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
     "check": "deno check src/main.ts",
     "studio": "deno run -A --node-modules-dir npm:drizzle-kit studio",
     "generate": "deno run -A --node-modules-dir npm:drizzle-kit generate",
