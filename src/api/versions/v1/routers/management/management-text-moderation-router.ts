@@ -38,7 +38,7 @@ export class ManagementTextModerationRouter {
         summary: "Get blocked words",
         description:
           "Gets a paginated list of blocked words with optional filtering",
-        tags: ["Text moderation"],
+        tags: ["Blocked words"],
         request: {
           query: GetBlockedWordsRequestSchema,
         },
@@ -73,7 +73,7 @@ export class ManagementTextModerationRouter {
         path: "/block-word",
         summary: "Block word",
         description: "Adds a word to the blocked words list",
-        tags: ["Text moderation"],
+        tags: ["Blocked words"],
         request: {
           body: {
             content: {
@@ -106,7 +106,7 @@ export class ManagementTextModerationRouter {
         path: "/update-word",
         summary: "Update word",
         description: "Updates an existing word in the blocked words list",
-        tags: ["Text moderation"],
+        tags: ["Blocked words"],
         request: {
           body: {
             content: {
@@ -140,7 +140,7 @@ export class ManagementTextModerationRouter {
         path: "/blocked-words/{word}",
         summary: "Unblock word",
         description: "Removes a word from the blocked words list",
-        tags: ["Text moderation"],
+        tags: ["Blocked words"],
         request: {
           params: UnblockWordParamSchema,
         },

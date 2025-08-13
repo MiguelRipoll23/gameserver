@@ -31,7 +31,7 @@ export class ChatService {
 
   private addEventListeners(): void {
     addEventListener(REFRESH_BLOCKED_WORDS_CACHE, (): void => {
-      this.refreshBlockedWordsCache();
+      this.refreshBlockedWordsCacheBroadcastChannel.postMessage(null);
     });
   }
 
@@ -58,8 +58,6 @@ export class ChatService {
       this.blockedWords = [];
       this.cacheInitialized = false;
     }
-
-    this.refreshBlockedWordsCacheBroadcastChannel.postMessage(null);
   }
 
   private async ensureCacheInitialized(): Promise<void> {
