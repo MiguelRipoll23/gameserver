@@ -1,0 +1,15 @@
+{
+  "configurations": [
+    {
+      "name": "Run server",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "deno",
+      "runtimeArgs": ["task", "debug"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "attachSimplePort": 9229,
+      "outputCapture": "std"
+    }
+  ]
+}
