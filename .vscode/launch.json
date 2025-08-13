@@ -1,0 +1,26 @@
+{
+  "configurations": [
+    {
+      "name": "Run server",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "deno",
+      "runtimeArgs": [
+        "run",
+        "--inspect-wait",
+        "--allow-env",
+        "--allow-read",
+        "--unstable-kv",
+        "--unstable-broadcast-channel",
+        "--allow-net",
+        "--env",
+        "--watch",
+        "src/main.ts"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "attachSimplePort": 9229,
+      "outputCapture": "std"
+    }
+  ]
+}
