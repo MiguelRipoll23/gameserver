@@ -64,7 +64,11 @@ export class WebSocketService {
       return;
     }
 
-    if (!this.webSocket || this.webSocket.readyState === WebSocket.CLOSED) {
+    if (
+      !this.webSocket ||
+      this.webSocket.readyState === WebSocket.CLOSED ||
+      this.webSocket.readyState === WebSocket.CLOSING
+    ) {
       this.connect();
     }
 
@@ -87,6 +91,7 @@ export class WebSocketService {
       this.disconnectedGracefully = true;
       this.cleanupListeners();
       this.webSocket.close();
+      this.webSocket = null;
     }
   }
 
