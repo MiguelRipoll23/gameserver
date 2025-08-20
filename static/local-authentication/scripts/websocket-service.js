@@ -58,9 +58,9 @@ export class WebSocketService {
     }
   }
 
-  sendAuthenticationResponse(authenticationResponse) {
+  connectAndSendAuthenticationResponse(authenticationResponse) {
     if (this.isConnected()) {
-      this.sendMessage(authenticationResponse);
+      this.sendAuthenticationResponse(authenticationResponse);
       return;
     }
 
@@ -81,9 +81,14 @@ export class WebSocketService {
 
     this.webSocket.addEventListener(
       "open",
-      () => this.sendMessage(authenticationResponse),
+      () => this.sendAuthenticationResponse(authenticationResponse),
       { once: true }
     );
+  }
+
+  sendAuthenticationResponse(authenticationResponse) {
+    this.sendMessage(authenticationResponse);
+    this.dispatchConnectionEvent("authenticated");
   }
 
   closeConnection() {
