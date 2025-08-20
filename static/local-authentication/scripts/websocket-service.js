@@ -58,9 +58,9 @@ export class WebSocketService {
     }
   }
 
-  sendAuthenticationResponse(authenticationResponse) {
+  connectAndSendAuthenticationResponse(authenticationResponse) {
     if (this.isConnected()) {
-      this.sendMessage(authenticationResponse);
+      this.sendAuthenticationResponse(authenticationResponse);
       return;
     }
 
@@ -81,11 +81,23 @@ export class WebSocketService {
 
     this.webSocket.addEventListener(
       "open",
-      () => this.sendMessage(authenticationResponse),
+      () => this.sendAuthenticationResponse(authenticationResponse),
       { once: true }
     );
   }
 
+  sendAuthenticationResponse(authenticationResponse) {
+    if (!this.isConnected()) {
+      this.dispatchConnectionEvent("error", { error: new Error("WebSocket is not open") });
+      return;
+    }
+    try {
+      this.webSocket.send(JSON.stringify(authenticationResponse));
+      this.dispatchConnectionEvent("authenticated");
+    } catch (error) {
+      this.dispatchConnectionEvent("error", { error });
+    }
+  }
   closeConnection() {
     if (this.webSocket) {
       this.disconnectedGracefully = true;

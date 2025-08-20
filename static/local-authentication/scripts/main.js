@@ -51,7 +51,7 @@ function handleDisplayNameInput() {
 function handleWebSocketConnection(event) {
   const { status } = event.detail;
 
-  if (status === "connected") {
+  if (status === "authenticated") {
     alert("Return to game");
   } else if (status === "error") {
     alert("Connection to game client failed");
@@ -60,7 +60,7 @@ function handleWebSocketConnection(event) {
 }
 
 function handleAuthenticationSuccess(event) {
-  websocketService.sendAuthenticationResponse(event.detail);
+  websocketService.connectAndSendAuthenticationResponse(event.detail);
 }
 
 function validateDisplayName(name) {
