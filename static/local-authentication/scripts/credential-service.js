@@ -15,7 +15,14 @@ export class CredentialService {
       );
 
     const publicKey = {
+      ...authenticationOptions,
       challenge: this.base64UrlToArrayBuffer(authenticationOptions.challenge),
+      allowCredentials: authenticationOptions.allowCredentials?.map(
+        (credential) => ({
+          ...credential,
+          id: this.base64UrlToArrayBuffer(credential.id),
+        })
+      ),
     };
 
     let credential;

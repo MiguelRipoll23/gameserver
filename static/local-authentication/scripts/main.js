@@ -19,8 +19,11 @@ document.addEventListener(
   handleAuthenticationSuccess
 );
 
+playerIdDialogElement.showModal();
+
 async function handleSignIn() {
   disableButtons();
+
   try {
     await credentialService.getCredential();
   } catch (error) {
@@ -30,15 +33,29 @@ async function handleSignIn() {
 
 async function handleRegister() {
   disableButtons();
+
   try {
     const name = displayNameInputElement.value.trim();
-    if (!name) {
-      enableButtons();
-      return;
-    }
+    if (!validateDisplayName(name)) return;
+
     await credentialService.createCredential(name, name);
   } catch (error) {
     handleCredentialError(error);
+  }
+}
+
+function handleDisplayNameInput() {
+  registerButtonElement.disabled = !displayNameInputElement.value.trim();
+}
+
+function handleWebSocketConnection(event) {
+  const { status } = event.detail;
+
+  if (status === "connected") {
+    alert("Return to game");
+  } else if (status === "error") {
+    alert("Connection to game client failed");
+    enableButtons();
   }
 }
 
@@ -46,18 +63,13 @@ function handleAuthenticationSuccess(event) {
   websocketService.sendAuthenticationResponse(event.detail);
 }
 
-function handleWebSocketConnection(event) {
-  const { status } = event.detail;
-
-  switch (status) {
-    case "connected":
-      alert("Return to game");
-      break;
-    case "error":
-      alert("Connection to game client failed");
-      enableButtons();
-      break;
+function validateDisplayName(name) {
+  if (!name) {
+    enableButtons();
+    return false;
   }
+
+  return true;
 }
 
 function handleCredentialError(error) {
@@ -70,9 +82,9 @@ function handleCredentialError(error) {
 
 function handleError(error) {
   if (error.code && error.message) {
-    self.alert(error.message);
+    alert(error.message);
   } else {
-    self.alert("An unexpected error occurred");
+    alert("An unexpected error occurred");
     console.error(error);
   }
   enableButtons();
@@ -87,9 +99,3 @@ function enableButtons() {
   signInButtonElement.disabled = false;
   registerButtonElement.disabled = !displayNameInputElement.value.trim();
 }
-
-function handleDisplayNameInput() {
-  registerButtonElement.disabled = !displayNameInputElement.value.trim();
-}
-
-playerIdDialogElement.showModal();
