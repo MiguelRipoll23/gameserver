@@ -87,10 +87,17 @@ export class WebSocketService {
   }
 
   sendAuthenticationResponse(authenticationResponse) {
-    this.sendMessage(authenticationResponse);
-    this.dispatchConnectionEvent("authenticated");
+    if (!this.isConnected()) {
+      this.dispatchConnectionEvent("error", { error: new Error("WebSocket is not open") });
+      return;
+    }
+    try {
+      this.webSocket.send(JSON.stringify(authenticationResponse));
+      this.dispatchConnectionEvent("authenticated");
+    } catch (error) {
+      this.dispatchConnectionEvent("error", { error });
+    }
   }
-
   closeConnection() {
     if (this.webSocket) {
       this.disconnectedGracefully = true;
