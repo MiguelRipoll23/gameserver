@@ -1,7 +1,7 @@
 export class WebAuthnUtils {
   private static readonly LOCALHOST_RP_ID = "localhost";
   private static readonly LOCALHOST_RP_NAME = "Game server API";
-  private static readonly LOCALHOST_ORIGIN = "http://localhost:5173";
+  private static readonly LOCALHOST_ORIGIN = "http://localhost:8000";
 
   public static getRelyingPartyID(): string {
     return Deno.env.get("RP_ID") ?? WebAuthnUtils.LOCALHOST_RP_ID;
