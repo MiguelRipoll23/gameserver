@@ -1,6 +1,10 @@
 export class WebSocketService {
   static WEBSOCKET_PORT = 3000;
-  static WEBSOCKET_URL = `ws://localhost:${this.WEBSOCKET_PORT}`;
+  static get WEBSOCKET_URL() {
+    const protocol = self.location.protocol === "https:" ? "wss" : "ws";
+    const host = self.location.hostname;
+    return `${protocol}://${host}:${this.WEBSOCKET_PORT}`;
+  }
 
   constructor() {
     this.webSocket = null;

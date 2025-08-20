@@ -13,17 +13,6 @@ body {
   font-size: 16px;
 }
 
-html,
-body,
-canvas {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  touch-action: none;
-  user-select: none;
-  outline: none;
-}
-
 dialog {
   border: 1px solid rgba(255, 255, 255, 0.4);
   padding: 20px;

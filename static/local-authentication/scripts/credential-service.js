@@ -18,10 +18,21 @@ export class CredentialService {
       challenge: this.base64UrlToArrayBuffer(authenticationOptions.challenge),
     };
 
-    const credential = await navigator.credentials.get({ publicKey });
+    let credential;
 
-    if (credential === null) {
-      throw new Error("User canceled credential request");
+    try {
+      credential = await navigator.credentials.get({ publicKey });
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === "AbortError" || error.name === "NotAllowedError")
+      ) {
+        console.log("User cancelled credential request");
+        return null;
+      }
+
+      console.error("Unexpected error during credential request:", error);
+      throw error;
     }
 
     const verifyAuthenticationRequest = {
@@ -33,10 +44,14 @@ export class CredentialService {
       const response = await this.apiService.verifyAuthenticationResponse(
         verifyAuthenticationRequest
       );
-      await this.handleAuthenticationResponse(response);
+
+      this.handleAuthenticationResponse(response);
     } catch (error) {
       if (this.isCredentialNotFoundError(error)) {
-        this.signalUnknownCredential(authenticationOptions.rpId, credential.id);
+        await this.signalUnknownCredential(
+          authenticationOptions.rpId,
+          credential.id
+        );
       }
       throw error;
     }
@@ -75,7 +90,23 @@ export class CredentialService {
       })),
     };
 
-    const credential = await navigator.credentials.create({ publicKey });
+    let credential;
+
+    try {
+      credential = await navigator.credentials.create({ publicKey });
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (error.name === "AbortError" || error.name === "NotAllowedError")
+      ) {
+        console.log("User cancelled credential creation");
+        return null;
+      }
+
+      console.error("Unexpected error during credential creation:", error);
+
+      throw error;
+    }
 
     const verifyRegistrationRequest = {
       transactionId,
@@ -85,7 +116,8 @@ export class CredentialService {
     const response = await this.apiService.verifyRegistration(
       verifyRegistrationRequest
     );
-    await this.handleAuthenticationResponse(response);
+
+    this.handleAuthenticationResponse(response);
   }
 
   isCredentialNotFoundError(error) {

@@ -1,5 +1,5 @@
-import { CredentialService } from "../scripts/credential-service.js";
-import { WebSocketService } from "../scripts/websocket-service.js";
+import { CredentialService } from "./credential-service.js";
+import { WebSocketService } from "./websocket-service.js";
 
 const credentialService = new CredentialService();
 const websocketService = new WebSocketService();
