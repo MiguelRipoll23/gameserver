@@ -64,6 +64,13 @@ export class WebSocketService {
       this.connect();
     }
 
+    if (!this.webSocket) {
+      this.dispatchConnectionEvent("error", {
+        error: new Error("WebSocket initialization failed"),
+      });
+      return;
+    }
+
     this.webSocket.addEventListener(
       "open",
       () => this.sendMessage(authenticationResponse),
