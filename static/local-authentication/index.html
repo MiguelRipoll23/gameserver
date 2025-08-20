@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Game Auth</title>
+    <link href="./styles/main.css" rel="stylesheet" />
+    <script defer type="module" src="./scripts/main.js"></script>
+  </head>
+  <body>
+    <dialog id="player-id-dialog">
+      <h1>Player ID</h1>
+      <input
+        id="display-name-input"
+        type="text"
+        placeholder="Enter display name..."
+        autocomplete="username webauthn"
+        autofocus
+      />
+      <button id="register-button" disabled="true">Register</button>
+      <hr />
+      <button id="sign-in-button">Sign in</button>
+    </dialog>
+  </body>
+</html>
