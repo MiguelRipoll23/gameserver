@@ -8,7 +8,7 @@
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@wok/djwt@^3.0.2": "3.0.2",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@^1.1.0": "1.1.0_hono@4.9.4_zod@4.0.17",
+    "npm:@hono/zod-openapi@^1.1.0": "1.1.0_hono@4.9.4_zod@4.1.0",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.3.10": "2.3.16",
     "npm:@peculiar/asn1-ecc@^2.3.8": "2.3.15",
@@ -23,7 +23,7 @@
     "npm:drizzle-orm@~0.44.4": "0.44.4_@types+pg@8.15.5_pg@8.16.3",
     "npm:hono@^4.9.4": "4.9.4",
     "npm:pg@^8.16.3": "8.16.3",
-    "npm:zod@^4.0.17": "4.0.17"
+    "npm:zod@^4.1.0": "4.1.0"
   },
   "jsr": {
     "@needle-di/core@1.0.0": {
@@ -58,11 +58,11 @@
     }
   },
   "npm": {
-    "@asteasolutions/zod-to-openapi@8.1.0_zod@4.0.17": {
+    "@asteasolutions/zod-to-openapi@8.1.0_zod@4.1.0": {
       "integrity": "sha512-tQFxVs05J/6QXXqIzj6rTRk3nj1HFs4pe+uThwE95jL5II2JfpVXkK+CqkO7aT0Do5AYqO6LDrKpleLUFXgY+g==",
       "dependencies": [
         "openapi3-ts",
-        "zod@4.0.17"
+        "zod@4.1.0"
       ]
     },
     "@drizzle-team/brocli@0.10.2": {
@@ -327,21 +327,21 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@1.1.0_hono@4.9.4_zod@4.0.17": {
+    "@hono/zod-openapi@1.1.0_hono@4.9.4_zod@4.1.0": {
       "integrity": "sha512-S4jVR+A/jI4MA/RKJqmpjdHAN2l/EsqLnKHBv68x3WxV1NGVe3Sh7f6LV6rHEGYNHfiqpD75664A/erc+r9dQA==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
         "@hono/zod-validator",
         "hono",
         "openapi3-ts",
-        "zod@4.0.17"
+        "zod@4.1.0"
       ]
     },
-    "@hono/zod-validator@0.7.2_hono@4.9.4_zod@4.0.17": {
+    "@hono/zod-validator@0.7.2_hono@4.9.4_zod@4.1.0": {
       "integrity": "sha512-ub5eL/NeZ4eLZawu78JpW/J+dugDAYhwqUIdp9KYScI6PZECij4Hx4UsrthlEUutqDDhPwRI0MscUfNkvn/mqQ==",
       "dependencies": [
         "hono",
-        "zod@4.0.17"
+        "zod@4.1.0"
       ]
     },
     "@levischuck/tiny-cbor@0.2.11": {
@@ -663,8 +663,8 @@
     "zod@3.24.1": {
       "integrity": "sha512-muH7gBL9sI1nciMZV67X5fTKKBLtwpZ5VBp1vsOQzj1MhrBZ4wlVCm3gedKZWLp0Oyel8sIGfeiz54Su+OVT+A=="
     },
-    "zod@4.0.17": {
-      "integrity": "sha512-1PHjlYRevNxxdy2JZ8JcNAw7rX8V9P1AKkP+x/xZfxB0K5FYfuV+Ug6P/6NVSR2jHQ+FzDDoDHS04nYUsOIyLQ=="
+    "zod@4.1.0": {
+      "integrity": "sha512-UWxluYj2IDX9MHRXTMbB/2eeWrAMmmMSESM+MfT9MQw8U1qo9q5ASW08anoJh6AJ7pkt099fLdNFmfI+4aChHg=="
     }
   },
   "workspace": {
@@ -681,7 +681,7 @@
       "npm:drizzle-orm@~0.44.4",
       "npm:hono@^4.9.4",
       "npm:pg@^8.16.3",
-      "npm:zod@^4.0.17"
+      "npm:zod@^4.1.0"
     ]
   }
 }
