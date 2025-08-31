@@ -4,6 +4,7 @@ import {
   KV_CONFIGURATION,
   KV_SIGNATURE_KEYS,
   KV_USER_KEYS,
+  KV_USER_KEYS_TTL_MS,
   KV_VERSION,
 } from "../constants/kv-constants.ts";
 import { VersionKV } from "../interfaces/kv/version-kv.ts";
@@ -63,7 +64,7 @@ export class KVService {
 
   public async setUserKey(userId: string, key: string): Promise<void> {
     await this.getKv().set([KV_USER_KEYS, userId], key, {
-      expireIn: 60 * 60 * 1_000,
+      expireIn: KV_USER_KEYS_TTL_MS,
     });
   }
 

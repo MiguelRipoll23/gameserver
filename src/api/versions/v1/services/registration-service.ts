@@ -38,7 +38,7 @@ export class RegistrationService {
     registrationOptionsRequest: GetRegistrationOptionsRequest,
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
-    console.log("Registration options for display name", displayName);
+    // console.debug("Registration options requested"); // avoid PII
 
     await this.ensureUserDoesNotExist(displayName);
 
@@ -62,6 +62,10 @@ export class RegistrationService {
         transactionId,
         data: options,
         createdAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: registrationOptionsTable.transactionId,
+        set: { data: options, createdAt: new Date() },
       });
 
     return options;
@@ -76,13 +80,8 @@ export class RegistrationService {
       transactionId,
     );
 
-    await this.databaseService
-      .get()
-      .delete(registrationOptionsTable)
-      .where(eq(registrationOptionsTable.transactionId, transactionId));
-
     const registrationResponse = registrationRequest
-      .registrationResponse as object as RegistrationResponseJSON;
+      .registrationResponse as unknown as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
@@ -117,14 +116,16 @@ export class RegistrationService {
   private async getRegistrationOptionsOrThrow(
     transactionId: string,
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const results = await this.databaseService
+    const consumed = await this.databaseService
       .get()
-      .select()
-      .from(registrationOptionsTable)
+      .delete(registrationOptionsTable)
       .where(eq(registrationOptionsTable.transactionId, transactionId))
-      .limit(1);
+      .returning({
+        data: registrationOptionsTable.data,
+        createdAt: registrationOptionsTable.createdAt,
+      });
 
-    if (results.length === 0) {
+    if (consumed.length === 0) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
         "Registration options not found",
@@ -132,7 +133,7 @@ export class RegistrationService {
       );
     }
 
-    const record = results[0];
+    const record = consumed[0];
 
     if (record.createdAt.getTime() + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
@@ -226,7 +227,7 @@ export class RegistrationService {
         await tx.insert(usersTable).values({
           id: user.id,
           displayName: user.displayName,
-          createdAt: new Date(user.createdAt),
+          createdAt: user.createdAt,
         });
 
         await tx.insert(userCredentialsTable).values({
@@ -243,6 +244,14 @@ export class RegistrationService {
       console.log(`Added credential and user for ${user.displayName}`);
     } catch (error) {
       console.error("Failed to add credential and user:", error);
+      // Unique violation -> display name taken
+      if ((error as any)?.code === "23505") {
+        throw new ServerError(
+          "DISPLAY_NAME_TAKEN",
+          "Display name is already taken",
+          409,
+        );
+      }
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
         "Failed to add credential and user",

@@ -62,6 +62,10 @@ export class AuthenticationService {
         transactionId,
         data: options,
         createdAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: authenticationOptionsTable.transactionId,
+        set: { data: options, createdAt: new Date() },
       });
 
     return options;
@@ -73,16 +77,11 @@ export class AuthenticationService {
   ): Promise<AuthenticationResponse> {
     const { transactionId } = authenticationRequest;
     const authenticationResponse = authenticationRequest
-      .authenticationResponse as object as AuthenticationResponseJSON;
+      .authenticationResponse as unknown as AuthenticationResponseJSON;
 
     const authenticationOptions = await this.getAuthenticationOptionsOrThrow(
       transactionId,
     );
-
-    await this.databaseService
-      .get()
-      .delete(authenticationOptionsTable)
-      .where(eq(authenticationOptionsTable.transactionId, transactionId));
 
     const credential = await this.getCredentialOrThrow(
       authenticationResponse.id,
@@ -151,14 +150,16 @@ export class AuthenticationService {
   private async getAuthenticationOptionsOrThrow(
     transactionId: string,
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    const results = await this.databaseService
+    const consumed = await this.databaseService
       .get()
-      .select()
-      .from(authenticationOptionsTable)
+      .delete(authenticationOptionsTable)
       .where(eq(authenticationOptionsTable.transactionId, transactionId))
-      .limit(1);
+      .returning({
+        data: authenticationOptionsTable.data,
+        createdAt: authenticationOptionsTable.createdAt,
+      });
 
-    if (results.length === 0) {
+    if (consumed.length === 0) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_NOT_FOUND",
         "Authentication options not found",
@@ -166,7 +167,7 @@ export class AuthenticationService {
       );
     }
 
-    const record = results[0];
+    const record = consumed[0];
 
     if (record.createdAt.getTime() + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
@@ -269,17 +270,28 @@ export class AuthenticationService {
     const newCounter = authenticationInfo.newCounter;
 
     try {
-      await this.databaseService.withRlsCredential(credential.id, (tx) => {
-        return tx
-          .update(userCredentialsTable)
-          .set({ counter: newCounter })
-          .where(
-            and(
-              eq(userCredentialsTable.id, credential.id),
-              lt(userCredentialsTable.counter, newCounter),
-            ),
-          );
-      });
+      const updated = await this.databaseService.withRlsCredential(
+        credential.id,
+        (tx) => {
+          return tx
+            .update(userCredentialsTable)
+            .set({ counter: newCounter })
+            .where(
+              and(
+                eq(userCredentialsTable.id, credential.id),
+                lt(userCredentialsTable.counter, newCounter),
+              ),
+            )
+            .returning({ id: userCredentialsTable.id });
+        },
+      );
+      if (updated.length === 0) {
+        throw new ServerError(
+          "CREDENTIAL_COUNTER_UPDATE_FAILED",
+          "Failed to update credential counter",
+          500,
+        );
+      }
     } catch (error) {
       console.error("Failed to update credential counter:", error);
       throw new ServerError(
