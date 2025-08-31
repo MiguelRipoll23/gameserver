@@ -244,13 +244,22 @@ export class RegistrationService {
       console.log(`Added credential and user for ${user.displayName}`);
     } catch (error) {
       console.error("Failed to add credential and user:", error);
-      // Unique violation -> display name taken
-      if ((error as any)?.code === "23505") {
-        throw new ServerError(
-          "DISPLAY_NAME_TAKEN",
-          "Display name is already taken",
-          409,
-        );
+      const pgErr = error as { code?: string; constraint?: string };
+      if (pgErr.code === "23505") {
+        switch (pgErr.constraint) {
+          case "users_display_name_unique":
+            throw new ServerError(
+              "DISPLAY_NAME_TAKEN",
+              "Display name is already taken",
+              409,
+            );
+          case "user_credentials_pkey":
+            throw new ServerError(
+              "CREDENTIAL_ALREADY_REGISTERED",
+              "Credential is already registered",
+              409,
+            );
+        }
       }
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
