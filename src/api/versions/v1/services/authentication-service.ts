@@ -268,30 +268,22 @@ export class AuthenticationService {
   ): Promise<void> {
     const { authenticationInfo } = verification;
     const newCounter = authenticationInfo.newCounter;
+    // Only attempt to update the stored counter when the authenticator's
+    // counter has actually increased. If the counter has not advanced, we
+    // simply skip the update instead of treating it as an error. This avoids
+    // throwing `CREDENTIAL_COUNTER_UPDATE_FAILED` for valid authentications
+    // where the counter did not change.
+    if (credential.counter >= newCounter) {
+      return;
+    }
 
     try {
-      const updated = await this.databaseService.withRlsCredential(
-        credential.id,
-        (tx) => {
-          return tx
-            .update(userCredentialsTable)
-            .set({ counter: newCounter })
-            .where(
-              and(
-                eq(userCredentialsTable.id, credential.id),
-                lt(userCredentialsTable.counter, newCounter),
-              ),
-            )
-            .returning({ id: userCredentialsTable.id });
-        },
-      );
-      if (updated.length === 0) {
-        throw new ServerError(
-          "CREDENTIAL_COUNTER_UPDATE_FAILED",
-          "Failed to update credential counter",
-          500,
-        );
-      }
+      await this.databaseService.withRlsCredential(credential.id, (tx) => {
+        return tx
+          .update(userCredentialsTable)
+          .set({ counter: newCounter })
+          .where(eq(userCredentialsTable.id, credential.id));
+      });
     } catch (error) {
       console.error("Failed to update credential counter:", error);
       throw new ServerError(
