@@ -18,25 +18,27 @@ import {
 } from "../schemas/registration-schemas.ts";
 import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
-import { usersTable, userCredentialsTable } from "../../../../db/schema.ts";
+import {
+  registrationOptionsTable,
+  userCredentialsTable,
+  usersTable,
+} from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
-import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class RegistrationService {
   constructor(
-    private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
-    private authenticationService = inject(AuthenticationService)
+    private authenticationService = inject(AuthenticationService),
   ) {}
 
   public async getOptions(
-    registrationOptionsRequest: GetRegistrationOptionsRequest
+    registrationOptionsRequest: GetRegistrationOptionsRequest,
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
-    console.log("Registration options for display name", displayName);
+    // console.debug("Registration options requested"); // avoid PII
 
     await this.ensureUserDoesNotExist(displayName);
 
@@ -53,34 +55,37 @@ export class RegistrationService {
         requireResidentKey: true,
       },
     });
-
-    await this.kvService.setRegistrationOptions(transactionId, {
-      data: options,
-      createdAt: Date.now(),
-    });
+    await this.databaseService
+      .get()
+      .insert(registrationOptionsTable)
+      .values({
+        transactionId,
+        data: options,
+        createdAt: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: registrationOptionsTable.transactionId,
+        set: { data: options, createdAt: new Date() },
+      });
 
     return options;
   }
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    registrationRequest: VerifyRegistrationRequest
+    registrationRequest: VerifyRegistrationRequest,
   ): Promise<AuthenticationResponse> {
     const { transactionId } = registrationRequest;
     const registrationOptions = await this.getRegistrationOptionsOrThrow(
-      transactionId
+      transactionId,
     );
 
-    await this.kvService.deleteRegistrationOptionsByTransactionId(
-      transactionId
-    );
-
-    const registrationResponse =
-      registrationRequest.registrationResponse as object as RegistrationResponseJSON;
+    const registrationResponse = registrationRequest
+      .registrationResponse as unknown as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
-      registrationOptions
+      registrationOptions,
     );
 
     const credential = this.createCredential(registrationOptions, verification);
@@ -103,42 +108,47 @@ export class RegistrationService {
       throw new ServerError(
         "DISPLAY_NAME_TAKEN",
         "Display name is already taken",
-        409
+        409,
       );
     }
   }
 
   private async getRegistrationOptionsOrThrow(
-    transactionId: string
+    transactionId: string,
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const registrationOptions =
-      await this.kvService.getRegistrationOptionsByTransactionId(transactionId);
+    const consumed = await this.databaseService
+      .get()
+      .delete(registrationOptionsTable)
+      .where(eq(registrationOptionsTable.transactionId, transactionId))
+      .returning({
+        data: registrationOptionsTable.data,
+        createdAt: registrationOptionsTable.createdAt,
+      });
 
-    if (registrationOptions === null) {
+    if (consumed.length === 0) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
         "Registration options not found",
-        400
+        400,
       );
     }
 
-    if (
-      registrationOptions.createdAt + KV_OPTIONS_EXPIRATION_TIME <
-      Date.now()
-    ) {
+    const record = consumed[0];
+
+    if (record.createdAt.getTime() + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
         "Registration options expired",
-        400
+        400,
       );
     }
 
-    return registrationOptions.data;
+    return record.data as PublicKeyCredentialCreationOptionsJSON;
   }
 
   private async verifyRegistrationResponse(
     registrationResponse: RegistrationResponseJSON,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
   ): Promise<VerifiedRegistrationResponse> {
     try {
       const verification = await verifyRegistrationResponse({
@@ -162,14 +172,14 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_VERIFICATION_FAILED",
         "Registration verification failed",
-        400
+        400,
       );
     }
   }
 
   private createCredential(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
-    verification: VerifiedRegistrationResponse
+    verification: VerifiedRegistrationResponse,
   ): UserCredentialEntity {
     const { registrationInfo } = verification;
 
@@ -179,7 +189,7 @@ export class RegistrationService {
 
     const userId = Base64Utils.base64UrlToString(registrationOptions.user.id);
     const publicKey = Base64Utils.arrayBufferToBase64Url(
-      registrationInfo.credential.publicKey.buffer
+      registrationInfo.credential.publicKey.buffer,
     );
 
     return {
@@ -195,7 +205,7 @@ export class RegistrationService {
 
   private createUser(
     credential: UserCredentialEntity,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
   ): UserEntity {
     const { userId } = credential;
 
@@ -208,7 +218,7 @@ export class RegistrationService {
 
   private async addCredentialAndUserOrThrow(
     credential: UserCredentialEntity,
-    user: UserEntity
+    user: UserEntity,
   ): Promise<void> {
     const db = this.databaseService.get();
 
@@ -217,7 +227,7 @@ export class RegistrationService {
         await tx.insert(usersTable).values({
           id: user.id,
           displayName: user.displayName,
-          createdAt: new Date(user.createdAt),
+          createdAt: user.createdAt,
         });
 
         await tx.insert(userCredentialsTable).values({
@@ -234,10 +244,18 @@ export class RegistrationService {
       console.log(`Added credential and user for ${user.displayName}`);
     } catch (error) {
       console.error("Failed to add credential and user:", error);
+      // Unique violation -> display name taken
+      if ((error as any)?.code === "23505") {
+        throw new ServerError(
+          "DISPLAY_NAME_TAKEN",
+          "Display name is already taken",
+          409,
+        );
+      }
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
         "Failed to add credential and user",
-        500
+        500,
       );
     }
   }
