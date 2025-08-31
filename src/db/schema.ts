@@ -11,3 +11,11 @@ export { rolesTable } from "./tables/roles-table.ts";
 export { userRolesTable } from "./tables/user-roles-table.ts";
 export { authenticationOptionsTable } from "./tables/authentication-options-table.ts";
 export { registrationOptionsTable } from "./tables/registration-options-table.ts";
+export type {
+  AuthenticationOptionsEntity,
+  AuthenticationOptionsInsertEntity,
+} from "./tables/authentication-options-table.ts";
+export type {
+  RegistrationOptionsEntity,
+  RegistrationOptionsInsertEntity,
+} from "./tables/registration-options-table.ts";
