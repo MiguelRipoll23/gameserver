@@ -4,5 +4,6 @@ export const KV_REGISTRATION_OPTIONS = "registration_options";
 export const KV_AUTHENTICATION_OPTIONS = "authentication_options";
 export const KV_CONFIGURATION = "configuration";
 export const KV_USER_KEYS = "user_keys";
+export const KV_BANNED_USERS = "banned_users";
 
 export const KV_OPTIONS_EXPIRATION_TIME = 1 * 60 * 1000;

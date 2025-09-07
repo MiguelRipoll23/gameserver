@@ -1,7 +1,7 @@
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import {
-  SEND_NOTIFICATION_EVENT,
   KICK_USER_EVENT,
+  SEND_NOTIFICATION_EVENT,
 } from "../constants/event-constants.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
@@ -14,7 +14,7 @@ import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
-import { userSessionsTable, matchesTable } from "../../../../db/schema.ts";
+import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
 import { count, eq } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import {
@@ -35,15 +35,15 @@ export class WebSocketService implements WebSocketServer {
     private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
     private chatService = inject(ChatService),
-    private dispatcher = inject(WebSocketDispatcherService)
+    private dispatcher = inject(WebSocketDispatcherService),
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
     this.notifyOnlineUsersCountBroadcastChannel = new BroadcastChannel(
-      NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL
+      NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL,
     );
     this.sendTunnelMessageBroadcastChannel = new BroadcastChannel(
-      SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL
+      SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL,
     );
     this.kickUserBroadcastChannel = new BroadcastChannel(KICK_USER_CHANNEL);
     this.addEventListeners();
@@ -57,14 +57,14 @@ export class WebSocketService implements WebSocketServer {
 
   public async handleCloseEvent(
     _event: CloseEvent,
-    user: WebSocketUser
+    user: WebSocketUser,
   ): Promise<void> {
     await this.handleDisconnection(user);
   }
 
   public handleMessageEvent(
     event: MessageEvent<WSMessageReceive>,
-    user: WebSocketUser
+    user: WebSocketUser,
   ): void {
     if (!(event.data instanceof ArrayBuffer)) return;
 
@@ -89,14 +89,14 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private addBroadcastChannelListeners(): void {
-    this.sendTunnelMessageBroadcastChannel.onmessage =
-      this.handleTunnelBroadcastChannelMessage.bind(this);
+    this.sendTunnelMessageBroadcastChannel.onmessage = this
+      .handleTunnelBroadcastChannelMessage.bind(this);
 
-    this.notifyOnlineUsersCountBroadcastChannel.onmessage =
-      this.handleOnlineUsersBroadcastChannelMessage.bind(this);
+    this.notifyOnlineUsersCountBroadcastChannel.onmessage = this
+      .handleOnlineUsersBroadcastChannelMessage.bind(this);
 
-    this.kickUserBroadcastChannel.onmessage =
-      this.handleKickUserBroadcastChannelMessage.bind(this);
+    this.kickUserBroadcastChannel.onmessage = this
+      .handleKickUserBroadcastChannelMessage.bind(this);
   }
 
   private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
@@ -134,13 +134,27 @@ export class WebSocketService implements WebSocketServer {
       // The handleDisconnection will be called automatically when the WebSocket closes
     } else {
       console.info(
-        `User with ID ${userId} not found in current server instance`
+        `User with ID ${userId} not found in current server instance`,
       );
     }
   }
 
   private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {
     const userId = webSocketUser.getId();
+
+    if (await this.kvService.isUserBanned(userId)) {
+      console.log(
+        `Banned user ${webSocketUser.getName()} attempted to connect to server`,
+      );
+      const webSocket = webSocketUser.getWebSocket();
+
+      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+        webSocket.close(1008, "User has been banned");
+      }
+
+      return;
+    }
+
     const userToken = webSocketUser.getToken();
     const publicIp = webSocketUser.getPublicIp();
 
@@ -166,7 +180,7 @@ export class WebSocketService implements WebSocketServer {
     } catch (error) {
       console.error(
         `Failed to create/update session for user ${webSocketUser.getName()}:`,
-        error
+        error,
       );
     }
 
@@ -194,7 +208,7 @@ export class WebSocketService implements WebSocketServer {
 
   private async deleteSessionByUserId(
     userId: string,
-    userName: string
+    userName: string,
   ): Promise<void> {
     const db = this.databaseService.get();
     const deletedSessions = await db
@@ -209,7 +223,7 @@ export class WebSocketService implements WebSocketServer {
 
   private async deleteMatchByUserId(
     userId: string,
-    userName: string
+    userName: string,
   ): Promise<void> {
     const db = this.databaseService.get();
     const deletedMatches = await db
@@ -224,7 +238,7 @@ export class WebSocketService implements WebSocketServer {
 
   private async deleteUserKeyValueData(
     userId: string,
-    userName: string
+    userName: string,
   ): Promise<void> {
     const result = await this.kvService.deleteUserTemporaryData(userId);
 
@@ -259,7 +273,7 @@ export class WebSocketService implements WebSocketServer {
     console.debug(
       `%cReceived message from user ${user.getName()}:\n` +
         binaryReader.preview(),
-      "color: green;"
+      "color: green;",
     );
 
     const commandId = binaryReader.unsignedInt8();
@@ -280,7 +294,7 @@ export class WebSocketService implements WebSocketServer {
       console.debug(
         `%cSent message to user ${user.getName()}:\n` +
           BinaryWriter.preview(arrayBuffer),
-        "color: purple"
+        "color: purple",
       );
     } catch (error) {
       console.error("Failed to send message to user", user.getName(), error);
@@ -289,7 +303,7 @@ export class WebSocketService implements WebSocketServer {
 
   private sendMessageToOtherUser(
     destinationToken: string,
-    payload: ArrayBuffer
+    payload: ArrayBuffer,
   ): void {
     const destinationUser = this.usersByToken.get(destinationToken);
 
@@ -298,7 +312,7 @@ export class WebSocketService implements WebSocketServer {
     } else {
       console.log(
         `Token not found locally, broadcasting message...`,
-        destinationToken
+        destinationToken,
       );
       this.sendTunnelMessageBroadcastChannel.postMessage({
         destinationToken,
@@ -355,7 +369,7 @@ export class WebSocketService implements WebSocketServer {
     } else {
       // User not found locally, broadcast to other server instances
       console.log(
-        `User with ID ${userId} not found locally, broadcasting kick message to other servers`
+        `User with ID ${userId} not found locally, broadcasting kick message to other servers`,
       );
 
       this.kickUserBroadcastChannel.postMessage({ userId });
@@ -365,7 +379,7 @@ export class WebSocketService implements WebSocketServer {
   @CommandHandler(WebSocketType.PlayerIdentity)
   private handlePlayerIdentityMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const destinationToken = encodeBase64(destinationTokenBytes);
@@ -385,7 +399,7 @@ export class WebSocketService implements WebSocketServer {
   @CommandHandler(WebSocketType.Tunnel)
   private handleTunnelMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
@@ -398,14 +412,14 @@ export class WebSocketService implements WebSocketServer {
 
     this.sendMessageToOtherUser(
       encodeBase64(destinationTokenBytes),
-      tunnelPayload
+      tunnelPayload,
     );
   }
 
   @CommandHandler(WebSocketType.ChatMessage)
   private async handleChatMessage(
     user: WebSocketUser,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): Promise<void> {
     await this.chatService.sendSignedChatMessage(this, user, binaryReader);
   }

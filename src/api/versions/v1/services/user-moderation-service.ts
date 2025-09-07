@@ -3,25 +3,29 @@ import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
-  BanUserRequest,
-  ReportUserRequest,
   BanDuration,
+  BanUserRequest,
   GetUserBansRequest,
   GetUserBansResponse,
   GetUserReportsRequest,
   GetUserReportsResponse,
+  ReportUserRequest,
 } from "../schemas/user-moderation-schemas.ts";
 import {
-  usersTable,
-  userReportsTable,
   userBansTable,
+  userReportsTable,
+  usersTable,
 } from "../../../../db/schema.ts";
-import { eq, gt, and } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 import { KICK_USER_EVENT } from "../constants/event-constants.ts";
+import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class UserModerationService {
-  constructor(private databaseService = inject(DatabaseService)) {}
+  constructor(
+    private databaseService = inject(DatabaseService),
+    private kvService = inject(KVService),
+  ) {}
 
   public async banUser(body: BanUserRequest): Promise<void> {
     const { userId, reason, duration } = body;
@@ -59,7 +63,7 @@ export class UserModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to create ban record",
-        500
+        500,
       );
     }
 
@@ -67,15 +71,17 @@ export class UserModerationService {
       throw new ServerError(
         "USER_ALREADY_BANNED",
         "User is already banned",
-        409
+        409,
       );
     }
 
     console.log(
       `User ${userId} has been banned for: ${reason}${
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
-      }`
+      }`,
     );
+
+    await this.kvService.banUser(userId, expiresAt ?? undefined);
 
     // Dispatch kick user event to notify WebSocket service
     const kickUserEvent = new CustomEvent(KICK_USER_EVENT, {
@@ -99,16 +105,17 @@ export class UserModerationService {
       throw new ServerError(
         "USER_NOT_BANNED",
         `User with id ${userId} is not banned`,
-        404
+        404,
       );
     }
 
+    await this.kvService.unbanUser(userId);
     console.log(`User ${userId} has been unbanned`);
   }
 
   public async reportUser(
     reporterUserId: string,
-    body: ReportUserRequest
+    body: ReportUserRequest,
   ): Promise<void> {
     const { userId, reason, automatic } = body;
 
@@ -142,7 +149,7 @@ export class UserModerationService {
   }
 
   public async getUserReports(
-    params: GetUserReportsRequest
+    params: GetUserReportsRequest,
   ): Promise<GetUserReportsResponse> {
     const { userId, cursor, limit = 20 } = params;
     const db = this.databaseService.get();
@@ -197,13 +204,13 @@ export class UserModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch user reports",
-        500
+        500,
       );
     }
   }
 
   public async getUserBans(
-    params: GetUserBansRequest
+    params: GetUserBansRequest,
   ): Promise<GetUserBansResponse> {
     const { userId, cursor, limit = 20 } = params;
     const db = this.databaseService.get();
@@ -263,7 +270,7 @@ export class UserModerationService {
 
   private async checkUserExists(
     tx: NodePgDatabase,
-    userId: string
+    userId: string,
   ): Promise<void> {
     try {
       const users = await tx
@@ -284,7 +291,7 @@ export class UserModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to verify user existence",
-        500
+        500,
       );
     }
   }
@@ -302,7 +309,7 @@ export class UserModerationService {
       throw new ServerError(
         "INVALID_DURATION_VALUE",
         "Duration value must be a positive integer",
-        400
+        400,
       );
     }
 
@@ -329,7 +336,7 @@ export class UserModerationService {
         throw new ServerError(
           "INVALID_DURATION_UNIT",
           "Invalid duration unit",
-          400
+          400,
         );
     }
   }
