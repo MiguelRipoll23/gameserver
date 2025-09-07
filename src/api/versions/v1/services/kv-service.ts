@@ -2,6 +2,7 @@ import { inject, injectable } from "@needle-di/core";
 import { BaseKVService } from "../../../../core/services/kv-service.ts";
 import {
   KV_AUTHENTICATION_OPTIONS,
+  KV_BANNED_USERS,
   KV_CONFIGURATION,
   KV_OPTIONS_EXPIRATION_TIME,
   KV_REGISTRATION_OPTIONS,
@@ -145,6 +146,34 @@ export class KVService {
     userId: string,
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv().atomic().delete([KV_USER_KEYS, userId]).commit();
+  }
+
+  public async banUser(
+    userId: string,
+    expiresAt?: Date | null,
+  ): Promise<void> {
+    let options: Deno.KvSetOptions | undefined;
+
+    if (expiresAt) {
+      const ttl = expiresAt.getTime() - Date.now();
+      if (ttl > 0) {
+        options = { expireIn: ttl };
+      }
+    }
+
+    await this.getKv().set([KV_BANNED_USERS, userId], true, options);
+  }
+
+  public async unbanUser(userId: string): Promise<void> {
+    await this.getKv().delete([KV_BANNED_USERS, userId]);
+  }
+
+  public async isUserBanned(userId: string): Promise<boolean> {
+    const entry: Deno.KvEntryMaybe<boolean> = await this.getKv().get<boolean>([
+      KV_BANNED_USERS,
+      userId,
+    ]);
+    return entry.value === true;
   }
 
   private getKv(): Deno.Kv {
