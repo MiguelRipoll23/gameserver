@@ -80,8 +80,19 @@ export class UserModerationService {
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
       }`,
     );
-
-    await this.kvService.banUser(userId, expiresAt ?? undefined);
+    try {
+      await this.kvService.banUser(userId, expiresAt ?? undefined);
+    } catch (error) {
+      console.error("KV error while storing ban record:", error);
+      await db
+        .delete(userBansTable)
+        .where(eq(userBansTable.id, insertedBan[0].id));
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to create ban record",
+        500,
+      );
+    }
 
     // Dispatch kick user event to notify WebSocket service
     const kickUserEvent = new CustomEvent(KICK_USER_EVENT, {
@@ -109,7 +120,18 @@ export class UserModerationService {
       );
     }
 
-    await this.kvService.unbanUser(userId);
+    try {
+      await this.kvService.unbanUser(userId);
+    } catch (error) {
+      console.error("KV error while removing ban record:", error);
+      await db.insert(userBansTable).values(deleted[0]);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to remove ban record",
+        500,
+      );
+    }
+
     console.log(`User ${userId} has been unbanned`);
   }
 
