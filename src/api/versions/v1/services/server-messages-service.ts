@@ -8,7 +8,7 @@ import {
 } from "../schemas/server-messages-schemas.ts";
 import { PaginationParams } from "../schemas/pagination-schemas.ts";
 import { serverMessagesTable } from "../../../../db/schema.ts";
-import { eq, gt } from "drizzle-orm";
+import { desc, eq, lt } from "drizzle-orm";
 import { ServerError } from "../models/server-error.ts";
 
 @injectable()
@@ -23,11 +23,11 @@ export class ServerMessagesService {
 
     let query = db.select().from(serverMessagesTable);
     if (cursor) {
-      query = query.where(gt(serverMessagesTable.id, cursor));
+      query = query.where(lt(serverMessagesTable.id, cursor));
     }
 
     const messages = await query
-      .orderBy(serverMessagesTable.id)
+      .orderBy(desc(serverMessagesTable.id))
       .limit(limit + 1);
 
     const hasNextPage = messages.length > limit;
