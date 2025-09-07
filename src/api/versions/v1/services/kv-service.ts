@@ -7,6 +7,7 @@ import {
   KV_SIGNATURE_KEYS,
   KV_USER_KEYS,
   KV_VERSION,
+  KV_OPTIONS_EXPIRATION_TIME,
 } from "../constants/kv-constants.ts";
 import { AuthenticationOptionsKV } from "../interfaces/kv/authentication-options-kv.ts";
 import { RegistrationOptionsKV } from "../interfaces/kv/registration-options-kv.ts";
@@ -84,7 +85,7 @@ export class KVService {
       [KV_REGISTRATION_OPTIONS, transactionId],
       registrationOptions,
       {
-        expireIn: 60 * 1_000,
+        expireIn: KV_OPTIONS_EXPIRATION_TIME,
       },
     );
   }
@@ -136,7 +137,7 @@ export class KVService {
       [KV_AUTHENTICATION_OPTIONS, requestId],
       authenticationOptions,
       {
-        expireIn: 60 * 1_000,
+        expireIn: KV_OPTIONS_EXPIRATION_TIME,
       },
     );
   }
