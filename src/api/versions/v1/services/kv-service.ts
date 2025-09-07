@@ -3,11 +3,11 @@ import { BaseKVService } from "../../../../core/services/kv-service.ts";
 import {
   KV_AUTHENTICATION_OPTIONS,
   KV_CONFIGURATION,
+  KV_OPTIONS_EXPIRATION_TIME,
   KV_REGISTRATION_OPTIONS,
   KV_SIGNATURE_KEYS,
   KV_USER_KEYS,
   KV_VERSION,
-  KV_OPTIONS_EXPIRATION_TIME,
 } from "../constants/kv-constants.ts";
 import { AuthenticationOptionsKV } from "../interfaces/kv/authentication-options-kv.ts";
 import { RegistrationOptionsKV } from "../interfaces/kv/registration-options-kv.ts";
@@ -41,18 +41,6 @@ export class KVService {
 
   public async setVersion(version: VersionKV): Promise<void> {
     await this.getKv().set([KV_VERSION], version);
-  }
-
-  public async getRegistrationOptionsByTransactionId(
-    transactionId: string,
-  ): Promise<RegistrationOptionsKV | null> {
-    const entry: Deno.KvEntryMaybe<RegistrationOptionsKV> = await this.getKv()
-      .get<RegistrationOptionsKV>([
-        KV_REGISTRATION_OPTIONS,
-        transactionId,
-      ]);
-
-    return entry.value;
   }
 
   public async consumeRegistrationOptionsByTransactionId(
@@ -90,24 +78,6 @@ export class KVService {
     );
   }
 
-  public async deleteRegistrationOptionsByTransactionId(
-    transactionId: string,
-  ): Promise<void> {
-    await this.getKv().delete([KV_REGISTRATION_OPTIONS, transactionId]);
-  }
-
-  public async getAuthenticationOptionsByTransactionId(
-    transactionId: string,
-  ): Promise<AuthenticationOptionsKV | null> {
-    const entry: Deno.KvEntryMaybe<AuthenticationOptionsKV> = await this.getKv()
-      .get<AuthenticationOptionsKV>([
-        KV_AUTHENTICATION_OPTIONS,
-        transactionId,
-      ]);
-
-    return entry.value;
-  }
-
   public async takeAuthenticationOptionsByTransactionId(
     transactionId: string,
   ): Promise<AuthenticationOptionsKV | null> {
@@ -140,12 +110,6 @@ export class KVService {
         expireIn: KV_OPTIONS_EXPIRATION_TIME,
       },
     );
-  }
-
-  public async deleteAuthenticationOptionsByTransactionId(
-    transactionId: string,
-  ): Promise<void> {
-    await this.getKv().delete([KV_AUTHENTICATION_OPTIONS, transactionId]);
   }
 
   public async getConfiguration(): Promise<ConfigurationType | null> {
