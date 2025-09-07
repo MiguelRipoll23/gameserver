@@ -1,4 +1,8 @@
 import { z } from "@hono/zod-openapi";
+import {
+  PaginatedResponseSchema,
+  PaginationSchema,
+} from "./pagination-schemas.ts";
 
 export const CreateServerMessageRequestSchema = z.object({
   title: z
@@ -29,30 +33,38 @@ export type DeleteServerMessageRequest = z.infer<
   typeof DeleteServerMessageRequestSchema
 >;
 
-export const GetServerMessageResponseSchema = z.array(
-  z.object({
-    id: z.number().describe("The message ID").openapi({ example: 1 }),
-    title: z
-      .string()
-      .describe("The message title")
-      .openapi({ example: "Hello world!" }),
-    content: z.string().describe("The message content").openapi({
-      example: "This is a really great message just for you.",
-    }),
-    createdAt: z
-      .number()
-      .describe("The message created timestamp")
-      .openapi({ example: 1740325296918 }),
-    updatedAt: z
-      .optional(z.number())
-      .describe("The message updated timestamp")
-      .openapi({ example: 1740325296918 }),
-  })
+export const ServerMessageResponseSchema = z.object({
+  id: z.number().describe("The message ID").openapi({ example: 1 }),
+  title: z
+    .string()
+    .describe("The message title")
+    .openapi({ example: "Hello world!" }),
+  content: z.string().describe("The message content").openapi({
+    example: "This is a really great message just for you.",
+  }),
+  createdAt: z
+    .number()
+    .describe("The message created timestamp")
+    .openapi({ example: 1740325296918 }),
+  updatedAt: z
+    .number()
+    .describe("The message updated timestamp")
+    .openapi({ example: 1740325296918 }),
+});
+
+export type ServerMessageResponse = z.infer<
+  typeof ServerMessageResponseSchema
+>;
+
+export const GetServerMessagesResponseSchema = PaginatedResponseSchema(
+  ServerMessageResponseSchema,
 );
 
-export type GetServerMessageResponse = z.infer<
-  typeof GetServerMessageResponseSchema
+export type GetServerMessagesResponse = z.infer<
+  typeof GetServerMessagesResponseSchema
 >;
+
+export const GetServerMessagesQuerySchema = PaginationSchema;
 
 export const UpdateServerMessageRequestSchema = z.object({
   id: z.coerce

@@ -2,36 +2,52 @@ import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import {
   CreateServerMessageRequest,
-  GetServerMessageResponse,
+  GetServerMessagesResponse,
+  ServerMessageResponse,
   UpdateServerMessageRequest,
 } from "../schemas/server-messages-schemas.ts";
+import { PaginationParams } from "../schemas/pagination-schemas.ts";
 import { serverMessagesTable } from "../../../../db/schema.ts";
-import { desc, eq } from "drizzle-orm";
+import { eq, gt } from "drizzle-orm";
 import { ServerError } from "../models/server-error.ts";
 
 @injectable()
 export class ServerMessagesService {
   constructor(private databaseService = inject(DatabaseService)) {}
 
-  public async list(): Promise<GetServerMessageResponse> {
+  public async list(
+    params: PaginationParams,
+  ): Promise<GetServerMessagesResponse> {
+    const { cursor, limit = 20 } = params;
     const db = this.databaseService.get();
-    const messages = await db
-      .select()
-      .from(serverMessagesTable)
-      .orderBy(desc(serverMessagesTable.createdAt))
-      .limit(5);
 
-    return messages.map((message) => ({
+    let query = db.select().from(serverMessagesTable);
+    if (cursor) {
+      query = query.where(gt(serverMessagesTable.id, cursor));
+    }
+
+    const messages = await query
+      .orderBy(serverMessagesTable.id)
+      .limit(limit + 1);
+
+    const hasNextPage = messages.length > limit;
+    const results = messages.slice(0, limit).map((message) => ({
       id: message.id,
       title: message.title,
       content: message.content,
       createdAt: message.createdAt.getTime(),
-      updatedAt: message.updatedAt?.getTime() ?? null,
+      updatedAt: message.updatedAt.getTime(),
     }));
+
+    return {
+      results,
+      nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
+      hasMore: hasNextPage,
+    };
   }
 
   public async create(
-    messageRequest: CreateServerMessageRequest
+    messageRequest: CreateServerMessageRequest,
   ): Promise<void> {
     const db = this.databaseService.get();
     await db.insert(serverMessagesTable).values({
@@ -51,14 +67,14 @@ export class ServerMessagesService {
       throw new ServerError(
         "MESSAGE_NOT_FOUND",
         `Message with id ${id} does not exist`,
-        404
+        404,
       );
     }
   }
 
   public async update(
-    messageRequest: UpdateServerMessageRequest
-  ): Promise<GetServerMessageResponse[number]> {
+    messageRequest: UpdateServerMessageRequest,
+  ): Promise<ServerMessageResponse> {
     const db = this.databaseService.get();
 
     const updated = await db
@@ -75,7 +91,7 @@ export class ServerMessagesService {
       throw new ServerError(
         "MESSAGE_NOT_FOUND",
         `Message with id ${messageRequest.id} does not exist`,
-        404
+        404,
       );
     }
 
@@ -85,7 +101,7 @@ export class ServerMessagesService {
       title: msg.title,
       content: msg.content,
       createdAt: msg.createdAt.getTime(),
-      updatedAt: msg.updatedAt?.getTime(),
+      updatedAt: msg.updatedAt.getTime(),
     };
   }
 }
