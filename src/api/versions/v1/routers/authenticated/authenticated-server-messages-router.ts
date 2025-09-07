@@ -1,7 +1,10 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { ServerMessagesService } from "../../services/server-messages-service.ts";
-import { GetServerMessageResponseSchema } from "../../schemas/server-messages-schemas.ts";
+import {
+  GetServerMessagesQuerySchema,
+  GetServerMessagesResponseSchema,
+} from "../../schemas/server-messages-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
@@ -30,12 +33,15 @@ export class AuthenticatedServerMessagesRouter {
         description:
           "Server messages shown to the player after connecting to server",
         tags: ["Server message"],
+        request: {
+          query: GetServerMessagesQuerySchema,
+        },
         responses: {
           200: {
             description: "Responds with data",
             content: {
               "application/json": {
-                schema: GetServerMessageResponseSchema,
+                schema: GetServerMessagesResponseSchema,
               },
             },
           },
@@ -43,10 +49,14 @@ export class AuthenticatedServerMessagesRouter {
         },
       }),
       async (c) => {
-        const response = await this.serverMessagesService.list();
+        const { cursor, limit } = c.req.valid("query");
+        const response = await this.serverMessagesService.list({
+          cursor,
+          limit,
+        });
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 }
