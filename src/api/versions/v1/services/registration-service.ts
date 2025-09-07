@@ -31,11 +31,11 @@ import { UserEntity } from "../../../../db/tables/users-table.ts";
 export class RegistrationService {
   constructor(
     private databaseService = inject(DatabaseService),
-    private authenticationService = inject(AuthenticationService)
+    private authenticationService = inject(AuthenticationService),
   ) {}
 
   public async getOptions(
-    registrationOptionsRequest: GetRegistrationOptionsRequest
+    registrationOptionsRequest: GetRegistrationOptionsRequest,
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
     // console.debug("Registration options requested"); // avoid PII
@@ -73,19 +73,19 @@ export class RegistrationService {
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    registrationRequest: VerifyRegistrationRequest
+    registrationRequest: VerifyRegistrationRequest,
   ): Promise<AuthenticationResponse> {
     const { transactionId } = registrationRequest;
     const registrationOptions = await this.getRegistrationOptionsOrThrow(
-      transactionId
+      transactionId,
     );
 
-    const registrationResponse =
-      registrationRequest.registrationResponse as unknown as RegistrationResponseJSON;
+    const registrationResponse = registrationRequest
+      .registrationResponse as unknown as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
-      registrationOptions
+      registrationOptions,
     );
 
     const credential = this.createCredential(registrationOptions, verification);
@@ -108,13 +108,13 @@ export class RegistrationService {
       throw new ServerError(
         "DISPLAY_NAME_TAKEN",
         "Display name is already taken",
-        409
+        409,
       );
     }
   }
 
   private async getRegistrationOptionsOrThrow(
-    transactionId: string
+    transactionId: string,
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
     const consumed = await this.databaseService
       .get()
@@ -129,7 +129,7 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
         "Registration options not found",
-        400
+        400,
       );
     }
 
@@ -139,7 +139,7 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
         "Registration options expired",
-        400
+        400,
       );
     }
 
@@ -148,7 +148,7 @@ export class RegistrationService {
 
   private async verifyRegistrationResponse(
     registrationResponse: RegistrationResponseJSON,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
   ): Promise<VerifiedRegistrationResponse> {
     try {
       const verification = await verifyRegistrationResponse({
@@ -172,14 +172,14 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_VERIFICATION_FAILED",
         "Registration verification failed",
-        400
+        400,
       );
     }
   }
 
   private createCredential(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
-    verification: VerifiedRegistrationResponse
+    verification: VerifiedRegistrationResponse,
   ): UserCredentialEntity {
     const { registrationInfo } = verification;
 
@@ -189,7 +189,7 @@ export class RegistrationService {
 
     const userId = Base64Utils.base64UrlToString(registrationOptions.user.id);
     const publicKey = Base64Utils.arrayBufferToBase64Url(
-      registrationInfo.credential.publicKey.buffer
+      registrationInfo.credential.publicKey.buffer,
     );
 
     return {
@@ -205,7 +205,7 @@ export class RegistrationService {
 
   private createUser(
     credential: UserCredentialEntity,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
   ): UserEntity {
     const { userId } = credential;
 
@@ -218,7 +218,7 @@ export class RegistrationService {
 
   private async addCredentialAndUserOrThrow(
     credential: UserCredentialEntity,
-    user: UserEntity
+    user: UserEntity,
   ): Promise<void> {
     const db = this.databaseService.get();
 
@@ -258,26 +258,27 @@ export class RegistrationService {
             throw new ServerError(
               "DISPLAY_NAME_TAKEN",
               "Display name is already taken",
-              409
+              409,
             );
           case "user_credentials_pkey":
             throw new ServerError(
               "CREDENTIAL_ALREADY_REGISTERED",
               "Credential is already registered",
-              409
+              409,
             );
           default:
             throw new ServerError(
               "UNIQUE_CONSTRAINT_VIOLATION",
               "Unique constraint violated",
-              409
+              409,
             );
         }
+      }
       }
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
         "Failed to add credential and user",
-        500
+        500,
       );
     }
   }
