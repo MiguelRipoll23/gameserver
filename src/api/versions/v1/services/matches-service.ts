@@ -88,14 +88,11 @@ export class MatchesService {
     }
 
     // Add attribute conditions using jsonb operators
-    if (body.attributes) {
-      // FIX: not working correctly
-      /*       for (const [key, value] of Object.entries(body.attributes)) {
-        // Use ->> operator for exact value match (handles non-existent keys gracefully)
-        conditions.push(
-          sql`${matchesTable.attributes}->>${key} = ${JSON.stringify(value)}`
-        );
-      } */
+    if (body.attributes && Object.keys(body.attributes).length > 0) {
+      // Ensure all provided attributes are matched in the stored attributes
+      conditions.push(
+        sql`${matchesTable.attributes} @> ${body.attributes}::jsonb`,
+      );
     }
 
     // Get one extra item to determine if there are more results
