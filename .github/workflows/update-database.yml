@@ -1,24 +1,39 @@
-name: Update Drizzle schema (Production)
+name: Update database
 
 on:
-  push:
-    branches:
-      - main
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      checkout-ref:
+        required: false
+        type: string
+        default: ""
+      push-ref:
+        required: true
+        type: string
+      concurrency-group:
+        required: true
+        type: string
 
 concurrency:
-  group: update-drizzle-production-${{ github.ref }}
+  group: ${{ inputs.concurrency-group }}
   cancel-in-progress: true
 
 jobs:
-  update-drizzle:
+  update-database:
+    name: Update database
     runs-on: ubuntu-latest
-    environment: Production
+    environment: ${{ inputs.environment }}
     permissions:
       contents: write
     timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.checkout-ref }}
       - name: Set up Deno
         uses: denoland/setup-deno@v2
       - name: Generate schema
@@ -35,5 +50,5 @@ jobs:
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           if [[ -n $(git status --porcelain) ]]; then
             git commit -am "chore: update drizzle schema"
-            git push
+            git push ${{ inputs.push-ref }}
           fi
