@@ -23,6 +23,7 @@ concurrency:
 
 jobs:
   update-database:
+    name: Update database
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     permissions:

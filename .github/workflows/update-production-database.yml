@@ -15,6 +15,7 @@ permissions:
 
 jobs:
   update-database:
+    name: Update database
     uses: ./.github/workflows/update-database.yml
     with:
       environment: Production
