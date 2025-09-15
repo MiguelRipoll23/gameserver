@@ -57,6 +57,13 @@
       "when": 1757940189381,
       "tag": "0007_fixed_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1757941520707,
+      "tag": "0008_silly_blazing_skull",
+      "breakpoints": true
     }
   ]
 }
