@@ -5,12 +5,17 @@ on:
     branches:
       - main
 
+concurrency:
+  group: update-drizzle-production-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   update-drizzle:
     runs-on: ubuntu-latest
     environment: Production
     permissions:
       contents: write
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
