@@ -10,7 +10,7 @@ on:
         required: false
         type: string
         default: ""
-      head-ref:
+      push-ref:
         required: true
         type: string
       concurrency-group:
@@ -49,5 +49,5 @@ jobs:
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           if [[ -n $(git status --porcelain) ]]; then
             git commit -am "chore: update drizzle schema"
-            git push origin HEAD:${{ inputs.head-ref }}
+            git push ${{ inputs.push-ref }}
           fi

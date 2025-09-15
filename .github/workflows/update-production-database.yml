@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    # paths:
+    #   - "drizzle/**"
+    #   - "schema/**"
+  workflow_dispatch:
+    inputs: {}
 
 permissions:
   contents: write
@@ -13,6 +18,7 @@ jobs:
     uses: ./.github/workflows/update-database.yml
     with:
       environment: Production
-      head-ref: ${{ github.ref_name }}
-      concurrency-group: update-production-database-${{ github.ref }}
+      checkout-ref: ${{ github.ref }}
+      push-ref: origin HEAD:${{ github.ref_name }}
+      concurrency-group: update-production-database-${{ github.ref_name }}
     secrets: inherit
