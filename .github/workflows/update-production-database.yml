@@ -9,17 +9,24 @@ on:
     #   - "schema/**"
   workflow_dispatch:
     inputs: {}
-
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: update-production-database-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   update-database:
-    name: Update database
-    uses: ./.github/workflows/update-database.yml
-    with:
-      environment: Production
-      checkout-ref: ${{ github.ref }}
-      push-ref: origin HEAD:${{ github.ref_name }}
-      concurrency-group: update-production-database-${{ github.ref_name }}
-    secrets: inherit
+    name: Apply migrations
+    runs-on: ubuntu-latest
+    environment: Production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+      - name: Apply migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: deno task push

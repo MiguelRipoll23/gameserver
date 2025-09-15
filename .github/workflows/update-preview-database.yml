@@ -6,14 +6,36 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: update-preview-database-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   update-database:
     name: Update database
     if: github.event.pull_request.head.repo.full_name == github.repository
-    uses: ./.github/workflows/update-database.yml
-    with:
-      environment: Preview
-      checkout-ref: ${{ github.head_ref }}
-      push-ref: origin HEAD:${{ github.head_ref }}
-      concurrency-group: update-preview-database-${{ github.event.pull_request.number }}
-    secrets: inherit
+    runs-on: ubuntu-latest
+    environment: Preview
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+      - name: Generate schema
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: deno task generate
+      - name: Push migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: deno task push
+      - name: Commit schema changes
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          if [[ -n $(git status --porcelain) ]]; then
+            git commit -am "chore: update drizzle schema"
+            git push origin HEAD:${{ github.head_ref }}
+          fi
