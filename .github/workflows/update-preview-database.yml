@@ -1,0 +1,15 @@
+name: Update preview database
+
+on:
+  pull_request:
+
+jobs:
+  update-database:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/update-database.yml
+    with:
+      environment: Preview
+      checkout-ref: ${{ github.head_ref }}
+      push-ref: origin HEAD:$GITHUB_HEAD_REF
+      concurrency-group: update-preview-database-${{ github.event.pull_request.number }}
+    secrets: inherit

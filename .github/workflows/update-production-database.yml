@@ -1,0 +1,14 @@
+name: Update production database
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-database:
+    uses: ./.github/workflows/update-database.yml
+    with:
+      environment: Production
+      concurrency-group: update-production-database-${{ github.ref }}
+    secrets: inherit
