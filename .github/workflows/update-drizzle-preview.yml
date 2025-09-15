@@ -1,0 +1,34 @@
+name: Update Drizzle schema (Preview)
+
+on:
+  pull_request:
+
+jobs:
+  update-drizzle:
+    runs-on: ubuntu-latest
+    environment: Preview
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+      - name: Generate schema
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: deno task generate
+      - name: Push migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: deno task push
+      - name: Commit schema changes
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          if [[ -n $(git status --porcelain) ]]; then
+            git commit -am "chore: update drizzle schema"
+            git push origin HEAD:$GITHUB_HEAD_REF
+          fi
