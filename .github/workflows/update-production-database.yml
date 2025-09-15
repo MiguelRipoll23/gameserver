@@ -5,10 +5,14 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   update-database:
     uses: ./.github/workflows/update-database.yml
     with:
       environment: Production
+      head-ref: ${{ github.ref_name }}
       concurrency-group: update-production-database-${{ github.ref }}
     secrets: inherit
