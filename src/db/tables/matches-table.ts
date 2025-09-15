@@ -1,10 +1,10 @@
 import {
-  pgTable,
-  varchar,
   integer,
   jsonb,
+  pgTable,
   timestamp,
   uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
@@ -17,6 +17,8 @@ export const matchesTable = pgTable("matches", {
   version: varchar("version", { length: 16 }).notNull(),
   totalSlots: integer("total_slots").notNull(),
   availableSlots: integer("available_slots").notNull(),
+  pingMedianMilliseconds: integer("ping_median_milliseconds").default(0)
+    .notNull(),
   attributes: jsonb("attributes").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()

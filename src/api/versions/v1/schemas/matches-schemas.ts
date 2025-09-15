@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import {
-  PaginationSchema,
   PaginatedResponseSchema,
+  PaginationSchema,
 } from "./pagination-schemas.ts";
 
 export const AdvertiseMatchRequestSchema = z.object({
@@ -19,6 +19,12 @@ export const AdvertiseMatchRequestSchema = z.object({
     .min(0)
     .describe("Number of slots currently available")
     .openapi({ example: 3 }),
+  pingMedianMilliseconds: z
+    .number()
+    .min(0)
+    .optional()
+    .describe("Median ping in milliseconds across all players")
+    .openapi({ example: 50 }),
   attributes: z
     .record(z.string(), z.any())
     .optional()
@@ -57,7 +63,8 @@ export const MatchResultSchema = z.object({
   token: z.string().describe("Token used to join the match"),
 });
 
-export const FindMatchesResponseSchema =
-  PaginatedResponseSchema(MatchResultSchema);
+export const FindMatchesResponseSchema = PaginatedResponseSchema(
+  MatchResultSchema,
+);
 
 export type FindMatchesResponse = z.infer<typeof FindMatchesResponseSchema>;
