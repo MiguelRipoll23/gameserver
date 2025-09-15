@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
       - name: Set up Deno
         uses: denoland/setup-deno@v2
       - name: Generate schema
@@ -28,5 +30,5 @@ jobs:
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           if [[ -n $(git status --porcelain) ]]; then
             git commit -am "chore: update drizzle schema"
-            git push
+            git push origin HEAD:$GITHUB_HEAD_REF
           fi
