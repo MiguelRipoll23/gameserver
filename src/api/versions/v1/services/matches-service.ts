@@ -7,7 +7,7 @@ import {
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
-import { eq, and, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 @injectable()
 export class MatchesService {
@@ -15,7 +15,7 @@ export class MatchesService {
 
   public async advertise(
     userId: string,
-    body: AdvertiseMatchRequest
+    body: AdvertiseMatchRequest,
   ): Promise<void> {
     // Get the user session from database
     const db = this.databaseService.get();
@@ -30,7 +30,13 @@ export class MatchesService {
       throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
     }
 
-    const { version, totalSlots, availableSlots, attributes } = body;
+    const {
+      version,
+      totalSlots,
+      availableSlots,
+      attributes,
+      pingMedianMilliseconds,
+    } = body;
 
     try {
       // Use upsert operation to insert or update match
@@ -42,6 +48,7 @@ export class MatchesService {
           totalSlots: totalSlots,
           availableSlots: availableSlots,
           attributes: attributes ?? {},
+          pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
         })
         .onConflictDoUpdate({
           target: matchesTable.hostUserId,
@@ -50,6 +57,7 @@ export class MatchesService {
             totalSlots: totalSlots,
             availableSlots: availableSlots,
             attributes: attributes ?? {},
+            pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
             updatedAt: new Date(),
           },
         });
@@ -58,7 +66,7 @@ export class MatchesService {
       throw new ServerError(
         "MATCH_CREATION_FAILED",
         "Match creation failed",
-        500
+        500,
       );
     }
   }
@@ -106,7 +114,7 @@ export class MatchesService {
       .from(matchesTable)
       .innerJoin(
         userSessionsTable,
-        eq(matchesTable.hostUserId, userSessionsTable.userId)
+        eq(matchesTable.hostUserId, userSessionsTable.userId),
       )
       .where(and(...conditions))
       .orderBy(matchesTable.id)
@@ -138,7 +146,7 @@ export class MatchesService {
       throw new ServerError(
         "MATCH_NOT_FOUND",
         `Match with host user id ${userId} does not exist`,
-        404
+        404,
       );
     }
 
