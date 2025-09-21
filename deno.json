@@ -12,7 +12,7 @@
     "drizzle-orm": "npm:drizzle-orm@^0.44.5",
     "pg": "npm:pg@^8.16.3",
     "hono": "npm:hono@^4.9.8",
-    "zod": "npm:zod@^4.1.9"
+    "zod": "npm:zod@^4.1.11"
   },
   "tasks": {
     "dev": "deno run --allow-env --allow-read --unstable-kv --unstable-broadcast-channel --allow-net --env --watch src/main.ts",
