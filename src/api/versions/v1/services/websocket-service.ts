@@ -2,6 +2,7 @@ import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import {
   KICK_USER_EVENT,
   SEND_NOTIFICATION_EVENT,
+  SEND_USER_NOTIFICATION_EVENT,
 } from "../constants/event-constants.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
@@ -79,6 +80,12 @@ export class WebSocketService implements WebSocketServer {
     addEventListener(SEND_NOTIFICATION_EVENT, (event): void => {
       // deno-lint-ignore no-explicit-any
       this.sendNotificationToUsers((event as CustomEvent<any>).detail.message);
+    });
+
+    addEventListener(SEND_USER_NOTIFICATION_EVENT, (event): void => {
+      // deno-lint-ignore no-explicit-any
+      const { userId, message } = (event as CustomEvent<any>).detail;
+      this.sendNotificationToUser(userId, message);
     });
 
     addEventListener(KICK_USER_EVENT, (event): void => {
@@ -330,6 +337,26 @@ export class WebSocketService implements WebSocketServer {
         .toArrayBuffer();
 
       this.sendMessage(user, payload);
+    }
+  }
+
+  private sendNotificationToUser(userId: string, text: string): void {
+    const user = this.usersById.get(userId);
+    
+    if (user) {
+      // User is connected to this server instance, send notification directly
+      const textBytes = new TextEncoder().encode(text);
+      const payload = BinaryWriter.build()
+        .unsignedInt8(WebSocketType.Notification)
+        .bytes(textBytes)
+        .toArrayBuffer();
+
+      this.sendMessage(user, payload);
+      console.log(`Sent notification to user ${user.getName()} (ID: ${userId})`);
+    } else {
+      // User not found locally - they might be connected to another server instance
+      // For now, just log this. In a distributed setup, you'd broadcast to other instances
+      console.log(`User with ID ${userId} not found in current server instance`);
     }
   }
 
