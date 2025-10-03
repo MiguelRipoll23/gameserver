@@ -85,6 +85,13 @@
       "when": 1758931966120,
       "tag": "0011_talented_clea",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1759515713323,
+      "tag": "0012_sweet_chronomancer",
+      "breakpoints": true
     }
   ]
 }
