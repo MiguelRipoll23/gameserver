@@ -92,6 +92,13 @@
       "when": 1759515713323,
       "tag": "0012_sweet_chronomancer",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1759516558328,
+      "tag": "0013_slimy_lester",
+      "breakpoints": true
     }
   ]
 }
