@@ -18,6 +18,7 @@
     "npm:@peculiar/x509@^1.13.0": "1.14.0",
     "npm:@scalar/hono-api-reference@~0.9.20": "0.9.20_hono@4.9.9",
     "npm:@types/pg@^8.15.5": "8.15.5",
+    "npm:drizzle-kit@*": "0.31.5_esbuild@0.25.10",
     "npm:drizzle-kit@~0.31.5": "0.31.5_esbuild@0.25.10",
     "npm:drizzle-orm@~0.44.6": "0.44.6_@types+pg@8.15.5_pg@8.16.3",
     "npm:hono@^4.9.9": "4.9.9",
