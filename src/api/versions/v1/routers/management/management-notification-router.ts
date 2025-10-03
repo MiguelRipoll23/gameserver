@@ -27,8 +27,8 @@ export class ManagementNotificationRouter {
       createRoute({
         method: "post",
         path: "/",
-        summary: "Push server notification",
-        description: "Shows a server in-game notification to connected players",
+        summary: "Push global notification",
+        description: "Shows a server in-game notification to connected users",
         tags: ["Server notification"],
         request: {
           body: {
@@ -60,9 +60,9 @@ export class ManagementNotificationRouter {
       createRoute({
         method: "post",
         path: "/user",
-        summary: "Send notification to user",
-        description: "Sends a notification to a specific user by user ID",
-        tags: ["User notification"],
+        summary: "Push user notification",
+        description: "Shows a server in-game notification to an user",
+        tags: ["Server notification"],
         request: {
           body: {
             content: {
