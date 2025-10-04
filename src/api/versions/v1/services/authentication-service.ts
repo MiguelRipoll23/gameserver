@@ -27,6 +27,7 @@ import {
   userBansTable,
   userCredentialsTable,
   userRolesTable,
+  userSessionsTable,
   usersTable,
 } from "../../../../db/schema.ts";
 import { and, eq, lt } from "drizzle-orm";
@@ -97,6 +98,7 @@ export class AuthenticationService {
     user: UserEntity,
   ): Promise<AuthenticationResponse> {
     await this.ensureUserNotBanned(user);
+    await this.ensureUserHasNoActiveSession(user);
 
     const userId = user.id;
     const userDisplayName = user.displayName;
@@ -384,6 +386,38 @@ export class AuthenticationService {
         "USER_BANNED_TEMPORARILY",
         `Your account is temporarily banned. The ban will expire on ${formattedDate}`,
         403,
+      );
+    }
+  }
+
+  private async ensureUserHasNoActiveSession(user: UserEntity): Promise<void> {
+    let existingSessions;
+
+    try {
+      existingSessions = await this.databaseService.withRlsUser(
+        user.id,
+        (tx) => {
+          return tx
+            .select({ userId: userSessionsTable.userId })
+            .from(userSessionsTable)
+            .where(eq(userSessionsTable.userId, user.id))
+            .limit(1);
+        },
+      );
+    } catch (error) {
+      console.error("Failed to query user sessions:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to check for existing sessions",
+        500,
+      );
+    }
+
+    if (existingSessions.length > 0) {
+      throw new ServerError(
+        "USER_ALREADY_SIGNED_IN",
+        "User already has an active session. Please disconnect from other devices before signing in.",
+        409,
       );
     }
   }
