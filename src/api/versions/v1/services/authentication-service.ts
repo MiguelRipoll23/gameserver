@@ -30,10 +30,9 @@ import {
   userSessionsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, desc } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
-import { desc } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import { SignatureService } from "./signature-service.ts";
 
@@ -97,20 +96,11 @@ export class AuthenticationService {
     connectionInfo: ConnInfo,
     user: UserEntity
   ): Promise<AuthenticationResponse> {
-    // Use optimized single query to check user status, bans, and sessions
-    const userValidation = await this.getUserValidationData(user.id);
-
-    // Validate ban status
-    this.validateUserBanStatus(userValidation.latestBan);
-
-    // Check for active session
-    if (userValidation.hasActiveSession) {
-      throw new ServerError(
-        "USER_ALREADY_SIGNED_IN",
-        "Please disconnect from other devices before signing in.",
-        409
-      );
-    }
+    // Run ban + active session checks in parallel
+    await Promise.all([
+      this.ensureUserNotBanned(user),
+      this.ensureUserHasNoActiveSession(user),
+    ]);
 
     const userId = user.id;
     const userDisplayName = user.displayName;
@@ -119,18 +109,16 @@ export class AuthenticationService {
 
     // Create JWT for client authentication
     const jwtKey = await this.jwtService.getKey();
-
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
       { id: userId, name: userDisplayName, roles: userRoles },
       jwtKey
     );
 
-    // Add user symmetric key for encryption/decryption
+    // Generate and store symmetric key for this user session
     const userSymmetricKey: string = encodeBase64(
       crypto.getRandomValues(new Uint8Array(32)).buffer
     );
-
     await this.kvService.setUserKey(userId, userSymmetricKey);
 
     // Server configuration
@@ -138,7 +126,7 @@ export class AuthenticationService {
       this.signatureService.getEncodedPublicKey();
     const rtcIceServers = await this.iceService.getServers();
 
-    const response: AuthenticationResponse = {
+    return {
       authenticationToken,
       userId,
       userDisplayName,
@@ -147,120 +135,6 @@ export class AuthenticationService {
       serverSignaturePublicKey,
       rtcIceServers,
     };
-
-    return response;
-  }
-
-  /**
-   * Optimized query to get user validation data (ban status and session check) in one query
-   */
-  private async getUserValidationData(userId: string) {
-    try {
-      return await this.databaseService.withRlsUser(userId, async (tx) => {
-        // Subquery to grab the latest ban for this user
-        const latestBanSubquery = tx
-          .select({
-            id: userBansTable.id,
-            expiresAt: userBansTable.expiresAt,
-            userId: userBansTable.userId,
-          })
-          .from(userBansTable)
-          .where(eq(userBansTable.userId, usersTable.id))
-          .orderBy(desc(userBansTable.createdAt))
-          .limit(1)
-          .as("latestBan");
-
-        // Subquery to check if a session exists
-        const sessionSubquery = tx
-          .select({
-            userId: userSessionsTable.userId,
-          })
-          .from(userSessionsTable)
-          .where(eq(userSessionsTable.userId, usersTable.id))
-          .limit(1)
-          .as("activeSession");
-
-        const result = await tx
-          .select({
-            latestBanExpiresAt: latestBanSubquery.expiresAt,
-            hasActiveSession: sessionSubquery.userId,
-          })
-          .from(usersTable)
-          .leftJoin(
-            latestBanSubquery,
-            eq(latestBanSubquery.userId, usersTable.id)
-          )
-          .leftJoin(sessionSubquery, eq(sessionSubquery.userId, usersTable.id))
-          .where(eq(usersTable.id, userId))
-          .limit(1);
-
-        if (result.length === 0) {
-          return { latestBan: null, hasActiveSession: false };
-        }
-
-        return {
-          latestBan: result[0].latestBanExpiresAt
-            ? { expiresAt: result[0].latestBanExpiresAt }
-            : null,
-          hasActiveSession: !!result[0].hasActiveSession,
-        };
-      });
-    } catch (error) {
-      console.error("Failed to query user validation data:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to retrieve user validation data",
-        500
-      );
-    }
-  }
-
-  /**
-   * Validate user ban status using pre-fetched ban data
-   */
-  private validateUserBanStatus(
-    latestBan: { expiresAt: Date | null } | null
-  ): void {
-    if (!latestBan) {
-      return; // No ban found
-    }
-
-    // Check for permanent ban
-    if (latestBan.expiresAt === null) {
-      throw new ServerError(
-        "USER_BANNED_PERMANENTLY",
-        "Your account is permanently banned.",
-        403
-      );
-    }
-
-    const now = Temporal.Now.instant();
-
-    // Temporary ban still active
-    if (
-      Temporal.Instant.from(latestBan.expiresAt.toISOString())
-        .epochMilliseconds > now.epochMilliseconds
-    ) {
-      const formattedDate = Temporal.Instant.from(
-        latestBan.expiresAt.toISOString()
-      )
-        .toZonedDateTimeISO(Temporal.Now.timeZoneId())
-        .toLocaleString("en-US", {
-          year: "numeric",
-          month: "short",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          timeZoneName: "short",
-        });
-
-      throw new ServerError(
-        "USER_BANNED_TEMPORARILY",
-        `Your account is temporarily banned. The ban will expire on ${formattedDate}`,
-        403
-      );
-    }
   }
 
   private async getAuthenticationOptionsOrThrow(
@@ -279,7 +153,6 @@ export class AuthenticationService {
       );
     }
 
-    // Check if the authentication options are expired
     const createdAt = authenticationOptions.createdAt;
 
     if (
@@ -321,9 +194,7 @@ export class AuthenticationService {
 
       return credentials[0];
     } catch (error) {
-      if (error instanceof ServerError) {
-        throw error;
-      }
+      if (error instanceof ServerError) throw error;
       console.error("Failed to query credential:", error);
       throw new ServerError(
         "DATABASE_ERROR",
@@ -334,7 +205,6 @@ export class AuthenticationService {
   }
 
   private transformCredentialForWebAuthn(credential: UserCredentialEntity) {
-    // Convert base64 string back to Uint8Array for WebAuthn usage
     const publicKeyBuffer = new Uint8Array(
       Base64Utils.base64UrlToArrayBuffer(credential.publicKey)
     );
@@ -363,7 +233,7 @@ export class AuthenticationService {
         credential: this.transformCredentialForWebAuthn(credential),
       });
 
-      if (verification.verified === false) {
+      if (!verification.verified) {
         throw new ServerError(
           "AUTHENTICATION_FAILED",
           "Authentication failed",
@@ -431,10 +301,7 @@ export class AuthenticationService {
 
       return users[0];
     } catch (error) {
-      if (error instanceof ServerError) {
-        throw error;
-      }
-
+      if (error instanceof ServerError) throw error;
       console.error("Failed to query user:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
     }
@@ -459,6 +326,91 @@ export class AuthenticationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to retrieve user roles",
+        500
+      );
+    }
+  }
+
+  private async ensureUserHasNoActiveSession(user: UserEntity): Promise<void> {
+    try {
+      const existingSessions = await this.databaseService.withRlsUser(
+        user.id,
+        (tx) => {
+          return tx
+            .select({ userId: userSessionsTable.userId })
+            .from(userSessionsTable)
+            .where(eq(userSessionsTable.userId, user.id))
+            .limit(1);
+        }
+      );
+
+      if (existingSessions.length > 0) {
+        throw new ServerError(
+          "USER_ALREADY_SIGNED_IN",
+          "User already has an active session. Please disconnect from other devices before signing in.",
+          409
+        );
+      }
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to query user sessions:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to check for existing sessions",
+        500
+      );
+    }
+  }
+
+  private async ensureUserNotBanned(user: UserEntity): Promise<void> {
+    try {
+      const userBans = await this.databaseService.withRlsUser(user.id, (tx) => {
+        return tx
+          .select({ expiresAt: userBansTable.expiresAt })
+          .from(userBansTable)
+          .where(eq(userBansTable.userId, user.id))
+          .orderBy(desc(userBansTable.createdAt))
+          .limit(1);
+      });
+
+      if (userBans.length === 0) return;
+
+      const latestBan = userBans[0];
+      const now = new Date();
+
+      if (!latestBan.expiresAt) {
+        throw new ServerError(
+          "USER_BANNED_PERMANENTLY",
+          "Your account has been permanently banned",
+          403
+        );
+      }
+
+      if (latestBan.expiresAt > now) {
+        const expiresInstant = Temporal.Instant.from(
+          latestBan.expiresAt.toISOString()
+        );
+        const localExpiry = expiresInstant.toZonedDateTimeISO(
+          Temporal.Now.timeZoneId()
+        );
+        const formattedDate = localExpiry.toLocaleString("en-US", {
+          dateStyle: "medium",
+          timeStyle: "long",
+          timeZoneName: "short",
+        });
+
+        throw new ServerError(
+          "USER_BANNED_TEMPORARILY",
+          `Your account is temporarily banned until ${formattedDate}.`,
+          403
+        );
+      }
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to query user bans:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to retrieve user bans",
         500
       );
     }
