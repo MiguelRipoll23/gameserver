@@ -59,7 +59,7 @@ export class AuthenticationService {
 
     await this.kvService.setAuthenticationOptions(transactionId, {
       data: options,
-      createdAt: Date.now(),
+      createdAt: Temporal.Now.instant().epochMilliseconds,
     });
 
     return options;
@@ -161,7 +161,10 @@ export class AuthenticationService {
     // Check if the authentication options are expired
     const createdAt = authenticationOptions.createdAt;
 
-    if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
+    if (
+      createdAt + KV_OPTIONS_EXPIRATION_TIME <
+      Temporal.Now.instant().epochMilliseconds
+    ) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_EXPIRED",
         "Authentication options expired",
@@ -375,7 +378,7 @@ export class AuthenticationService {
     }
 
     const latestBan = userBans[0];
-    const now = new Date();
+    const now = Temporal.Now.instant();
 
     // Permanent ban
     if (!latestBan.expiresAt) {
@@ -387,16 +390,23 @@ export class AuthenticationService {
     }
 
     // Temporary ban still active
-    if (latestBan.expiresAt > now) {
-      const formattedDate = latestBan.expiresAt.toLocaleString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZoneName: "short",
-      });
+    if (
+      Temporal.Instant.from(latestBan.expiresAt.toISOString())
+        .epochMilliseconds > now.epochMilliseconds
+    ) {
+      const formattedDate = Temporal.Instant.from(
+        latestBan.expiresAt.toISOString()
+      )
+        .toZonedDateTimeISO(Temporal.Now.timeZoneId())
+        .toLocaleString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+          timeZoneName: "short",
+        });
 
       throw new ServerError(
         "USER_BANNED_TEMPORARILY",
