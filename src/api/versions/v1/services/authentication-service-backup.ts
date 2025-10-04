@@ -1,6 +1,7 @@
-import { encodeBase64 } from "hono/utils/encode";
+import { encodeBase64 } from "honimport { and, eq, lt, sql } from \"drizzle-orm\";/utils/encode";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { create } from "@wok/djwt";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { inject, injectable } from "@needle-di/core";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
@@ -30,7 +31,7 @@ import {
   userSessionsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq, lt, sql, placeholder } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
 import { desc } from "drizzle-orm";
@@ -39,13 +40,104 @@ import { SignatureService } from "./signature-service.ts";
 
 @injectable()
 export class AuthenticationService {
+  // Prepared statements for better performance - initialized after constructor  
+  private preparedGetCredential: any;
+  private preparedGetUser: any;
+  private preparedGetUserRoles: any;
+  private preparedGetLatestUserBan: any;
+  private preparedCheckUserSession: any;
+  private preparedUpdateCredentialCounter: any;
+  private preparedGetUserWithChecks: any;
+
   constructor(
     private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
     private jwtService = inject(JWTService),
     private signatureService = inject(SignatureService),
     private iceService = inject(ICEService)
-  ) {}
+  ) {
+    // Initialize prepared statements
+    this.initializePreparedStatements();
+  }
+
+  private initializePreparedStatements() {
+    const db = this.databaseService.get();
+    
+    this.preparedGetCredential = db
+      .select()
+      .from(userCredentialsTable)
+      .where(eq(userCredentialsTable.id, placeholder("credentialId")))
+      .limit(1)
+      .prepare("getCredential");
+
+    this.preparedGetUser = db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, placeholder("userId")))
+      .limit(1)
+      .prepare("getUser");
+
+    this.preparedGetUserRoles = db
+      .select({ name: rolesTable.name })
+      .from(userRolesTable)
+      .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+      .where(eq(userRolesTable.userId, placeholder("userId")))
+      .prepare("getUserRoles");
+
+    this.preparedGetLatestUserBan = db
+      .select({ expiresAt: userBansTable.expiresAt })
+      .from(userBansTable)
+      .where(eq(userBansTable.userId, placeholder("userId")))
+      .orderBy(desc(userBansTable.createdAt))
+      .limit(1)
+      .prepare("getLatestUserBan");
+
+    this.preparedCheckUserSession = db
+      .select({ userId: userSessionsTable.userId })
+      .from(userSessionsTable)
+      .where(eq(userSessionsTable.userId, placeholder("userId")))
+      .limit(1)
+      .prepare("checkUserSession");
+
+    this.preparedUpdateCredentialCounter = db
+      .update(userCredentialsTable)
+      .set({ counter: placeholder("newCounter") })
+      .where(
+        and(
+          eq(userCredentialsTable.id, placeholder("credentialId")),
+          lt(userCredentialsTable.counter, placeholder("newCounter"))
+        )
+      )
+      .prepare("updateCredentialCounter");
+
+    // Optimized query to get user with ban status and session check in one query
+    this.preparedGetUserWithChecks = db
+      .select({
+        user: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          createdAt: usersTable.createdAt,
+        },
+        latestBanExpiresAt: userBansTable.expiresAt,
+        hasActiveSession: userSessionsTable.userId,
+      })
+      .from(usersTable)
+      .leftJoin(
+        userBansTable,
+        and(
+          eq(userBansTable.userId, usersTable.id),
+          // Only get the latest ban using a subquery approach
+          eq(
+            userBansTable.id,
+            sql`(SELECT id FROM user_bans WHERE user_id = ${usersTable.id} ORDER BY created_at DESC LIMIT 1)`
+          )
+        )
+      )
+      .leftJoin(userSessionsTable, eq(userSessionsTable.userId, usersTable.id))
+      .where(eq(usersTable.id, placeholder("userId")))
+      .limit(1)
+      .prepare("getUserWithChecks");
+  }
 
   public async getOptions(
     authenticationRequest: GetAuthenticationOptionsRequest
@@ -97,14 +189,18 @@ export class AuthenticationService {
     connectionInfo: ConnInfo,
     user: UserEntity
   ): Promise<AuthenticationResponse> {
-    // Use optimized single query to check user status, bans, and sessions
-    const userValidation = await this.getUserValidationData(user.id);
+    // Use optimized query to check user, ban status, and session in one call
+    const userCheckResult = await this.getUserWithValidationChecks(user.id);
+    
+    if (!userCheckResult.user) {
+      throw new ServerError("USER_NOT_FOUND", "User not found", 400);
+    }
 
     // Validate ban status
-    this.validateUserBanStatus(userValidation.latestBan);
+    this.validateUserBanStatus(userCheckResult.latestBanExpiresAt);
 
     // Check for active session
-    if (userValidation.hasActiveSession) {
+    if (userCheckResult.hasActiveSession) {
       throw new ServerError(
         "USER_ALREADY_SIGNED_IN",
         "Please disconnect from other devices before signing in.",
@@ -112,9 +208,11 @@ export class AuthenticationService {
       );
     }
 
-    const userId = user.id;
-    const userDisplayName = user.displayName;
+    const userId = userCheckResult.user.id;
+    const userDisplayName = userCheckResult.user.displayName;
     const userPublicIp = connectionInfo.remote.address ?? null;
+
+    // Fetch user roles
     const userRoles = await this.getUserRoles(userId);
 
     // Create JWT for client authentication
@@ -152,51 +250,29 @@ export class AuthenticationService {
   }
 
   /**
-   * Optimized query to get user validation data (ban status and session check) in one query
+   * Optimized method that gets user data with ban and session checks in a single query
    */
-  private async getUserValidationData(userId: string) {
+  private async getUserWithValidationChecks(userId: string) {
     try {
-      const result = await this.databaseService.withRlsUser(userId, (tx) => {
-        return tx
-          .select({
-            latestBan: {
-              expiresAt: userBansTable.expiresAt,
-            },
-            hasActiveSession: userSessionsTable.userId,
-          })
-          .from(usersTable)
-          .leftJoin(
-            userBansTable,
-            and(
-              eq(userBansTable.userId, usersTable.id),
-              // Get only the latest ban
-              eq(
-                userBansTable.id,
-                sql`(SELECT id FROM user_bans WHERE user_id = ${usersTable.id} ORDER BY created_at DESC LIMIT 1)`
-              )
-            )
-          )
-          .leftJoin(
-            userSessionsTable,
-            eq(userSessionsTable.userId, usersTable.id)
-          )
-          .where(eq(usersTable.id, userId))
-          .limit(1);
-      });
+      const result = await this.databaseService.withRlsUser(
+        userId,
+        () => this.preparedGetUserWithChecks.execute({ userId })
+      ) as Array<{
+        user: { id: string; displayName: string; createdAt: Date };
+        latestBanExpiresAt: Date | null;
+        hasActiveSession: string | null;
+      }>;
 
       if (result.length === 0) {
-        return { latestBan: null, hasActiveSession: false };
+        return { user: null, latestBanExpiresAt: null, hasActiveSession: null };
       }
 
-      return {
-        latestBan: result[0].latestBan,
-        hasActiveSession: !!result[0].hasActiveSession,
-      };
+      return result[0];
     } catch (error) {
-      console.error("Failed to query user validation data:", error);
+      console.error("Failed to query user with checks:", error);
       throw new ServerError(
         "DATABASE_ERROR",
-        "Failed to retrieve user validation data",
+        "Failed to retrieve user data",
         500
       );
     }
@@ -205,22 +281,29 @@ export class AuthenticationService {
   /**
    * Validate user ban status using pre-fetched ban data
    */
-  private validateUserBanStatus(
-    latestBan: { expiresAt: Date | null } | null
-  ): void {
-    if (!latestBan || !latestBan.expiresAt) {
-      return; // No ban found or permanent ban logic needs revision
+  private validateUserBanStatus(latestBanExpiresAt: Date | null): void {
+    if (!latestBanExpiresAt) {
+      return; // No ban found
     }
 
     const now = Temporal.Now.instant();
 
+    // Permanent ban
+    if (!latestBanExpiresAt) {
+      throw new ServerError(
+        "USER_BANNED_PERMANENTLY",
+        "Your account has been permanently banned",
+        403
+      );
+    }
+
     // Temporary ban still active
     if (
-      Temporal.Instant.from(latestBan.expiresAt.toISOString())
+      Temporal.Instant.from(latestBanExpiresAt.toISOString())
         .epochMilliseconds > now.epochMilliseconds
     ) {
       const formattedDate = Temporal.Instant.from(
-        latestBan.expiresAt.toISOString()
+        latestBanExpiresAt.toISOString()
       )
         .toZonedDateTimeISO(Temporal.Now.timeZoneId())
         .toLocaleString("en-US", {
@@ -280,14 +363,8 @@ export class AuthenticationService {
     try {
       const credentials = await this.databaseService.withRlsCredential(
         id,
-        (tx) => {
-          return tx
-            .select()
-            .from(userCredentialsTable)
-            .where(eq(userCredentialsTable.id, id))
-            .limit(1);
-        }
-      );
+        () => this.preparedGetCredential.execute({ credentialId: id })
+      ) as UserCredentialEntity[];
 
       if (credentials.length === 0) {
         throw new ServerError(
@@ -368,17 +445,13 @@ export class AuthenticationService {
     const newCounter = authenticationInfo.newCounter;
 
     try {
-      await this.databaseService.withRlsCredential(credential.id, (tx) => {
-        return tx
-          .update(userCredentialsTable)
-          .set({ counter: newCounter })
-          .where(
-            and(
-              eq(userCredentialsTable.id, credential.id),
-              lt(userCredentialsTable.counter, newCounter)
-            )
-          );
-      });
+      await this.databaseService.withRlsCredential(
+        credential.id,
+        () => this.preparedUpdateCredentialCounter.execute({
+          credentialId: credential.id,
+          newCounter
+        })
+      );
     } catch (error) {
       console.error("Failed to update credential counter:", error);
       throw new ServerError(
@@ -395,13 +468,10 @@ export class AuthenticationService {
     const userId = credential.userId;
 
     try {
-      const users = await this.databaseService.withRlsUser(userId, (tx) => {
-        return tx
-          .select()
-          .from(usersTable)
-          .where(eq(usersTable.id, userId))
-          .limit(1);
-      });
+      const users = await this.databaseService.withRlsUser(
+        userId,
+        () => this.preparedGetUser.execute({ userId })
+      ) as UserEntity[];
 
       if (users.length === 0) {
         throw new ServerError("USER_NOT_FOUND", "User not found", 400);
@@ -412,7 +482,6 @@ export class AuthenticationService {
       if (error instanceof ServerError) {
         throw error;
       }
-
       console.error("Failed to query user:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
     }
@@ -422,14 +491,8 @@ export class AuthenticationService {
     try {
       const userRoleResults = await this.databaseService.withRlsUser(
         userId,
-        (tx) => {
-          return tx
-            .select({ name: rolesTable.name })
-            .from(userRolesTable)
-            .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
-            .where(eq(userRolesTable.userId, userId));
-        }
-      );
+        () => this.preparedGetUserRoles.execute({ userId })
+      ) as Array<{ name: string }>;
 
       return userRoleResults.map((role: { name: string }) => role.name);
     } catch (error) {
@@ -444,14 +507,10 @@ export class AuthenticationService {
 
   private async ensureUserNotBanned(user: UserEntity): Promise<void> {
     try {
-      const userBans = await this.databaseService.withRlsUser(user.id, (tx) => {
-        return tx
-          .select({ expiresAt: userBansTable.expiresAt })
-          .from(userBansTable)
-          .where(eq(userBansTable.userId, user.id))
-          .orderBy(desc(userBansTable.createdAt))
-          .limit(1);
-      });
+      const userBans = await this.databaseService.withRlsUser(
+        user.id,
+        () => this.preparedGetLatestUserBan.execute({ userId: user.id })
+      ) as Array<{ expiresAt: Date | null }>;
 
       if (userBans.length === 0) {
         return;
@@ -470,11 +529,10 @@ export class AuthenticationService {
       }
 
       // Temporary ban still active
-      const isTemporarilyBanned =
+      if (
         Temporal.Instant.from(latestBan.expiresAt.toISOString())
-          .epochMilliseconds > now.epochMilliseconds;
-
-      if (isTemporarilyBanned) {
+          .epochMilliseconds > now.epochMilliseconds
+      ) {
         const formattedDate = Temporal.Instant.from(
           latestBan.expiresAt.toISOString()
         )
@@ -499,7 +557,6 @@ export class AuthenticationService {
       if (error instanceof ServerError) {
         throw error;
       }
-
       console.error("Failed to query user bans:", error);
       throw new ServerError(
         "DATABASE_ERROR",
@@ -513,14 +570,8 @@ export class AuthenticationService {
     try {
       const existingSessions = await this.databaseService.withRlsUser(
         user.id,
-        (tx) => {
-          return tx
-            .select({ userId: userSessionsTable.userId })
-            .from(userSessionsTable)
-            .where(eq(userSessionsTable.userId, user.id))
-            .limit(1);
-        }
-      );
+        () => this.preparedCheckUserSession.execute({ userId: user.id })
+      ) as Array<{ userId: string }>;
 
       if (existingSessions.length > 0) {
         throw new ServerError(
