@@ -96,11 +96,18 @@ export class AuthenticationService {
     connectionInfo: ConnInfo,
     user: UserEntity
   ): Promise<AuthenticationResponse> {
-    // Run ban + active session checks in parallel
-    await Promise.all([
+    const [banResult, sessionResult] = await Promise.allSettled([
       this.ensureUserNotBanned(user),
       this.ensureUserHasNoActiveSession(user),
     ]);
+
+    if (banResult.status === "rejected") {
+      throw banResult.reason;
+    }
+
+    if (sessionResult.status === "rejected") {
+      throw sessionResult.reason;
+    }
 
     const userId = user.id;
     const userDisplayName = user.displayName;
