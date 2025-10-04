@@ -88,6 +88,7 @@ export class AuthenticationService {
     await this.updateCredentialCounter(credential, verification);
 
     const user = await this.getUserOrThrowError(credential);
+    await this.ensureUserCanSignIn(user);
 
     return await this.getResponseForUser(connectionInfo, user);
   }
@@ -96,19 +97,6 @@ export class AuthenticationService {
     connectionInfo: ConnInfo,
     user: UserEntity
   ): Promise<AuthenticationResponse> {
-    const [banResult, sessionResult] = await Promise.allSettled([
-      this.ensureUserNotBanned(user),
-      this.ensureUserHasNoActiveSession(user),
-    ]);
-
-    if (banResult.status === "rejected") {
-      throw banResult.reason;
-    }
-
-    if (sessionResult.status === "rejected") {
-      throw sessionResult.reason;
-    }
-
     const userId = user.id;
     const userDisplayName = user.displayName;
     const userPublicIp = connectionInfo.remote.address ?? null;
@@ -335,6 +323,21 @@ export class AuthenticationService {
         "Failed to retrieve user roles",
         500
       );
+    }
+  }
+
+  private async ensureUserCanSignIn(user: UserEntity): Promise<void> {
+    const [banResult, sessionResult] = await Promise.allSettled([
+      this.ensureUserNotBanned(user),
+      this.ensureUserHasNoActiveSession(user),
+    ]);
+
+    if (banResult.status === "rejected") {
+      throw banResult.reason;
+    }
+
+    if (sessionResult.status === "rejected") {
+      throw sessionResult.reason;
     }
   }
 
