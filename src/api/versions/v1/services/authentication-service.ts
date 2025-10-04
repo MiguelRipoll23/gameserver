@@ -383,7 +383,7 @@ export class AuthenticationService {
       if (userBans.length === 0) return;
 
       const latestBan = userBans[0];
-      const now = new Date();
+      const nowInstant = Temporal.Now.instant();
 
       if (!latestBan.expiresAt) {
         throw new ServerError(
@@ -393,10 +393,11 @@ export class AuthenticationService {
         );
       }
 
-      if (latestBan.expiresAt > now) {
-        const expiresInstant = Temporal.Instant.from(
-          latestBan.expiresAt.toISOString()
-        );
+      const expiresInstant = Temporal.Instant.from(
+        latestBan.expiresAt.toISOString()
+      );
+
+      if (expiresInstant > nowInstant) {
         const localExpiry = expiresInstant.toZonedDateTimeISO(
           Temporal.Now.timeZoneId()
         );
