@@ -30,10 +30,9 @@ import {
   userSessionsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, lt } from "drizzle-orm";
+import { and, eq, lt, desc } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
-import { desc } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import { SignatureService } from "./signature-service.ts";
 
@@ -44,11 +43,11 @@ export class AuthenticationService {
     private databaseService = inject(DatabaseService),
     private jwtService = inject(JWTService),
     private signatureService = inject(SignatureService),
-    private iceService = inject(ICEService),
+    private iceService = inject(ICEService)
   ) {}
 
   public async getOptions(
-    authenticationRequest: GetAuthenticationOptionsRequest,
+    authenticationRequest: GetAuthenticationOptionsRequest
   ): Promise<object> {
     const { transactionId } = authenticationRequest;
     const options = await generateAuthenticationOptions({
@@ -58,7 +57,7 @@ export class AuthenticationService {
 
     await this.kvService.setAuthenticationOptions(transactionId, {
       data: options,
-      createdAt: Date.now(),
+      createdAt: Temporal.Now.instant().epochMilliseconds,
     });
 
     return options;
@@ -66,24 +65,24 @@ export class AuthenticationService {
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    authenticationRequest: VerifyAuthenticationRequest,
+    authenticationRequest: VerifyAuthenticationRequest
   ): Promise<AuthenticationResponse> {
     const { transactionId } = authenticationRequest;
-    const authenticationResponse = authenticationRequest
-      .authenticationResponse as object as AuthenticationResponseJSON;
+    const authenticationResponse =
+      authenticationRequest.authenticationResponse as object as AuthenticationResponseJSON;
 
     const authenticationOptions = await this.getAuthenticationOptionsOrThrow(
-      transactionId,
+      transactionId
     );
 
     const credential = await this.getCredentialOrThrow(
-      authenticationResponse.id,
+      authenticationResponse.id
     );
 
     const verification = await this.verifyAuthenticationResponse(
       authenticationResponse,
       authenticationOptions,
-      credential,
+      credential
     );
 
     await this.updateCredentialCounter(credential, verification);
@@ -95,40 +94,46 @@ export class AuthenticationService {
 
   public async getResponseForUser(
     connectionInfo: ConnInfo,
-    user: UserEntity,
+    user: UserEntity
   ): Promise<AuthenticationResponse> {
-    await this.ensureUserNotBanned(user);
-    await this.ensureUserHasNoActiveSession(user);
+    const [banResult, sessionResult] = await Promise.allSettled([
+      this.ensureUserNotBanned(user),
+      this.ensureUserHasNoActiveSession(user),
+    ]);
+
+    if (banResult.status === "rejected") {
+      throw banResult.reason;
+    }
+
+    if (sessionResult.status === "rejected") {
+      throw sessionResult.reason;
+    }
 
     const userId = user.id;
     const userDisplayName = user.displayName;
     const userPublicIp = connectionInfo.remote.address ?? null;
-
-    // Fetch user roles
     const userRoles = await this.getUserRoles(userId);
 
     // Create JWT for client authentication
     const jwtKey = await this.jwtService.getKey();
-
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
       { id: userId, name: userDisplayName, roles: userRoles },
-      jwtKey,
+      jwtKey
     );
 
-    // Add user symmetric key for encryption/decryption
+    // Generate and store symmetric key for this user session
     const userSymmetricKey: string = encodeBase64(
-      crypto.getRandomValues(new Uint8Array(32)).buffer,
+      crypto.getRandomValues(new Uint8Array(32)).buffer
     );
-
     await this.kvService.setUserKey(userId, userSymmetricKey);
 
     // Server configuration
-    const serverSignaturePublicKey = this.signatureService
-      .getEncodedPublicKey();
+    const serverSignaturePublicKey =
+      this.signatureService.getEncodedPublicKey();
     const rtcIceServers = await this.iceService.getServers();
 
-    const response: AuthenticationResponse = {
+    return {
       authenticationToken,
       userId,
       userDisplayName,
@@ -137,34 +142,34 @@ export class AuthenticationService {
       serverSignaturePublicKey,
       rtcIceServers,
     };
-
-    return response;
   }
 
   private async getAuthenticationOptionsOrThrow(
-    transactionId: string,
+    transactionId: string
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    const authenticationOptions = await this.kvService
-      .takeAuthenticationOptionsByTransactionId(
-        transactionId,
+    const authenticationOptions =
+      await this.kvService.takeAuthenticationOptionsByTransactionId(
+        transactionId
       );
 
     if (authenticationOptions === null) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_NOT_FOUND",
         "Authentication options not found",
-        400,
+        400
       );
     }
 
-    // Check if the authentication options are expired
     const createdAt = authenticationOptions.createdAt;
 
-    if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
+    if (
+      createdAt + KV_OPTIONS_EXPIRATION_TIME <
+      Temporal.Now.instant().epochMilliseconds
+    ) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_EXPIRED",
         "Authentication options expired",
-        400,
+        400
       );
     }
 
@@ -172,42 +177,43 @@ export class AuthenticationService {
   }
 
   private async getCredentialOrThrow(
-    id: string,
+    id: string
   ): Promise<UserCredentialEntity> {
-    let credentials;
-
     try {
-      credentials = await this.databaseService.withRlsCredential(id, (tx) => {
-        return tx
-          .select()
-          .from(userCredentialsTable)
-          .where(eq(userCredentialsTable.id, id))
-          .limit(1);
-      });
+      const credentials = await this.databaseService.withRlsCredential(
+        id,
+        (tx) => {
+          return tx
+            .select()
+            .from(userCredentialsTable)
+            .where(eq(userCredentialsTable.id, id))
+            .limit(1);
+        }
+      );
+
+      if (credentials.length === 0) {
+        throw new ServerError(
+          "CREDENTIAL_NOT_FOUND",
+          "Credential not found",
+          400
+        );
+      }
+
+      return credentials[0];
     } catch (error) {
+      if (error instanceof ServerError) throw error;
       console.error("Failed to query credential:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to retrieve credential",
-        500,
+        500
       );
     }
-
-    if (credentials.length === 0) {
-      throw new ServerError(
-        "CREDENTIAL_NOT_FOUND",
-        "Credential not found",
-        400,
-      );
-    }
-
-    return credentials[0];
   }
 
   private transformCredentialForWebAuthn(credential: UserCredentialEntity) {
-    // Convert base64 string back to Uint8Array for WebAuthn usage
     const publicKeyBuffer = new Uint8Array(
-      Base64Utils.base64UrlToArrayBuffer(credential.publicKey),
+      Base64Utils.base64UrlToArrayBuffer(credential.publicKey)
     );
 
     return {
@@ -223,7 +229,7 @@ export class AuthenticationService {
   private async verifyAuthenticationResponse(
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
-    credential: UserCredentialEntity,
+    credential: UserCredentialEntity
   ): Promise<VerifiedAuthenticationResponse> {
     try {
       const verification = await verifyAuthenticationResponse({
@@ -234,11 +240,11 @@ export class AuthenticationService {
         credential: this.transformCredentialForWebAuthn(credential),
       });
 
-      if (verification.verified === false) {
+      if (!verification.verified) {
         throw new ServerError(
           "AUTHENTICATION_FAILED",
           "Authentication failed",
-          400,
+          400
         );
       }
 
@@ -248,14 +254,14 @@ export class AuthenticationService {
       throw new ServerError(
         "AUTHENTICATION_FAILED",
         "Authentication failed",
-        400,
+        400
       );
     }
   }
 
   private async updateCredentialCounter(
     credential: UserCredentialEntity,
-    verification: VerifiedAuthenticationResponse,
+    verification: VerifiedAuthenticationResponse
   ): Promise<void> {
     const { authenticationInfo } = verification;
     const newCounter = authenticationInfo.newCounter;
@@ -268,8 +274,8 @@ export class AuthenticationService {
           .where(
             and(
               eq(userCredentialsTable.id, credential.id),
-              lt(userCredentialsTable.counter, newCounter),
-            ),
+              lt(userCredentialsTable.counter, newCounter)
+            )
           );
       });
     } catch (error) {
@@ -277,124 +283,64 @@ export class AuthenticationService {
       throw new ServerError(
         "CREDENTIAL_COUNTER_UPDATE_FAILED",
         "Failed to update credential counter",
-        500,
+        500
       );
     }
   }
 
   private async getUserOrThrowError(
-    credential: UserCredentialEntity,
+    credential: UserCredentialEntity
   ): Promise<UserEntity> {
     const userId = credential.userId;
-    let users;
 
     try {
-      users = await this.databaseService.withRlsUser(userId, (tx) => {
+      const users = await this.databaseService.withRlsUser(userId, (tx) => {
         return tx
           .select()
           .from(usersTable)
           .where(eq(usersTable.id, userId))
           .limit(1);
       });
+
+      if (users.length === 0) {
+        throw new ServerError("USER_NOT_FOUND", "User not found", 400);
+      }
+
+      return users[0];
     } catch (error) {
+      if (error instanceof ServerError) throw error;
       console.error("Failed to query user:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
     }
-
-    if (users.length === 0) {
-      throw new ServerError("USER_NOT_FOUND", "User not found", 400);
-    }
-
-    const user = users[0];
-
-    return user;
   }
 
   private async getUserRoles(userId: string): Promise<string[]> {
-    let userRoleResults;
-
     try {
-      userRoleResults = await this.databaseService.withRlsUser(userId, (tx) => {
-        return tx
-          .select({ name: rolesTable.name })
-          .from(userRolesTable)
-          .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
-          .where(eq(userRolesTable.userId, userId));
-      });
+      const userRoleResults = await this.databaseService.withRlsUser(
+        userId,
+        (tx) => {
+          return tx
+            .select({ name: rolesTable.name })
+            .from(userRolesTable)
+            .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
+            .where(eq(userRolesTable.userId, userId));
+        }
+      );
+
+      return userRoleResults.map((role: { name: string }) => role.name);
     } catch (error) {
       console.error("Failed to query user roles:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to retrieve user roles",
-        500,
-      );
-    }
-
-    return userRoleResults.map((role) => role.name);
-  }
-
-  private async ensureUserNotBanned(user: UserEntity): Promise<void> {
-    let userBans;
-
-    try {
-      userBans = await this.databaseService.withRlsUser(user.id, (tx) => {
-        return tx
-          .select({ expiresAt: userBansTable.expiresAt })
-          .from(userBansTable)
-          .where(eq(userBansTable.userId, user.id))
-          .orderBy(desc(userBansTable.createdAt))
-          .limit(1);
-      });
-    } catch (error) {
-      console.error("Failed to query user bans:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to retrieve user bans",
-        500,
-      );
-    }
-
-    if (userBans.length === 0) {
-      return;
-    }
-
-    const latestBan = userBans[0];
-    const now = new Date();
-
-    // Permanent ban
-    if (!latestBan.expiresAt) {
-      throw new ServerError(
-        "USER_BANNED_PERMANENTLY",
-        "Your account has been permanently banned",
-        403,
-      );
-    }
-
-    // Temporary ban still active
-    if (latestBan.expiresAt > now) {
-      const formattedDate = latestBan.expiresAt.toLocaleString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        timeZoneName: "short",
-      });
-
-      throw new ServerError(
-        "USER_BANNED_TEMPORARILY",
-        `Your account is temporarily banned. The ban will expire on ${formattedDate}`,
-        403,
+        500
       );
     }
   }
 
   private async ensureUserHasNoActiveSession(user: UserEntity): Promise<void> {
-    let existingSessions;
-
     try {
-      existingSessions = await this.databaseService.withRlsUser(
+      const existingSessions = await this.databaseService.withRlsUser(
         user.id,
         (tx) => {
           return tx
@@ -402,22 +348,78 @@ export class AuthenticationService {
             .from(userSessionsTable)
             .where(eq(userSessionsTable.userId, user.id))
             .limit(1);
-        },
+        }
       );
+
+      if (existingSessions.length > 0) {
+        throw new ServerError(
+          "USER_ALREADY_SIGNED_IN",
+          "Please disconnect from other devices before signing in.",
+          409
+        );
+      }
     } catch (error) {
+      if (error instanceof ServerError) throw error;
       console.error("Failed to query user sessions:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to check for existing sessions",
-        500,
+        500
       );
     }
+  }
 
-    if (existingSessions.length > 0) {
+  private async ensureUserNotBanned(user: UserEntity): Promise<void> {
+    try {
+      const userBans = await this.databaseService.withRlsUser(user.id, (tx) => {
+        return tx
+          .select({ expiresAt: userBansTable.expiresAt })
+          .from(userBansTable)
+          .where(eq(userBansTable.userId, user.id))
+          .orderBy(desc(userBansTable.createdAt))
+          .limit(1);
+      });
+
+      if (userBans.length === 0) return;
+
+      const latestBan = userBans[0];
+      const nowInstant = Temporal.Now.instant();
+
+      if (!latestBan.expiresAt) {
+        throw new ServerError(
+          "USER_BANNED_PERMANENTLY",
+          "Your account has been permanently banned",
+          403
+        );
+      }
+
+      const expiresInstant = Temporal.Instant.from(
+        latestBan.expiresAt.toISOString()
+      );
+
+      if (expiresInstant > nowInstant) {
+        const localExpiry = expiresInstant.toZonedDateTimeISO(
+          Temporal.Now.timeZoneId()
+        );
+        const formattedDate = localExpiry.toLocaleString("en-US", {
+          dateStyle: "medium",
+          timeStyle: "long",
+          timeZoneName: "short",
+        });
+
+        throw new ServerError(
+          "USER_BANNED_TEMPORARILY",
+          `Your account is temporarily banned until ${formattedDate}.`,
+          403
+        );
+      }
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to query user bans:", error);
       throw new ServerError(
-        "USER_ALREADY_SIGNED_IN",
-        "User already has an active session. Please disconnect from other devices before signing in.",
-        409,
+        "DATABASE_ERROR",
+        "Failed to retrieve user bans",
+        500
       );
     }
   }
