@@ -347,7 +347,7 @@ export class AuthenticationService {
       if (existingSessions.length > 0) {
         throw new ServerError(
           "USER_ALREADY_SIGNED_IN",
-          "User already has an active session. Please disconnect from other devices before signing in.",
+          "Please disconnect from other devices before signing in.",
           409
         );
       }
