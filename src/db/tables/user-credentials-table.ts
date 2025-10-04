@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   varchar,
@@ -59,7 +60,9 @@ export const userCredentialsTable = pgTable(
       for: "update",
       to: authenticatedUserRole,
       using: isCurrentCredential(table.id),
-      withCheck: isCurrentCredential(table.id),
+      withCheck: sql`${isCurrentCredential(table.id)} AND ${isCurrentUser(
+        table.userId
+      )}`,
     }),
     // Users can delete their own credentials
     pgPolicy("user_credentials_delete_own", {
