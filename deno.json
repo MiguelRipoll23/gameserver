@@ -36,7 +36,7 @@
   },
   "tasks": {
     "dev": "deno run --permission-set=development --unstable-temporal --unstable-kv --unstable-broadcast-channel --env --watch src/main.ts",
-    "debug": "deno run --inspect-wait --permission-set=development --unstable-kv --unstable-broadcast-channel --env --watch src/main.ts",
+    "debug": "deno run --inspect-wait --permission-set=development --unstable-temporal --unstable-kv --unstable-broadcast-channel --env --watch src/main.ts",
     "check": "deno check src/main.ts",
     "studio": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit studio",
     "generate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit generate",
