@@ -1,6 +1,14 @@
-import { integer, pgTable, timestamp, uuid, unique } from "drizzle-orm/pg-core";
+import {
+  integer,
+  pgTable,
+  timestamp,
+  uuid,
+  unique,
+  pgPolicy,
+} from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 import { rolesTable } from "./roles-table.ts";
+import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
 
 export const userRolesTable = pgTable(
   "user_roles",
@@ -18,6 +26,12 @@ export const userRolesTable = pgTable(
   },
   (table) => [
     unique("user_roles_user_id_role_id_idx").on(table.userId, table.roleId),
+    // Users can read only their own role assignments
+    pgPolicy("user_roles_select_own", {
+      for: "select",
+      to: authenticatedUserRole,
+      using: isCurrentUser(table.userId),
+    }),
   ]
 );
 
