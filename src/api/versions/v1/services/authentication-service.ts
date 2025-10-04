@@ -30,7 +30,7 @@ import {
   userSessionsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, lt, sql } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
 import { desc } from "drizzle-orm";
@@ -156,42 +156,55 @@ export class AuthenticationService {
    */
   private async getUserValidationData(userId: string) {
     try {
-      const result = await this.databaseService.withRlsUser(userId, (tx) => {
-        return tx
+      return await this.databaseService.withRlsUser(userId, async (tx) => {
+        // Subquery to grab the latest ban for this user
+        const latestBanSubquery = tx
           .select({
-            latestBan: {
-              expiresAt: userBansTable.expiresAt,
-            },
-            hasActiveSession: userSessionsTable.userId,
+            id: userBansTable.id,
+            expiresAt: userBansTable.expiresAt,
+            userId: userBansTable.userId,
+          })
+          .from(userBansTable)
+          .where(eq(userBansTable.userId, usersTable.id))
+          .orderBy(desc(userBansTable.createdAt))
+          .limit(1)
+          .as("latestBan");
+
+        // Subquery to check if a session exists
+        const sessionSubquery = tx
+          .select({
+            userId: userSessionsTable.userId,
+          })
+          .from(userSessionsTable)
+          .where(eq(userSessionsTable.userId, usersTable.id))
+          .limit(1)
+          .as("activeSession");
+
+        const result = await tx
+          .select({
+            latestBanExpiresAt: latestBanSubquery.expiresAt,
+            hasActiveSession: sessionSubquery.userId,
           })
           .from(usersTable)
           .leftJoin(
-            userBansTable,
-            and(
-              eq(userBansTable.userId, usersTable.id),
-              // Get only the latest ban
-              eq(
-                userBansTable.id,
-                sql`(SELECT id FROM user_bans WHERE user_id = ${usersTable.id} ORDER BY created_at DESC LIMIT 1)`
-              )
-            )
+            latestBanSubquery,
+            eq(latestBanSubquery.userId, usersTable.id)
           )
-          .leftJoin(
-            userSessionsTable,
-            eq(userSessionsTable.userId, usersTable.id)
-          )
+          .leftJoin(sessionSubquery, eq(sessionSubquery.userId, usersTable.id))
           .where(eq(usersTable.id, userId))
           .limit(1);
+
+        if (result.length === 0) {
+          return { latestBan: null, hasActiveSession: false };
+        }
+
+        return {
+          latestBan: result[0].latestBanExpiresAt
+            ? { expiresAt: result[0].latestBanExpiresAt }
+            : null,
+          hasActiveSession: !!result[0].hasActiveSession,
+        };
       });
-
-      if (result.length === 0) {
-        return { latestBan: null, hasActiveSession: false };
-      }
-
-      return {
-        latestBan: result[0].latestBan,
-        hasActiveSession: !!result[0].hasActiveSession,
-      };
     } catch (error) {
       console.error("Failed to query user validation data:", error);
       throw new ServerError(
