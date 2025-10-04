@@ -394,13 +394,16 @@ export class AuthenticationService {
     let existingSessions;
 
     try {
-      existingSessions = await this.databaseService.withRlsUser(user.id, (tx) => {
-        return tx
-          .select({ userId: userSessionsTable.userId })
-          .from(userSessionsTable)
-          .where(eq(userSessionsTable.userId, user.id))
-          .limit(1);
-      });
+      existingSessions = await this.databaseService.withRlsUser(
+        user.id,
+        (tx) => {
+          return tx
+            .select({ userId: userSessionsTable.userId })
+            .from(userSessionsTable)
+            .where(eq(userSessionsTable.userId, user.id))
+            .limit(1);
+        },
+      );
     } catch (error) {
       console.error("Failed to query user sessions:", error);
       throw new ServerError(
