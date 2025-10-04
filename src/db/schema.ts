@@ -9,3 +9,6 @@ export { userScoresTable } from "./tables/user-scores-table.ts";
 export { blockedWordsTable } from "./tables/blocked-words-table.ts";
 export { rolesTable } from "./tables/roles-table.ts";
 export { userRolesTable } from "./tables/user-roles-table.ts";
+
+// Export RLS roles and helpers
+export * from "./rls.ts";
