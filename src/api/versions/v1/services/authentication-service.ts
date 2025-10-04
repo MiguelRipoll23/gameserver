@@ -30,7 +30,7 @@ import {
   userSessionsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, lt, desc } from "drizzle-orm";
+import { and, eq, lt, desc, sql } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
 import { KVService } from "./kv-service.ts";
@@ -349,7 +349,12 @@ export class AuthenticationService {
           return tx
             .select({ userId: userSessionsTable.userId })
             .from(userSessionsTable)
-            .where(eq(userSessionsTable.userId, user.id))
+            .where(
+              and(
+                eq(userSessionsTable.userId, user.id),
+                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '24 hours'`
+              )
+            )
             .limit(1);
         }
       );

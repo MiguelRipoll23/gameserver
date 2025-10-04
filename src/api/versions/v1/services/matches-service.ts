@@ -15,7 +15,7 @@ export class MatchesService {
 
   public async advertise(
     userId: string,
-    body: AdvertiseMatchRequest,
+    body: AdvertiseMatchRequest
   ): Promise<void> {
     // Get the user session from database
     const db = this.databaseService.get();
@@ -66,7 +66,7 @@ export class MatchesService {
       throw new ServerError(
         "MATCH_CREATION_FAILED",
         "Match creation failed",
-        500,
+        500
       );
     }
   }
@@ -91,9 +91,9 @@ export class MatchesService {
     if (body.attributes) {
       // Ensure the match contains all requested attributes with matching values
       conditions.push(
-        sql`${matchesTable.attributes} @> ${
-          JSON.stringify(body.attributes)
-        }::jsonb`,
+        sql`${matchesTable.attributes} @> ${JSON.stringify(
+          body.attributes
+        )}::jsonb`
       );
     }
 
@@ -113,7 +113,7 @@ export class MatchesService {
       .from(matchesTable)
       .innerJoin(
         userSessionsTable,
-        eq(matchesTable.hostUserId, userSessionsTable.userId),
+        eq(matchesTable.hostUserId, userSessionsTable.userId)
       )
       .where(and(...conditions))
       .orderBy(matchesTable.id)
@@ -145,7 +145,7 @@ export class MatchesService {
       throw new ServerError(
         "MATCH_NOT_FOUND",
         `Match with host user id ${userId} does not exist`,
-        404,
+        404
       );
     }
 
