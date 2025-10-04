@@ -208,8 +208,17 @@ export class AuthenticationService {
   private validateUserBanStatus(
     latestBan: { expiresAt: Date | null } | null
   ): void {
-    if (!latestBan || !latestBan.expiresAt) {
-      return; // No ban found or permanent ban logic needs revision
+    if (!latestBan) {
+      return; // No ban found
+    }
+
+    // Check for permanent ban
+    if (latestBan.expiresAt === null) {
+      throw new ServerError(
+        "USER_BANNED_PERMANENTLY",
+        "Your account is permanently banned.",
+        403
+      );
     }
 
     const now = Temporal.Now.instant();
