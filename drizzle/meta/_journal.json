@@ -141,6 +141,13 @@
       "when": 1759618297640,
       "tag": "0019_huge_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1759673958510,
+      "tag": "0020_narrow_greymalkin",
+      "breakpoints": true
     }
   ]
 }
