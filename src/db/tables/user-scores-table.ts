@@ -1,8 +1,8 @@
-import { pgTable, integer, uuid, serial } from "drizzle-orm/pg-core";
+import { pgTable, integer, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userScoresTable = pgTable("user_scores", {
-  id: serial("id").primaryKey(),
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: uuid("user_id")
     .notNull()
     .unique()
