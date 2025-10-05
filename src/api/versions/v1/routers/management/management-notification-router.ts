@@ -31,7 +31,8 @@ export class ManagementNotificationRouter {
         method: "post",
         path: "/",
         summary: "Push notification",
-        description: "Sends an in-game notification to all connected users on the specified channel",
+        description:
+          "Sends an in-game notification to all users on the specified channel",
         tags: ["Server notification"],
         request: {
           body: {
@@ -64,7 +65,8 @@ export class ManagementNotificationRouter {
         method: "post",
         path: "/user",
         summary: "Push user notification",
-        description: "Sends an in-game notification to a specific user on the specified channel",
+        description:
+          "Sends an in-game notification to a specific user on the specified channel",
         tags: ["Server notification"],
         request: {
           body: {

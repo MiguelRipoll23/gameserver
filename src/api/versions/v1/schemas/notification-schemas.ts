@@ -9,13 +9,9 @@ export const PushServerNotificationSchema = z.object({
     .openapi({
       example: 0,
     }),
-  text: z
-    .string()
-    .min(1)
-    .describe("The notification message text")
-    .openapi({
-      example: "This is a test notification coming from the server",
-    }),
+  text: z.string().min(1).describe("The notification message text").openapi({
+    example: "This is a test notification coming from the server",
+  }),
 });
 
 export type PushServerNotification = z.infer<
@@ -38,13 +34,9 @@ export const PushUserNotificationSchema = z.object({
     .openapi({
       example: "550e8400-e29b-41d4-a716-446655440000",
     }),
-  text: z
-    .string()
-    .min(1)
-    .describe("The notification message text")
-    .openapi({
-      example: "This is a test notification coming from the server just for you",
-    }),
+  text: z.string().min(1).describe("The notification message text").openapi({
+    example: "This is a test notification coming from the server just for you",
+  }),
 });
 
 export type PushUserNotification = z.infer<typeof PushUserNotificationSchema>;
