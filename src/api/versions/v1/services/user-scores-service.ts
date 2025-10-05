@@ -7,13 +7,13 @@ import {
   SaveScoresRequest,
   SaveScoresRequestSchema,
 } from "../schemas/scores-schemas.ts";
-import { PaginationParams } from "../schemas/pagination-schemas.ts";
+import { StringPaginationParams } from "../schemas/pagination-schemas.ts";
 import {
   userScoresTable,
   usersTable,
   matchesTable,
 } from "../../../../db/schema.ts";
-import { eq, desc, sql, gt } from "drizzle-orm";
+import { eq, desc, sql, gt, or, and, lt } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 @injectable()
@@ -24,7 +24,7 @@ export class UserScoresService {
   ) {}
 
   public async list(
-    params: Partial<PaginationParams> = {}
+    params: Partial<StringPaginationParams> = {}
   ): Promise<GetScoresResponse> {
     const { cursor, limit = 20 } = params;
     const db = this.databaseService.get();
@@ -32,10 +32,20 @@ export class UserScoresService {
     // Build query conditions
     const conditions = [];
 
-    // If cursor is provided, get records with id greater than cursor
-    // This works well with the id field for pagination
+    // If cursor is provided, decode it and use for keyset pagination
     if (cursor !== undefined) {
-      conditions.push(gt(userScoresTable.id, cursor));
+      const { totalScore, id } = this.decodeCursor(cursor);
+      // For ORDER BY totalScore DESC, id ASC:
+      // Get records where totalScore < cursorScore OR (totalScore = cursorScore AND id > cursorId)
+      conditions.push(
+        or(
+          lt(userScoresTable.totalScore, totalScore),
+          and(
+            eq(userScoresTable.totalScore, totalScore),
+            gt(userScoresTable.id, id)
+          )
+        )
+      );
     }
 
     // Get one extra item to determine if there are more results
@@ -60,7 +70,12 @@ export class UserScoresService {
         userDisplayName: score.userDisplayName,
         totalScore: score.totalScore,
       })),
-      nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
+      nextCursor: hasNextPage
+        ? this.encodeCursor(
+            results[results.length - 1].totalScore,
+            results[results.length - 1].id
+          )
+        : undefined,
       hasMore: hasNextPage,
     };
   }
@@ -147,5 +162,50 @@ export class UserScoresService {
           totalScore: sql`${userScoresTable.totalScore} + EXCLUDED.total_score`,
         },
       });
+  }
+
+  /**
+   * Encodes a composite cursor for pagination based on totalScore and id
+   * @param totalScore The score value
+   * @param id The ID value
+   * @returns Base64 encoded cursor string
+   */
+  private encodeCursor(totalScore: number, id: number): string {
+    const cursorData = { totalScore, id };
+    const encoder = new TextEncoder();
+    const encoded = encoder.encode(JSON.stringify(cursorData));
+    return btoa(String.fromCharCode(...encoded));
+  }
+
+  /**
+   * Decodes a composite cursor for pagination
+   * @param cursor Base64 encoded cursor string
+   * @returns Object with totalScore and id values
+   */
+  private decodeCursor(cursor: string): { totalScore: number; id: number } {
+    try {
+      const decoded = atob(cursor);
+      const decoder = new TextDecoder();
+      const bytes = new Uint8Array(
+        decoded.split("").map((char) => char.charCodeAt(0))
+      );
+      const jsonString = decoder.decode(bytes);
+      const cursorData = JSON.parse(jsonString);
+
+      if (
+        typeof cursorData.totalScore !== "number" ||
+        typeof cursorData.id !== "number"
+      ) {
+        throw new Error("Invalid cursor format");
+      }
+
+      return cursorData;
+    } catch (_error) {
+      throw new ServerError(
+        "INVALID_CURSOR",
+        "Invalid pagination cursor format",
+        400
+      );
+    }
   }
 }

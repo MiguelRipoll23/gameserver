@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import {
-  PaginationSchema,
-  PaginatedResponseSchema,
+  StringPaginationSchema,
+  StringPaginatedResponseSchema,
 } from "./pagination-schemas.ts";
 
 export const SaveScoresRequestSchema = z.array(
@@ -17,7 +17,7 @@ export const SaveScoresRequestSchema = z.array(
 
 export type SaveScoresRequest = z.infer<typeof SaveScoresRequestSchema>;
 
-export const GetScoresQuerySchema = PaginationSchema;
+export const GetScoresQuerySchema = StringPaginationSchema;
 
 export const UserScoreResponseSchema = z.object({
   userDisplayName: z
@@ -35,7 +35,7 @@ export const UserScoreResponseSchema = z.object({
 
 export type UserScoreResponse = z.infer<typeof UserScoreResponseSchema>;
 
-export const GetScoresResponseSchema = PaginatedResponseSchema(
+export const GetScoresResponseSchema = StringPaginatedResponseSchema(
   UserScoreResponseSchema
 );
 
