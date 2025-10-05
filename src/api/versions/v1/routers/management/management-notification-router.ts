@@ -1,7 +1,10 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { NotificationService } from "../../services/notification-service.ts";
-import { PushServerNotificationSchema, PushUserNotificationSchema } from "../../schemas/notification-schemas.ts";
+import {
+  PushServerNotificationSchema,
+  PushUserNotificationSchema,
+} from "../../schemas/notification-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
@@ -27,13 +30,14 @@ export class ManagementNotificationRouter {
       createRoute({
         method: "post",
         path: "/",
-        summary: "Push global notification",
-        description: "Shows a server in-game notification to connected users",
+        summary: "Push notification",
+        description:
+          "Sends an in-game notification to all users on the specified channel",
         tags: ["Server notification"],
         request: {
           body: {
             content: {
-              "text/plain": {
+              "application/json": {
                 schema: PushServerNotificationSchema,
               },
             },
@@ -46,12 +50,12 @@ export class ManagementNotificationRouter {
           ...ServerResponse.Forbidden,
         },
       }),
-      async (c) => {
-        const text = await c.req.text();
-        this.notificationService.notify(text);
+      (c) => {
+        const { channelId, text } = c.req.valid("json");
+        this.notificationService.notify(channelId, text);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 
@@ -61,7 +65,8 @@ export class ManagementNotificationRouter {
         method: "post",
         path: "/user",
         summary: "Push user notification",
-        description: "Shows a server in-game notification to an user",
+        description:
+          "Sends an in-game notification to a specific user on the specified channel",
         tags: ["Server notification"],
         request: {
           body: {
@@ -80,12 +85,12 @@ export class ManagementNotificationRouter {
           ...ServerResponse.NotFound,
         },
       }),
-      async (c) => {
-        const { userId, message } = c.req.valid("json");
-        this.notificationService.notifyUser(userId, message);
+      (c) => {
+        const { channelId, userId, text } = c.req.valid("json");
+        this.notificationService.notifyUser(channelId, userId, text);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 }

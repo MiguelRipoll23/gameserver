@@ -1,32 +1,39 @@
 import { z } from "@hono/zod-openapi";
+import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 
-export const PushServerNotificationSchema = z
-  .string()
-  .min(1)
-  .describe("The text of the notification")
-  .openapi({
+export const PushServerNotificationSchema = z.object({
+  channelId: z
+    .enum(NotificationChannelType)
+    .describe("The notification channel type")
+    .openapi({
+      example: NotificationChannelType.Global,
+    }),
+  text: z.string().min(1).describe("The notification message text").openapi({
     example: "This is a test notification coming from the server",
-  });
+  }),
+});
 
 export type PushServerNotification = z.infer<
   typeof PushServerNotificationSchema
 >;
 
 export const PushUserNotificationSchema = z.object({
-  userId: z.string()
+  channelId: z
+    .enum(NotificationChannelType)
+    .describe("The notification channel type")
+    .openapi({
+      example: NotificationChannelType.Global,
+    }),
+  userId: z
+    .string()
     .min(1)
-    .describe("The ID of the user to send the notification to")
+    .describe("The unique identifier of the user to receive the notification")
     .openapi({
       example: "550e8400-e29b-41d4-a716-446655440000",
     }),
-  message: z.string()
-    .min(1)
-    .describe("The text of the notification")
-    .openapi({
-      example: "You have a new message!",
-    }),
+  text: z.string().min(1).describe("The notification message text").openapi({
+    example: "This is a test notification coming from the server just for you",
+  }),
 });
 
-export type PushUserNotification = z.infer<
-  typeof PushUserNotificationSchema
->;
+export type PushUserNotification = z.infer<typeof PushUserNotificationSchema>;

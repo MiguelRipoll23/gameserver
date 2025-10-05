@@ -1,10 +1,14 @@
 import { injectable } from "@needle-di/core";
-import { SEND_NOTIFICATION_EVENT, SEND_USER_NOTIFICATION_EVENT } from "../constants/event-constants.ts";
+import {
+  SEND_NOTIFICATION_EVENT,
+  SEND_USER_NOTIFICATION_EVENT,
+} from "../constants/event-constants.ts";
 import { ServerError } from "../models/server-error.ts";
+import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 
 @injectable()
 export class NotificationService {
-  public notify(text: string): void {
+  public notify(channelId: NotificationChannelType, text: string): void {
     const message = text.trim();
 
     // Check if the message is empty
@@ -16,8 +20,18 @@ export class NotificationService {
       );
     }
 
+    // Validate channelId
+    if (!Object.values(NotificationChannelType).includes(channelId)) {
+      throw new ServerError(
+        "INVALID_CHANNEL_ID",
+        "Invalid notification channel type",
+        400
+      );
+    }
+
     const customEvent = new CustomEvent(SEND_NOTIFICATION_EVENT, {
       detail: {
+        channelId,
         message,
       },
     });
@@ -25,7 +39,11 @@ export class NotificationService {
     dispatchEvent(customEvent);
   }
 
-  public notifyUser(userId: string, text: string): void {
+  public notifyUser(
+    channelId: NotificationChannelType,
+    userId: string,
+    text: string
+  ): void {
     const message = text.trim();
 
     // Check if the message is empty
@@ -39,15 +57,21 @@ export class NotificationService {
 
     // Check if userId is provided
     if (!userId || userId.trim().length === 0) {
+      throw new ServerError("INVALID_USER_ID", "User ID must be provided", 400);
+    }
+
+    // Validate channelId
+    if (!Object.values(NotificationChannelType).includes(channelId)) {
       throw new ServerError(
-        "INVALID_USER_ID",
-        "User ID must be provided",
+        "INVALID_CHANNEL_ID",
+        "Invalid notification channel type",
         400
       );
     }
 
     const customEvent = new CustomEvent(SEND_USER_NOTIFICATION_EVENT, {
       detail: {
+        channelId,
         userId: userId.trim(),
         message,
       },
