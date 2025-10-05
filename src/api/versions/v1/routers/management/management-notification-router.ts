@@ -1,7 +1,10 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { NotificationService } from "../../services/notification-service.ts";
-import { PushServerNotificationSchema, PushUserNotificationSchema } from "../../schemas/notification-schemas.ts";
+import {
+  PushServerNotificationSchema,
+  PushUserNotificationSchema,
+} from "../../schemas/notification-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
@@ -27,13 +30,13 @@ export class ManagementNotificationRouter {
       createRoute({
         method: "post",
         path: "/",
-        summary: "Push global notification",
+        summary: "Push notification",
         description: "Shows a server in-game notification to connected users",
         tags: ["Server notification"],
         request: {
           body: {
             content: {
-              "text/plain": {
+              "application/json": {
                 schema: PushServerNotificationSchema,
               },
             },
@@ -46,12 +49,12 @@ export class ManagementNotificationRouter {
           ...ServerResponse.Forbidden,
         },
       }),
-      async (c) => {
-        const text = await c.req.text();
-        this.notificationService.notify(text);
+      (c) => {
+        const { channelId, text } = c.req.valid("json");
+        this.notificationService.notify(channelId, text);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 
@@ -80,12 +83,12 @@ export class ManagementNotificationRouter {
           ...ServerResponse.NotFound,
         },
       }),
-      async (c) => {
+      (c) => {
         const { userId, message } = c.req.valid("json");
         this.notificationService.notifyUser(userId, message);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 }
