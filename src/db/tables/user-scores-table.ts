@@ -1,9 +1,11 @@
-import { pgTable, integer, uuid } from "drizzle-orm/pg-core";
+import { pgTable, integer, uuid, serial } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userScoresTable = pgTable("user_scores", {
+  id: serial("id").primaryKey(),
   userId: uuid("user_id")
-    .primaryKey()
+    .notNull()
+    .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   totalScore: integer("total_score").notNull().default(0),
 });

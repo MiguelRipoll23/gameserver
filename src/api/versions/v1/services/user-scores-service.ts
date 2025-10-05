@@ -7,12 +7,13 @@ import {
   SaveScoresRequest,
   SaveScoresRequestSchema,
 } from "../schemas/scores-schemas.ts";
+import { PaginationParams } from "../schemas/pagination-schemas.ts";
 import {
   userScoresTable,
   usersTable,
   matchesTable,
 } from "../../../../db/schema.ts";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, gt } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 @injectable()
@@ -22,19 +23,46 @@ export class UserScoresService {
     private databaseService = inject(DatabaseService)
   ) {}
 
-  public async list(): Promise<GetScoresResponse> {
+  public async list(
+    params: Partial<PaginationParams> = {}
+  ): Promise<GetScoresResponse> {
+    const { cursor, limit = 20 } = params;
     const db = this.databaseService.get();
+
+    // Build query conditions
+    const conditions = [];
+
+    // If cursor is provided, get records with id greater than cursor
+    // This works well with the id field for pagination
+    if (cursor !== undefined) {
+      conditions.push(gt(userScoresTable.id, cursor));
+    }
+
+    // Get one extra item to determine if there are more results
     const scores = await db
       .select({
+        id: userScoresTable.id,
         userDisplayName: usersTable.displayName,
         totalScore: userScoresTable.totalScore,
       })
       .from(userScoresTable)
       .innerJoin(usersTable, eq(userScoresTable.userId, usersTable.id))
-      .orderBy(desc(userScoresTable.totalScore))
-      .limit(10);
+      .where(conditions.length > 0 ? conditions[0] : undefined)
+      .orderBy(desc(userScoresTable.totalScore), userScoresTable.id)
+      .limit(limit + 1);
 
-    return scores;
+    // Remove the extra item and use it to determine if there are more results
+    const hasNextPage = scores.length > limit;
+    const results = scores.slice(0, limit);
+
+    return {
+      results: results.map((score) => ({
+        userDisplayName: score.userDisplayName,
+        totalScore: score.totalScore,
+      })),
+      nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
+      hasMore: hasNextPage,
+    };
   }
 
   public async save(userId: string, body: ArrayBuffer): Promise<void> {
