@@ -86,12 +86,8 @@ export class WebSocketService implements WebSocketServer {
 
     addEventListener(SEND_USER_NOTIFICATION_EVENT, (event): void => {
       // deno-lint-ignore no-explicit-any
-      const { userId, message } = (event as CustomEvent<any>).detail;
-      this.sendNotificationToUser(
-        NotificationChannelType.Global,
-        userId,
-        message
-      );
+      const { channelId, userId, message } = (event as CustomEvent<any>).detail;
+      this.sendNotificationToUser(channelId, userId, message);
     });
 
     addEventListener(KICK_USER_EVENT, (event): void => {

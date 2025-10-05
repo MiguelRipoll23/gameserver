@@ -4,13 +4,18 @@ export const PushServerNotificationSchema = z.object({
   channelId: z
     .number()
     .min(0)
-    .describe("The channel ID for the notification")
+    .max(255)
+    .describe("The notification channel ID (0-255)")
     .openapi({
       example: 0,
     }),
-  text: z.string().min(1).describe("The text of the notification").openapi({
-    example: "This is a test notification coming from the server",
-  }),
+  text: z
+    .string()
+    .min(1)
+    .describe("The notification message text")
+    .openapi({
+      example: "This is a test notification coming from the server",
+    }),
 });
 
 export type PushServerNotification = z.infer<
@@ -18,16 +23,28 @@ export type PushServerNotification = z.infer<
 >;
 
 export const PushUserNotificationSchema = z.object({
+  channelId: z
+    .number()
+    .min(0)
+    .max(255)
+    .describe("The notification channel ID (0-255)")
+    .openapi({
+      example: 0,
+    }),
   userId: z
     .string()
     .min(1)
-    .describe("The ID of the user to send the notification to")
+    .describe("The unique identifier of the user to receive the notification")
     .openapi({
       example: "550e8400-e29b-41d4-a716-446655440000",
     }),
-  message: z.string().min(1).describe("The text of the notification").openapi({
-    example: "You have a new message!",
-  }),
+  text: z
+    .string()
+    .min(1)
+    .describe("The notification message text")
+    .openapi({
+      example: "This is a test notification coming from the server just for you",
+    }),
 });
 
 export type PushUserNotification = z.infer<typeof PushUserNotificationSchema>;

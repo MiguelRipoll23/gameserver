@@ -20,10 +20,10 @@ export class NotificationService {
     }
 
     // Validate channelId
-    if (channelId < 0) {
+    if (channelId < 0 || channelId > 255) {
       throw new ServerError(
         "INVALID_CHANNEL_ID",
-        "Channel ID must be a non-negative number",
+        "Channel ID must be between 0 and 255",
         400
       );
     }
@@ -38,7 +38,7 @@ export class NotificationService {
     dispatchEvent(customEvent);
   }
 
-  public notifyUser(userId: string, text: string): void {
+  public notifyUser(channelId: number, userId: string, text: string): void {
     const message = text.trim();
 
     // Check if the message is empty
@@ -55,8 +55,18 @@ export class NotificationService {
       throw new ServerError("INVALID_USER_ID", "User ID must be provided", 400);
     }
 
+    // Validate channelId
+    if (channelId < 0 || channelId > 255) {
+      throw new ServerError(
+        "INVALID_CHANNEL_ID",
+        "Channel ID must be between 0 and 255",
+        400
+      );
+    }
+
     const customEvent = new CustomEvent(SEND_USER_NOTIFICATION_EVENT, {
       detail: {
+        channelId,
         userId: userId.trim(),
         message,
       },

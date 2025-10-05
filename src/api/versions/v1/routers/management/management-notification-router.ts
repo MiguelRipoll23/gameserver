@@ -31,7 +31,7 @@ export class ManagementNotificationRouter {
         method: "post",
         path: "/",
         summary: "Push notification",
-        description: "Shows a server in-game notification to connected users",
+        description: "Sends an in-game notification to all connected users on the specified channel",
         tags: ["Server notification"],
         request: {
           body: {
@@ -64,7 +64,7 @@ export class ManagementNotificationRouter {
         method: "post",
         path: "/user",
         summary: "Push user notification",
-        description: "Shows a server in-game notification to an user",
+        description: "Sends an in-game notification to a specific user on the specified channel",
         tags: ["Server notification"],
         request: {
           body: {
@@ -84,8 +84,8 @@ export class ManagementNotificationRouter {
         },
       }),
       (c) => {
-        const { userId, message } = c.req.valid("json");
-        this.notificationService.notifyUser(userId, message);
+        const { channelId, userId, text } = c.req.valid("json");
+        this.notificationService.notifyUser(channelId, userId, text);
 
         return c.body(null, 204);
       }
