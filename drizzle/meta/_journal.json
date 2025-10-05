@@ -162,6 +162,13 @@
       "when": 1759675849183,
       "tag": "0022_fancy_kree",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1759676539828,
+      "tag": "0023_far_jack_power",
+      "breakpoints": true
     }
   ]
 }
