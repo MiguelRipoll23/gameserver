@@ -4,10 +4,11 @@ import {
   SEND_USER_NOTIFICATION_EVENT,
 } from "../constants/event-constants.ts";
 import { ServerError } from "../models/server-error.ts";
+import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 
 @injectable()
 export class NotificationService {
-  public notify(channelId: number, text: string): void {
+  public notify(channelId: NotificationChannelType, text: string): void {
     const message = text.trim();
 
     // Check if the message is empty
@@ -20,10 +21,10 @@ export class NotificationService {
     }
 
     // Validate channelId
-    if (channelId < 0 || channelId > 255) {
+    if (!Object.values(NotificationChannelType).includes(channelId)) {
       throw new ServerError(
         "INVALID_CHANNEL_ID",
-        "Channel ID must be between 0 and 255",
+        "Invalid notification channel type",
         400
       );
     }
@@ -38,7 +39,11 @@ export class NotificationService {
     dispatchEvent(customEvent);
   }
 
-  public notifyUser(channelId: number, userId: string, text: string): void {
+  public notifyUser(
+    channelId: NotificationChannelType,
+    userId: string,
+    text: string
+  ): void {
     const message = text.trim();
 
     // Check if the message is empty
@@ -56,10 +61,10 @@ export class NotificationService {
     }
 
     // Validate channelId
-    if (channelId < 0 || channelId > 255) {
+    if (!Object.values(NotificationChannelType).includes(channelId)) {
       throw new ServerError(
         "INVALID_CHANNEL_ID",
-        "Channel ID must be between 0 and 255",
+        "Invalid notification channel type",
         400
       );
     }
