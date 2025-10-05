@@ -1,6 +1,8 @@
 import { inject, injectable } from "@needle-di/core";
 import { CryptoService } from "./crypto-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
+import { NotificationService } from "./notification-service.ts";
+import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   GetScoresResponse,
@@ -20,7 +22,8 @@ import { NodePgDatabase } from "drizzle-orm/node-postgres";
 export class UserScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
-    private databaseService = inject(DatabaseService)
+    private databaseService = inject(DatabaseService),
+    private notificationService = inject(NotificationService)
   ) {}
 
   public async list(
@@ -149,6 +152,9 @@ export class UserScoresService {
     userId: string,
     totalScore: number
   ): Promise<void> {
+    // Get current highest score before update
+    const currentHighestScore = await this.getCurrentHighestScore(tx);
+
     // Atomic upsert: insert or increment totalScore on conflict
     await tx
       .insert(userScoresTable)
@@ -162,6 +168,82 @@ export class UserScoresService {
           totalScore: sql`${userScoresTable.totalScore} + EXCLUDED.total_score`,
         },
       });
+
+    // Check if this user now has the highest score
+    await this.checkAndNotifyNewHighestScore(tx, userId, currentHighestScore);
+  }
+
+  /**
+   * Gets the current highest score in the database
+   * @param tx Database transaction
+   * @returns The highest total score or 0 if no scores exist
+   */
+  private async getCurrentHighestScore(tx: NodePgDatabase): Promise<number> {
+    const result = await tx
+      .select({
+        maxScore: sql<number>`COALESCE(MAX(${userScoresTable.totalScore}), 0)`,
+      })
+      .from(userScoresTable);
+
+    return result[0]?.maxScore ?? 0;
+  }
+
+  /**
+   * Checks if the user has achieved a new highest score and sends notification
+   * @param tx Database transaction
+   * @param userId User ID to check
+   * @param previousHighestScore The highest score before the update
+   */
+  private async checkAndNotifyNewHighestScore(
+    tx: NodePgDatabase,
+    userId: string,
+    previousHighestScore: number
+  ): Promise<void> {
+    // Get the user's current score after the update
+    const userScore = await tx
+      .select({
+        totalScore: userScoresTable.totalScore,
+      })
+      .from(userScoresTable)
+      .where(eq(userScoresTable.userId, userId))
+      .limit(1);
+
+    if (userScore.length === 0) {
+      return; // User not found, shouldn't happen but safety check
+    }
+
+    const currentUserScore = userScore[0].totalScore;
+
+    // Check if this user has achieved a new highest score
+    if (currentUserScore > previousHighestScore) {
+      // Get user's display name for the notification
+      const userInfo = await tx
+        .select({
+          displayName: usersTable.displayName,
+        })
+        .from(usersTable)
+        .where(eq(usersTable.id, userId))
+        .limit(1);
+
+      if (userInfo.length > 0) {
+        const displayName = userInfo[0].displayName;
+        const personalMessage = `Congratulations! You've achieved a new personal best and the highest score of ${currentUserScore} points!`;
+        const globalMessage = `${displayName} has set a new high score of ${currentUserScore} points!`;
+
+        // Send personalized notification to the user who achieved the highest score
+        this.notificationService.notifyUser(
+          NotificationChannelType.Menu,
+          userId,
+          personalMessage
+        );
+
+        // Send announcement to all players via global notification
+        this.notificationService.notify(
+          NotificationChannelType.Global,
+          globalMessage
+        );
+      }
+    }
   }
 
   /**
