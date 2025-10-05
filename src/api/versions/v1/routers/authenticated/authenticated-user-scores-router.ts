@@ -2,7 +2,10 @@ import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { UserScoresService } from "../../services/user-scores-service.ts";
 import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
-import { GetScoresResponseSchema } from "../../schemas/scores-schemas.ts";
+import {
+  GetScoresResponseSchema,
+  GetScoresQuerySchema,
+} from "../../schemas/scores-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
@@ -29,11 +32,14 @@ export class AuthenticatedUserScoresRouter {
         method: "get",
         path: "/",
         summary: "Get user scores",
-        description: "Obtains list of saved user scores",
+        description: "Obtains paginated list of saved user scores",
         tags: ["User scores"],
+        request: {
+          query: GetScoresQuerySchema,
+        },
         responses: {
           200: {
-            description: "Responds with data",
+            description: "Responds with paginated data",
             content: {
               "application/json": {
                 schema: GetScoresResponseSchema,
@@ -44,7 +50,8 @@ export class AuthenticatedUserScoresRouter {
         },
       }),
       async (c) => {
-        const response = await this.userScoresService.list();
+        const query = c.req.valid("query");
+        const response = await this.userScoresService.list(query);
 
         return c.json(response, 200);
       }
