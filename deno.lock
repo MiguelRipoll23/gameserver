@@ -2,7 +2,7 @@
   "version": "5",
   "specifiers": {
     "jsr:@needle-di/core@^1.1.0": "1.1.0",
-    "jsr:@simplewebauthn/server@^13.2.1": "13.2.1",
+    "jsr:@simplewebauthn/server@^13.2.2": "13.2.2",
     "jsr:@simplewebauthn/types@12": "12.0.0",
     "jsr:@std/encoding@0.221": "0.221.0",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
@@ -30,8 +30,8 @@
     "@needle-di/core@1.1.0": {
       "integrity": "1f175d1b09379c058f1b6d52c982ed1f73f1741906290cad846ea02a96039908"
     },
-    "@simplewebauthn/server@13.2.1": {
-      "integrity": "9d01977bbfac70c2ca75388726161329b5a0fa7e555ddaddf4ba4bf7fdcc7adc",
+    "@simplewebauthn/server@13.2.2": {
+      "integrity": "8d8bd8ca28df7da8ff1e4c04fcf59e3b795f8856456f6b338f96e79d115f8cc2",
       "dependencies": [
         "npm:@hexagon/base64",
         "npm:@levischuck/tiny-cbor",
@@ -762,7 +762,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@needle-di/core@^1.1.0",
-      "jsr:@simplewebauthn/server@^13.2.1",
+      "jsr:@simplewebauthn/server@^13.2.2",
       "jsr:@simplewebauthn/types@12",
       "jsr:@std/encoding@^1.0.10",
       "jsr:@wok/djwt@^3.0.2",
