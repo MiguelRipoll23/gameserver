@@ -169,6 +169,13 @@
       "when": 1759676539828,
       "tag": "0023_far_jack_power",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1759678715970,
+      "tag": "0024_tiresome_miracleman",
+      "breakpoints": true
     }
   ]
 }
