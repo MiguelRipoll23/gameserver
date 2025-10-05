@@ -36,7 +36,6 @@ export class OpenAPIService {
           ogTitle: "Game server API",
           ogDescription: "A game server built for Deno",
         },
-        showToolbar: "always",
         darkMode: true,
         defaultOpenAllTags: true,
         authentication: {
