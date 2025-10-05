@@ -2,8 +2,10 @@ import { pgTable, integer, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userScoresTable = pgTable("user_scores", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   userId: uuid("user_id")
-    .primaryKey()
+    .notNull()
+    .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   totalScore: integer("total_score").notNull().default(0),
 });
