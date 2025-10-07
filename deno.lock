@@ -8,7 +8,7 @@
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@wok/djwt@^3.0.2": "3.0.2",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@^1.1.3": "1.1.3_hono@4.9.9_zod@4.1.11",
+    "npm:@hono/zod-openapi@^1.1.3": "1.1.3_hono@4.9.10_zod@4.1.12",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.3.10": "2.5.0",
     "npm:@peculiar/asn1-ecc@^2.3.8": "2.5.0",
@@ -16,15 +16,15 @@
     "npm:@peculiar/asn1-schema@^2.3.8": "2.5.0",
     "npm:@peculiar/asn1-x509@^2.3.8": "2.5.0",
     "npm:@peculiar/x509@^1.13.0": "1.14.0",
-    "npm:@scalar/hono-api-reference@~0.9.20": "0.9.20_hono@4.9.9",
+    "npm:@scalar/hono-api-reference@~0.9.20": "0.9.20_hono@4.9.10",
     "npm:@types/pg@^8.15.5": "8.15.5",
     "npm:drizzle-kit@*": "0.31.5_esbuild@0.25.10",
     "npm:drizzle-kit@~0.31.5": "0.31.5_esbuild@0.25.10",
     "npm:drizzle-orm@~0.44.6": "0.44.6_@types+pg@8.15.5_pg@8.16.3",
-    "npm:hono@^4.9.9": "4.9.9",
+    "npm:hono@^4.9.10": "4.9.10",
     "npm:pg@*": "8.16.3",
     "npm:pg@^8.16.3": "8.16.3",
-    "npm:zod@^4.1.11": "4.1.11"
+    "npm:zod@^4.1.12": "4.1.12"
   },
   "jsr": {
     "@needle-di/core@1.1.0": {
@@ -60,11 +60,11 @@
     }
   },
   "npm": {
-    "@asteasolutions/zod-to-openapi@8.1.0_zod@4.1.11": {
+    "@asteasolutions/zod-to-openapi@8.1.0_zod@4.1.12": {
       "integrity": "sha512-tQFxVs05J/6QXXqIzj6rTRk3nj1HFs4pe+uThwE95jL5II2JfpVXkK+CqkO7aT0Do5AYqO6LDrKpleLUFXgY+g==",
       "dependencies": [
         "openapi3-ts",
-        "zod"
+        "zod@4.1.12"
       ]
     },
     "@drizzle-team/brocli@0.10.2": {
@@ -329,21 +329,21 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@1.1.3_hono@4.9.9_zod@4.1.11": {
+    "@hono/zod-openapi@1.1.3_hono@4.9.10_zod@4.1.12": {
       "integrity": "sha512-ikA8p0Jt7yplxOqbYwdh8rCQWaGN4bu8zK1HbCWqfWT9clo87L32D0eAQ/r0tJodtZbTV5d1vPB75FCkUt1Jdg==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
         "@hono/zod-validator",
         "hono",
         "openapi3-ts",
-        "zod"
+        "zod@4.1.12"
       ]
     },
-    "@hono/zod-validator@0.7.3_hono@4.9.9_zod@4.1.11": {
+    "@hono/zod-validator@0.7.3_hono@4.9.10_zod@4.1.12": {
       "integrity": "sha512-uYGdgVib3RlGD698WR5dVM0zB3UuPY5vHKXffGUbUh7r4xY+mFIhF3/v4AcQVLrU5CQdBso8BJr4wuVoCrjTuQ==",
       "dependencies": [
         "hono",
-        "zod"
+        "zod@4.1.12"
       ]
     },
     "@levischuck/tiny-cbor@0.2.11": {
@@ -475,7 +475,7 @@
         "@scalar/types"
       ]
     },
-    "@scalar/hono-api-reference@0.9.20_hono@4.9.9": {
+    "@scalar/hono-api-reference@0.9.20_hono@4.9.10": {
       "integrity": "sha512-KZX+fN9E3UcH8HBDIuwm3e4bSonxnEEiRW2XdqHMPK3ToMrz4ulxckZL2/ByIuzzogO7umq7eRieJchfH61SHg==",
       "dependencies": [
         "@scalar/core",
@@ -485,7 +485,7 @@
     "@scalar/openapi-types@0.4.0": {
       "integrity": "sha512-vdFLzz7vETw6kS3bxWUHCBeFtJOnr1bk/+FXKyxKkd6TbcyT6USXkoelI704IaBdoXyOgGX10FD1IVrs4FwUow==",
       "dependencies": [
-        "zod"
+        "zod@4.1.11"
       ]
     },
     "@scalar/types@0.3.0": {
@@ -494,7 +494,7 @@
         "@scalar/openapi-types",
         "nanoid",
         "type-fest",
-        "zod"
+        "zod@4.1.11"
       ]
     },
     "@types/node@24.2.0": {
@@ -624,8 +624,8 @@
         "resolve-pkg-maps"
       ]
     },
-    "hono@4.9.9": {
-      "integrity": "sha512-Hxw4wT6zjJGZJdkJzAx9PyBdf7ZpxaTSA0NfxqjLghwMrLBX8p33hJBzoETRakF3UJu6OdNQBZAlNSkGqKFukw=="
+    "hono@4.9.10": {
+      "integrity": "sha512-AlI15ijFyKTXR7eHo7QK7OR4RoKIedZvBuRjO8iy4zrxvlY5oFCdiRG/V/lFJHCNXJ0k72ATgnyzx8Yqa5arug=="
     },
     "ms@2.1.3": {
       "integrity": "sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA=="
@@ -757,6 +757,9 @@
     },
     "zod@4.1.11": {
       "integrity": "sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg=="
+    },
+    "zod@4.1.12": {
+      "integrity": "sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ=="
     }
   },
   "workspace": {
@@ -771,9 +774,9 @@
       "npm:@types/pg@^8.15.5",
       "npm:drizzle-kit@~0.31.5",
       "npm:drizzle-orm@~0.44.6",
-      "npm:hono@^4.9.9",
+      "npm:hono@^4.9.10",
       "npm:pg@^8.16.3",
-      "npm:zod@^4.1.11"
+      "npm:zod@^4.1.12"
     ]
   }
 }
