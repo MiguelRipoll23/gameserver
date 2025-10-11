@@ -92,18 +92,30 @@ export class UserScoresService {
 
     // Use database transaction to ensure atomicity
     const db = this.databaseService.get();
+    let notification: string | null = null;
 
     try {
       await db.transaction(async (tx) => {
         // Update all player scores within a single transaction
         for (const playerScore of request) {
-          await this.updateWithTransaction(
+          const message = await this.updateWithTransaction(
             tx,
             playerScore.userId,
             playerScore.totalScore
           );
+          if (message) {
+            notification = message;
+          }
         }
       });
+
+      // Only dispatch notification if the transaction committed successfully
+      if (notification) {
+        this.notificationService.notify(
+          NotificationChannelType.Global,
+          notification
+        );
+      }
     } catch (error) {
       console.error("Failed to update scores in transaction:", error);
       // Notifications are not dispatched on transaction failure
@@ -152,7 +164,7 @@ export class UserScoresService {
     tx: NodePgDatabase,
     userId: string,
     totalScore: number
-  ): Promise<void> {
+  ): Promise<string | null> {
     // Get current highest score before update
     const currentHighestScore = await this.getCurrentHighestScore(tx);
 
@@ -170,8 +182,12 @@ export class UserScoresService {
         },
       });
 
-    // Check if this user now becomes the #1 player on the leaderboard and notify
-    await this.checkAndNotifyNewLeaderboardTop(tx, userId, currentHighestScore);
+    // Check if this user now becomes the #1 player on the leaderboard and prepare notification
+    return await this.checkAndPrepareLeaderboardNotification(
+      tx,
+      userId,
+      currentHighestScore
+    );
   }
 
   /**
@@ -190,16 +206,17 @@ export class UserScoresService {
   }
 
   /**
-   * Checks if the user has become the #1 player on the global leaderboard and sends notification
+   * Checks if the user has become the #1 player on the global leaderboard and prepares notification
    * @param tx Database transaction
    * @param userId User ID to check
    * @param previousHighestScore The highest score before the update
+   * @returns Notification message to be sent after transaction commits, or null if no notification needed
    */
-  private async checkAndNotifyNewLeaderboardTop(
+  private async checkAndPrepareLeaderboardNotification(
     tx: NodePgDatabase,
     userId: string,
     previousHighestScore: number
-  ): Promise<void> {
+  ): Promise<string | null> {
     // Get the user's current score after the update
     const userScore = await tx
       .select({
@@ -210,7 +227,7 @@ export class UserScoresService {
       .limit(1);
 
     if (userScore.length === 0) {
-      return; // User not found, shouldn't happen but safety check
+      return null; // User not found, shouldn't happen but safety check
     }
 
     const currentUserScore = userScore[0].totalScore;
@@ -228,15 +245,11 @@ export class UserScoresService {
 
       if (userInfo.length > 0) {
         const displayName = userInfo[0].displayName;
-        const globalMessage = `${displayName} is now the #1 player on the leaderboard with ${currentUserScore} points!`;
-
-        // Send global notification immediately
-        this.notificationService.notify(
-          NotificationChannelType.Global,
-          globalMessage
-        );
+        return `${displayName} is now the #1 player on the leaderboard with ${currentUserScore} points!`;
       }
     }
+
+    return null;
   }
 
   /**
