@@ -18,12 +18,6 @@ import {
 import { eq, desc, sql, gt, or, and, lt } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 
-interface NotificationEvent {
-  channel: NotificationChannelType;
-  recipientId?: string;
-  message: string;
-}
-
 @injectable()
 export class UserScoresService {
   constructor(
@@ -98,23 +92,18 @@ export class UserScoresService {
 
     // Use database transaction to ensure atomicity
     const db = this.databaseService.get();
-    const notificationEvents: NotificationEvent[] = [];
 
     try {
       await db.transaction(async (tx) => {
         // Update all player scores within a single transaction
         for (const playerScore of request) {
-          const events = await this.updateWithTransaction(
+          await this.updateWithTransaction(
             tx,
             playerScore.userId,
             playerScore.totalScore
           );
-          notificationEvents.push(...events);
         }
       });
-
-      // Only dispatch notifications if the transaction committed successfully
-      this.dispatchNotificationEvents(notificationEvents);
     } catch (error) {
       console.error("Failed to update scores in transaction:", error);
       // Notifications are not dispatched on transaction failure
@@ -163,7 +152,7 @@ export class UserScoresService {
     tx: NodePgDatabase,
     userId: string,
     totalScore: number
-  ): Promise<NotificationEvent[]> {
+  ): Promise<void> {
     // Get current highest score before update
     const currentHighestScore = await this.getCurrentHighestScore(tx);
 
@@ -181,12 +170,8 @@ export class UserScoresService {
         },
       });
 
-    // Check if this user now becomes the #1 player on the leaderboard and collect notification events
-    return await this.checkAndNotifyNewLeaderboardTop(
-      tx,
-      userId,
-      currentHighestScore
-    );
+    // Check if this user now becomes the #1 player on the leaderboard and notify
+    await this.checkAndNotifyNewLeaderboardTop(tx, userId, currentHighestScore);
   }
 
   /**
@@ -205,19 +190,16 @@ export class UserScoresService {
   }
 
   /**
-   * Checks if the user has become the #1 player on the global leaderboard and collects notification events
+   * Checks if the user has become the #1 player on the global leaderboard and sends notification
    * @param tx Database transaction
    * @param userId User ID to check
    * @param previousHighestScore The highest score before the update
-   * @returns Array of notification events to be dispatched after transaction commits
    */
   private async checkAndNotifyNewLeaderboardTop(
     tx: NodePgDatabase,
     userId: string,
     previousHighestScore: number
-  ): Promise<NotificationEvent[]> {
-    const notificationEvents: NotificationEvent[] = [];
-
+  ): Promise<void> {
     // Get the user's current score after the update
     const userScore = await tx
       .select({
@@ -228,7 +210,7 @@ export class UserScoresService {
       .limit(1);
 
     if (userScore.length === 0) {
-      return notificationEvents; // User not found, shouldn't happen but safety check
+      return; // User not found, shouldn't happen but safety check
     }
 
     const currentUserScore = userScore[0].totalScore;
@@ -246,42 +228,13 @@ export class UserScoresService {
 
       if (userInfo.length > 0) {
         const displayName = userInfo[0].displayName;
-        const leaderMessage = `Congratulations! You are now the #1 player on the leaderboard with ${currentUserScore} points!`;
         const globalMessage = `${displayName} is now the #1 player on the leaderboard with ${currentUserScore} points!`;
 
-        // Collect notification events to be dispatched after transaction commits
-        notificationEvents.push({
-          channel: NotificationChannelType.Menu,
-          recipientId: userId,
-          message: leaderMessage,
-        });
-
-        notificationEvents.push({
-          channel: NotificationChannelType.Global,
-          message: globalMessage,
-        });
-      }
-    }
-
-    return notificationEvents;
-  }
-
-  /**
-   * Dispatches collected notification events using the notification service
-   * @param events Array of notification events to dispatch
-   */
-  private dispatchNotificationEvents(events: NotificationEvent[]): void {
-    for (const event of events) {
-      if (event.recipientId) {
-        // User-specific notification
-        this.notificationService.notifyUser(
-          event.channel,
-          event.recipientId,
-          event.message
+        // Send global notification immediately
+        this.notificationService.notify(
+          NotificationChannelType.Global,
+          globalMessage
         );
-      } else {
-        // Global notification
-        this.notificationService.notify(event.channel, event.message);
       }
     }
   }
