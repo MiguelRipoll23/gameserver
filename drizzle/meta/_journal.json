@@ -190,6 +190,20 @@
       "when": 1759680250968,
       "tag": "0026_wonderful_tigra",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1760191546683,
+      "tag": "0027_aberrant_ted_forrester",
+      "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1760192015507,
+      "tag": "0028_even_bruce_banner",
+      "breakpoints": true
     }
   ]
 }
