@@ -1,6 +1,6 @@
 # Game server
 
-A game server built for Deno.
+A game server built for multiplayer games.
 
 [Go to example game](https://hoodball.vercel.app)
 

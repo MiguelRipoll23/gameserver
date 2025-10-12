@@ -204,6 +204,13 @@
       "when": 1760192015507,
       "tag": "0028_even_bruce_banner",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1760275392369,
+      "tag": "0029_shocking_kulan_gath",
+      "breakpoints": true
     }
   ]
 }
