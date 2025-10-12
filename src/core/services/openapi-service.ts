@@ -21,7 +21,7 @@ export class OpenAPIService {
       info: {
         version: "1.0.0",
         title: "Game server API",
-        description: "A game server built with Deno KV",
+        description: "A game server built with Deno",
       },
     });
 
@@ -32,9 +32,9 @@ export class OpenAPIService {
         pageTitle: "Game server API",
         metaData: {
           title: "Game server API",
-          description: "A game server built for Deno",
+          description: "A game server built for multiplayer games",
           ogTitle: "Game server API",
-          ogDescription: "A game server built for Deno",
+          ogDescription: "A game server built for multiplayer games",
         },
         darkMode: true,
         defaultOpenAllTags: true,
