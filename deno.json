@@ -8,10 +8,10 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@types/pg": "npm:@types/pg@^8.15.6",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
-    "drizzle-kit": "npm:drizzle-kit@^0.31.5",
+    "drizzle-kit": "npm:drizzle-kit@^0.31.6",
     "drizzle-orm": "npm:drizzle-orm@^0.44.7",
     "pg": "npm:pg@^8.16.3",
-    "hono": "npm:hono@^4.10.3",
+    "hono": "npm:hono@^4.10.4",
     "zod": "npm:zod@^4.1.12"
   },
   "permissions": {
