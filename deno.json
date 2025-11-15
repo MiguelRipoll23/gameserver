@@ -41,8 +41,5 @@
     "studio": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit studio",
     "generate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit generate",
     "push": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit push"
-  },
-  "compilerOptions": {
-    "experimentalDecorators": true
   }
 }
