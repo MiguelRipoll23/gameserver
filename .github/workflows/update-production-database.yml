@@ -23,7 +23,7 @@ jobs:
     environment: Production
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Set up Deno
         uses: denoland/setup-deno@v2
       - name: Apply migrations
