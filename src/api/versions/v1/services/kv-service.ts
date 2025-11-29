@@ -148,10 +148,11 @@ export class KVService {
   }
 
   public async banUser(userId: string, expiresAt?: Date | null): Promise<void> {
-    let options: object | undefined;
+    let options: { expireIn?: number } | undefined;
 
     if (expiresAt) {
       const ttl = expiresAt.getTime() - Date.now();
+
       if (ttl > 0) {
         options = { expireIn: ttl };
       }
