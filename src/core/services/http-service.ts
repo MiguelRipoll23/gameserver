@@ -7,13 +7,13 @@ import { OpenAPIService } from "./openapi-service.ts";
 import { APIRouter } from "../../api/routers/api-router.ts";
 import { RootRouter } from "../routers/root_rooter.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
-import { HonoVariablesType } from "../types/hono-variables-type.ts";
+import { HonoVariables } from "../types/hono-variables-type.ts";
 import { CORSMiddleware } from "../middlewares/cors-middleware.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 
 @injectable()
 export class HTTPService {
-  private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
+  private app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(
     private rootRooter = inject(RootRouter),

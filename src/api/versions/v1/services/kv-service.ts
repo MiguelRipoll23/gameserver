@@ -21,9 +21,8 @@ export class KVService {
   constructor(private kvService = inject(BaseKVService)) {}
 
   public async getSignatureKeys(): Promise<SignatureKeysKV | null> {
-    const entry: Deno.KvEntryMaybe<SignatureKeysKV> = await this.getKv().get<
-      SignatureKeysKV
-    >([KV_SIGNATURE_KEYS]);
+    const entry: Deno.KvEntryMaybe<SignatureKeysKV> =
+      await this.getKv().get<SignatureKeysKV>([KV_SIGNATURE_KEYS]);
 
     return entry.value;
   }
@@ -33,9 +32,8 @@ export class KVService {
   }
 
   public async getVersion(): Promise<VersionKV | null> {
-    const entry: Deno.KvEntryMaybe<VersionKV> = await this.getKv().get<
-      VersionKV
-    >([KV_VERSION]);
+    const entry: Deno.KvEntryMaybe<VersionKV> =
+      await this.getKv().get<VersionKV>([KV_VERSION]);
 
     return entry.value;
   }
@@ -45,13 +43,12 @@ export class KVService {
   }
 
   public async consumeRegistrationOptionsByTransactionId(
-    transactionId: string,
+    transactionId: string
   ): Promise<RegistrationOptionsKV | null> {
     const key = [KV_REGISTRATION_OPTIONS, transactionId];
     const kv = this.getKv();
-    const entry: Deno.KvEntryMaybe<RegistrationOptionsKV> = await kv.get<
-      RegistrationOptionsKV
-    >(key);
+    const entry: Deno.KvEntryMaybe<RegistrationOptionsKV> =
+      await kv.get<RegistrationOptionsKV>(key);
 
     if (entry.value === null) {
       return null;
@@ -68,29 +65,32 @@ export class KVService {
 
   public async setRegistrationOptions(
     transactionId: string,
-    registrationOptions: RegistrationOptionsKV,
+    registrationOptions: RegistrationOptionsKV
   ): Promise<void> {
     await this.getKv().set(
       [KV_REGISTRATION_OPTIONS, transactionId],
       registrationOptions,
       {
         expireIn: KV_OPTIONS_EXPIRATION_TIME,
-      },
+      }
     );
   }
 
   public async takeAuthenticationOptionsByTransactionId(
-    transactionId: string,
+    transactionId: string
   ): Promise<AuthenticationOptionsKV | null> {
     const key = [KV_AUTHENTICATION_OPTIONS, transactionId];
-    const entry: Deno.KvEntryMaybe<AuthenticationOptionsKV> = await this.getKv()
-      .get<AuthenticationOptionsKV>(key);
+    const entry: Deno.KvEntryMaybe<AuthenticationOptionsKV> =
+      await this.getKv().get<AuthenticationOptionsKV>(key);
 
     if (entry.value === null) {
       return null;
     }
 
-    const result = await this.getKv().atomic().check(entry).delete(key)
+    const result = await this.getKv()
+      .atomic()
+      .check(entry)
+      .delete(key)
       .commit();
 
     if (!result.ok) {
@@ -102,27 +102,26 @@ export class KVService {
 
   public async setAuthenticationOptions(
     requestId: string,
-    authenticationOptions: AuthenticationOptionsKV,
+    authenticationOptions: AuthenticationOptionsKV
   ): Promise<void> {
     await this.getKv().set(
       [KV_AUTHENTICATION_OPTIONS, requestId],
       authenticationOptions,
       {
         expireIn: KV_OPTIONS_EXPIRATION_TIME,
-      },
+      }
     );
   }
 
   public async getConfiguration(): Promise<ConfigurationType | null> {
-    const entry: Deno.KvEntryMaybe<ConfigurationType> = await this.getKv().get<
-      ConfigurationType
-    >([KV_CONFIGURATION]);
+    const entry: Deno.KvEntryMaybe<ConfigurationType> =
+      await this.getKv().get<ConfigurationType>([KV_CONFIGURATION]);
 
     return entry.value;
   }
 
   public async setConfiguration(
-    configuration: ConfigurationType,
+    configuration: ConfigurationType
   ): Promise<void> {
     await this.getKv().set([KV_CONFIGURATION], configuration);
   }
@@ -143,16 +142,13 @@ export class KVService {
   }
 
   public async deleteUserTemporaryData(
-    userId: string,
+    userId: string
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv().atomic().delete([KV_USER_KEYS, userId]).commit();
   }
 
-  public async banUser(
-    userId: string,
-    expiresAt?: Date | null,
-  ): Promise<void> {
-    let options: Deno.KvSetOptions | undefined;
+  public async banUser(userId: string, expiresAt?: Date | null): Promise<void> {
+    let options: object | undefined;
 
     if (expiresAt) {
       const ttl = expiresAt.getTime() - Date.now();

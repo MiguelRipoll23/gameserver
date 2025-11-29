@@ -1,6 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
-import { HonoVariablesType } from "../../../../core/types/hono-variables-type.ts";
+import { HonoVariables } from "../../../../core/types/hono-variables-type.ts";
 import { AuthenticationMiddleware } from "../../../middlewares/authentication-middleware.ts";
 import { AuthenticatedConfigurationRouter } from "./authenticated/authenticated-configuration-router.ts";
 import { AuthenticatedWebSocketRouter } from "./authenticated/authenticated-websocket-router.ts";
@@ -12,7 +12,7 @@ import { AuthenticatedUserModerationRouter } from "./authenticated/authenticated
 
 @injectable()
 export class V1AuthenticatedRouter {
-  private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
+  private app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(
     private authenticationMiddleware = inject(AuthenticationMiddleware),
@@ -29,7 +29,7 @@ export class V1AuthenticatedRouter {
     this.setRoutes();
   }
 
-  public getRouter(): OpenAPIHono<{ Variables: HonoVariablesType }> {
+  public getRouter(): OpenAPIHono<{ Variables: HonoVariables }> {
     return this.app;
   }
 

@@ -168,16 +168,14 @@ export class AuthenticationService {
     id: string
   ): Promise<UserCredentialEntity> {
     try {
-      const credentials = await this.databaseService.withRlsCredential(
-        id,
-        (tx) => {
+      const credentials =
+        await this.databaseService.executeWithCredencialContext(id, (tx) => {
           return tx
             .select()
             .from(userCredentialsTable)
             .where(eq(userCredentialsTable.id, id))
             .limit(1);
-        }
-      );
+        });
 
       if (credentials.length === 0) {
         throw new ServerError(
@@ -255,17 +253,20 @@ export class AuthenticationService {
     const newCounter = authenticationInfo.newCounter;
 
     try {
-      await this.databaseService.withRlsCredential(credential.id, (tx) => {
-        return tx
-          .update(userCredentialsTable)
-          .set({ counter: newCounter })
-          .where(
-            and(
-              eq(userCredentialsTable.id, credential.id),
-              lt(userCredentialsTable.counter, newCounter)
-            )
-          );
-      });
+      await this.databaseService.executeWithCredencialContext(
+        credential.id,
+        (tx) => {
+          return tx
+            .update(userCredentialsTable)
+            .set({ counter: newCounter })
+            .where(
+              and(
+                eq(userCredentialsTable.id, credential.id),
+                lt(userCredentialsTable.counter, newCounter)
+              )
+            );
+        }
+      );
     } catch (error) {
       console.error("Failed to update credential counter:", error);
       throw new ServerError(
@@ -282,13 +283,16 @@ export class AuthenticationService {
     const userId = credential.userId;
 
     try {
-      const users = await this.databaseService.withRlsUser(userId, (tx) => {
-        return tx
-          .select()
-          .from(usersTable)
-          .where(eq(usersTable.id, userId))
-          .limit(1);
-      });
+      const users = await this.databaseService.executeWithUserContext(
+        userId,
+        (tx) => {
+          return tx
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.id, userId))
+            .limit(1);
+        }
+      );
 
       if (users.length === 0) {
         throw new ServerError("USER_NOT_FOUND", "User not found", 400);
@@ -304,7 +308,7 @@ export class AuthenticationService {
 
   private async getUserRoles(userId: string): Promise<string[]> {
     try {
-      const userRoleResults = await this.databaseService.withRlsUser(
+      const userRoleResults = await this.databaseService.executeWithUserContext(
         userId,
         (tx) => {
           return tx
@@ -343,9 +347,8 @@ export class AuthenticationService {
 
   private async ensureUserHasNoActiveSession(user: UserEntity): Promise<void> {
     try {
-      const existingSessions = await this.databaseService.withRlsUser(
-        user.id,
-        (tx) => {
+      const existingSessions =
+        await this.databaseService.executeWithUserContext(user.id, (tx) => {
           return tx
             .select({ userId: userSessionsTable.userId })
             .from(userSessionsTable)
@@ -356,8 +359,7 @@ export class AuthenticationService {
               )
             )
             .limit(1);
-        }
-      );
+        });
 
       if (existingSessions.length > 0) {
         throw new ServerError(
@@ -379,14 +381,17 @@ export class AuthenticationService {
 
   private async ensureUserNotBanned(user: UserEntity): Promise<void> {
     try {
-      const userBans = await this.databaseService.withRlsUser(user.id, (tx) => {
-        return tx
-          .select({ expiresAt: userBansTable.expiresAt })
-          .from(userBansTable)
-          .where(eq(userBansTable.userId, user.id))
-          .orderBy(desc(userBansTable.createdAt))
-          .limit(1);
-      });
+      const userBans = await this.databaseService.executeWithUserContext(
+        user.id,
+        (tx) => {
+          return tx
+            .select({ expiresAt: userBansTable.expiresAt })
+            .from(userBansTable)
+            .where(eq(userBansTable.userId, user.id))
+            .orderBy(desc(userBansTable.createdAt))
+            .limit(1);
+        }
+      );
 
       if (userBans.length === 0) return;
 

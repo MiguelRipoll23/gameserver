@@ -1,10 +1,10 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { Scalar } from "@scalar/hono-api-reference";
-import { HonoVariablesType } from "../types/hono-variables-type.ts";
+import { HonoVariables } from "../types/hono-variables-type.ts";
 
 export class OpenAPIService {
   public static configure(
-    app: OpenAPIHono<{ Variables: HonoVariablesType }>
+    app: OpenAPIHono<{ Variables: HonoVariables }>
   ): void {
     app.openAPIRegistry.registerComponent("securitySchemes", "bearer", {
       type: "http",
@@ -14,7 +14,7 @@ export class OpenAPIService {
   }
 
   public static setRoutes(
-    app: OpenAPIHono<{ Variables: HonoVariablesType }>
+    app: OpenAPIHono<{ Variables: HonoVariables }>
   ): void {
     app.doc31("/.well-known/openapi", {
       openapi: "3.1.0",

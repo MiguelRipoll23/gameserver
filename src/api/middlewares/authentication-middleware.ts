@@ -41,6 +41,6 @@ export class AuthenticationMiddleware {
 
   private async generateJWT() {
     const jwt = await this.jwtService.getManagementToken();
-    console.log("🔒", jwt);
+    console.log("🔑", jwt);
   }
 }
