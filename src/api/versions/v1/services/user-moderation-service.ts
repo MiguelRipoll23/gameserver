@@ -24,7 +24,7 @@ import { KVService } from "./kv-service.ts";
 export class UserModerationService {
   constructor(
     private databaseService = inject(DatabaseService),
-    private kvService = inject(KVService),
+    private kvService = inject(KVService)
   ) {}
 
   public async banUser(body: BanUserRequest): Promise<void> {
@@ -63,7 +63,7 @@ export class UserModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to create ban record",
-        500,
+        500
       );
     }
 
@@ -71,14 +71,14 @@ export class UserModerationService {
       throw new ServerError(
         "USER_ALREADY_BANNED",
         "User is already banned",
-        409,
+        409
       );
     }
 
     console.log(
       `User ${userId} has been banned for: ${reason}${
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
-      }`,
+      }`
     );
     try {
       await this.kvService.banUser(userId, expiresAt ?? undefined);
@@ -90,7 +90,7 @@ export class UserModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to create ban record",
-        500,
+        500
       );
     }
 
@@ -116,7 +116,7 @@ export class UserModerationService {
       throw new ServerError(
         "USER_NOT_BANNED",
         `User with id ${userId} is not banned`,
-        404,
+        404
       );
     }
 
@@ -128,7 +128,7 @@ export class UserModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to remove ban record",
-        500,
+        500
       );
     }
 
@@ -137,7 +137,7 @@ export class UserModerationService {
 
   public async reportUser(
     reporterUserId: string,
-    body: ReportUserRequest,
+    body: ReportUserRequest
   ): Promise<void> {
     const { userId, reason, automatic } = body;
 
@@ -171,7 +171,7 @@ export class UserModerationService {
   }
 
   public async getUserReports(
-    params: GetUserReportsRequest,
+    params: GetUserReportsRequest
   ): Promise<GetUserReportsResponse> {
     const { userId, cursor, limit = 20 } = params;
     const db = this.databaseService.get();
@@ -226,13 +226,13 @@ export class UserModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch user reports",
-        500,
+        500
       );
     }
   }
 
   public async getUserBans(
-    params: GetUserBansRequest,
+    params: GetUserBansRequest
   ): Promise<GetUserBansResponse> {
     const { userId, cursor, limit = 20 } = params;
     const db = this.databaseService.get();
@@ -292,7 +292,7 @@ export class UserModerationService {
 
   private async checkUserExists(
     tx: NodePgDatabase,
-    userId: string,
+    userId: string
   ): Promise<void> {
     try {
       const users = await tx
@@ -313,7 +313,7 @@ export class UserModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to verify user existence",
-        500,
+        500
       );
     }
   }
@@ -331,7 +331,7 @@ export class UserModerationService {
       throw new ServerError(
         "INVALID_DURATION_VALUE",
         "Duration value must be a positive integer",
-        400,
+        400
       );
     }
 
@@ -358,7 +358,7 @@ export class UserModerationService {
         throw new ServerError(
           "INVALID_DURATION_UNIT",
           "Invalid duration unit",
-          400,
+          400
         );
     }
   }

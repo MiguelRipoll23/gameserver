@@ -16,15 +16,15 @@ export class ServerMessagesService {
   constructor(private databaseService = inject(DatabaseService)) {}
 
   public async list(
-    params: PaginationParams,
+    params: PaginationParams
   ): Promise<GetServerMessagesResponse> {
     const { cursor, limit = 20 } = params;
     const db = this.databaseService.get();
 
-    let query = db.select().from(serverMessagesTable);
-    if (cursor) {
-      query = query.where(lt(serverMessagesTable.id, cursor));
-    }
+    const query = db
+      .select()
+      .from(serverMessagesTable)
+      .where(cursor ? lt(serverMessagesTable.id, cursor) : undefined);
 
     const messages = await query
       .orderBy(desc(serverMessagesTable.id))
@@ -47,7 +47,7 @@ export class ServerMessagesService {
   }
 
   public async create(
-    messageRequest: CreateServerMessageRequest,
+    messageRequest: CreateServerMessageRequest
   ): Promise<void> {
     const db = this.databaseService.get();
     await db.insert(serverMessagesTable).values({
@@ -67,13 +67,13 @@ export class ServerMessagesService {
       throw new ServerError(
         "MESSAGE_NOT_FOUND",
         `Message with id ${id} does not exist`,
-        404,
+        404
       );
     }
   }
 
   public async update(
-    messageRequest: UpdateServerMessageRequest,
+    messageRequest: UpdateServerMessageRequest
   ): Promise<ServerMessageResponse> {
     const db = this.databaseService.get();
 
@@ -91,7 +91,7 @@ export class ServerMessagesService {
       throw new ServerError(
         "MESSAGE_NOT_FOUND",
         `Message with id ${messageRequest.id} does not exist`,
-        404,
+        404
       );
     }
 

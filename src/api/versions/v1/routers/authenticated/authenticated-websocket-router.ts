@@ -3,20 +3,20 @@ import { inject, injectable } from "@needle-di/core";
 import { upgradeWebSocket } from "hono/deno";
 import { getConnInfo } from "hono/deno";
 import { WebSocketService } from "../../services/websocket-service.ts";
-import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
+import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 import { WebSocketUser } from "../../models/websocket-user.ts";
 
 @injectable()
 export class AuthenticatedWebSocketRouter {
-  private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
+  private app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(private webSocketService = inject(WebSocketService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
 
-  public getRouter(): OpenAPIHono<{ Variables: HonoVariablesType }> {
+  public getRouter(): OpenAPIHono<{ Variables: HonoVariables }> {
     return this.app;
   }
 
