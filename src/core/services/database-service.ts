@@ -34,7 +34,7 @@ export class DatabaseService {
     return this.database;
   }
 
-  public withRlsCredential<T>(
+  public executeWithCredentialContext<T>(
     credentialId: string,
     fn: (tx: NodePgDatabase) => Promise<T>
   ): Promise<T> {
@@ -45,7 +45,7 @@ export class DatabaseService {
     });
   }
 
-  public withRlsUser<T>(
+  public executeWithUserContext<T>(
     userId: string,
     fn: (tx: NodePgDatabase) => Promise<T>
   ): Promise<T> {

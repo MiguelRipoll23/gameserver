@@ -1,19 +1,19 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { ConfigurationService } from "../../services/configuration-service.ts";
-import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
+import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
 export class AuthenticatedConfigurationRouter {
-  private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
+  private app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(private configurationService = inject(ConfigurationService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
 
-  public getRouter(): OpenAPIHono<{ Variables: HonoVariablesType }> {
+  public getRouter(): OpenAPIHono<{ Variables: HonoVariables }> {
     return this.app;
   }
 
@@ -54,7 +54,7 @@ export class AuthenticatedConfigurationRouter {
         return c.body(response, 200, {
           "Content-Type": "octet/stream",
         });
-      },
+      }
     );
   }
 }

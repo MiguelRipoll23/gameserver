@@ -1,20 +1,20 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { UserModerationService } from "../../services/user-moderation-service.ts";
-import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
+import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 import { ReportUserRequestSchema } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
 export class AuthenticatedUserModerationRouter {
-  private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
+  private app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(private userModerationService = inject(UserModerationService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
 
-  public getRouter(): OpenAPIHono<{ Variables: HonoVariablesType }> {
+  public getRouter(): OpenAPIHono<{ Variables: HonoVariables }> {
     return this.app;
   }
 

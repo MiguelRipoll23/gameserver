@@ -6,19 +6,19 @@ import {
   FindMatchesRequestSchema,
   FindMatchesResponseSchema,
 } from "../../schemas/matches-schemas.ts";
-import { HonoVariablesType } from "../../../../../core/types/hono-variables-type.ts";
+import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
 export class AuthenticatedMatchesRouter {
-  private app: OpenAPIHono<{ Variables: HonoVariablesType }>;
+  private app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(private matchesService = inject(MatchesService)) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
 
-  public getRouter(): OpenAPIHono<{ Variables: HonoVariablesType }> {
+  public getRouter(): OpenAPIHono<{ Variables: HonoVariables }> {
     return this.app;
   }
 
