@@ -34,7 +34,7 @@ export class DatabaseService {
     return this.database;
   }
 
-  public executeWithCredencialContext<T>(
+  public executeWithCredentialContext<T>(
     credentialId: string,
     fn: (tx: NodePgDatabase) => Promise<T>
   ): Promise<T> {
