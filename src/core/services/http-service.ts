@@ -8,7 +8,6 @@ import { APIRouter } from "../../api/routers/api-router.ts";
 import { RootRouter } from "../routers/root_rooter.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
 import { HonoVariables } from "../types/hono-variables-type.ts";
-import { CORSMiddleware } from "../middlewares/cors-middleware.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 
 @injectable()
@@ -38,7 +37,6 @@ export class HTTPService {
 
   private setMiddlewares(): void {
     this.app.use("*", logger());
-    this.app.use("*", CORSMiddleware.create());
     this.app.use("*", serveStatic({ root: "./static" }));
     this.setBodyLimitMiddleware();
   }
