@@ -169,7 +169,7 @@ export class AuthenticationService {
   ): Promise<UserCredentialEntity> {
     try {
       const credentials =
-        await this.databaseService.executeWithCredencialContext(id, (tx) => {
+        await this.databaseService.executeWithCredentialContext(id, (tx) => {
           return tx
             .select()
             .from(userCredentialsTable)
