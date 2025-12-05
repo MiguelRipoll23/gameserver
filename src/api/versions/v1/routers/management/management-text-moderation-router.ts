@@ -102,7 +102,7 @@ export class ManagementTextModerationRouter {
   private registerUpdateWordRoute(): void {
     this.app.openapi(
       createRoute({
-        method: "put",
+        method: "patch",
         path: "/update-word",
         summary: "Update word",
         description: "Updates an existing word in the blocked words list",

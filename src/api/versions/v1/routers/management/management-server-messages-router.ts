@@ -64,7 +64,7 @@ export class ManagementServerMessagesRouter {
   private registerUpdateMessageRoute(): void {
     this.app.openapi(
       createRoute({
-        method: "put",
+        method: "patch",
         path: "/:id",
         summary: "Update server message",
         description:

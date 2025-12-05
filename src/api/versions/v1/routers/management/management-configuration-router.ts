@@ -51,14 +51,14 @@ export class ManagementConfigurationRouter {
         const response = await this.configurationService.getData();
 
         return c.json(response, 200);
-      },
+      }
     );
   }
 
   private registerSetConfigurationDataRoute(): void {
     this.app.openapi(
       createRoute({
-        method: "post",
+        method: "patch",
         path: "/",
         summary: "Set game configuration",
         description: "Updates cloud configuration data related to the game",
@@ -84,7 +84,7 @@ export class ManagementConfigurationRouter {
         await this.configurationService.setData(validated);
 
         return c.body(null, 204);
-      },
+      }
     );
   }
 }
