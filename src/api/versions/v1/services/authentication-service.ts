@@ -47,11 +47,22 @@ export class AuthenticationService {
   ) {}
 
   public async getOptions(
-    authenticationRequest: GetAuthenticationOptionsRequest
+    authenticationRequest: GetAuthenticationOptionsRequest,
+    origin: string
   ): Promise<object> {
     const { transactionId } = authenticationRequest;
+
+    if (!WebAuthnUtils.isOriginAllowed(origin)) {
+      throw new ServerError(
+        "ORIGIN_NOT_ALLOWED",
+        "Origin is not in the allowed list",
+        403
+      );
+    }
+
+    const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
     const options = await generateAuthenticationOptions({
-      rpID: WebAuthnUtils.getRelyingPartyID(),
+      rpID,
       userVerification: "preferred",
     });
 
@@ -65,11 +76,20 @@ export class AuthenticationService {
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    authenticationRequest: VerifyAuthenticationRequest
+    authenticationRequest: VerifyAuthenticationRequest,
+    origin: string
   ): Promise<AuthenticationResponse> {
     const { transactionId } = authenticationRequest;
     const authenticationResponse =
       authenticationRequest.authenticationResponse as object as AuthenticationResponseJSON;
+
+    if (!WebAuthnUtils.isOriginAllowed(origin)) {
+      throw new ServerError(
+        "ORIGIN_NOT_ALLOWED",
+        "Origin is not in the allowed list",
+        403
+      );
+    }
 
     const authenticationOptions = await this.getAuthenticationOptionsOrThrow(
       transactionId
@@ -82,7 +102,8 @@ export class AuthenticationService {
     const verification = await this.verifyAuthenticationResponse(
       authenticationResponse,
       authenticationOptions,
-      credential
+      credential,
+      origin
     );
 
     await this.updateCredentialCounter(credential, verification);
@@ -215,14 +236,16 @@ export class AuthenticationService {
   private async verifyAuthenticationResponse(
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
-    credential: UserCredentialEntity
+    credential: UserCredentialEntity,
+    origin: string
   ): Promise<VerifiedAuthenticationResponse> {
     try {
+      const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
       const verification = await verifyAuthenticationResponse({
         response: authenticationResponse,
         expectedChallenge: authenticationOptions.challenge,
-        expectedOrigin: WebAuthnUtils.getRelyingPartyOrigin(),
-        expectedRPID: WebAuthnUtils.getRelyingPartyID(),
+        expectedOrigin: origin,
+        expectedRPID: rpID,
         credential: this.transformCredentialForWebAuthn(credential),
       });
 

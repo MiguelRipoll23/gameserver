@@ -33,17 +33,27 @@ export class RegistrationService {
   ) {}
 
   public async getOptions(
-    registrationOptionsRequest: GetRegistrationOptionsRequest
+    registrationOptionsRequest: GetRegistrationOptionsRequest,
+    origin: string
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
     console.log("Registration options for display name", displayName);
 
     await this.ensureUserDoesNotExist(displayName);
 
+    if (!WebAuthnUtils.isOriginAllowed(origin)) {
+      throw new ServerError(
+        "ORIGIN_NOT_ALLOWED",
+        "Origin is not in the allowed list",
+        403
+      );
+    }
+
+    const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
     const userId = crypto.randomUUID();
     const options = await generateRegistrationOptions({
       rpName: WebAuthnUtils.getRelyingPartyName(),
-      rpID: WebAuthnUtils.getRelyingPartyID(),
+      rpID,
       userName: displayName,
       userDisplayName: displayName,
       userID: new TextEncoder().encode(userId),
@@ -64,19 +74,29 @@ export class RegistrationService {
 
   public async verifyResponse(
     connectionInfo: ConnInfo,
-    registrationRequest: VerifyRegistrationRequest
+    registrationRequest: VerifyRegistrationRequest,
+    origin: string
   ): Promise<AuthenticationResponse> {
     const { transactionId } = registrationRequest;
     const registrationOptions = await this.consumeRegistrationOptionsOrThrow(
       transactionId
     );
 
+    if (!WebAuthnUtils.isOriginAllowed(origin)) {
+      throw new ServerError(
+        "ORIGIN_NOT_ALLOWED",
+        "Origin is not in the allowed list",
+        403
+      );
+    }
+
     const registrationResponse =
       registrationRequest.registrationResponse as object as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
-      registrationOptions
+      registrationOptions,
+      origin
     );
 
     const credential = this.createCredential(registrationOptions, verification);
@@ -136,14 +156,16 @@ export class RegistrationService {
 
   private async verifyRegistrationResponse(
     registrationResponse: RegistrationResponseJSON,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
+    origin: string
   ): Promise<VerifiedRegistrationResponse> {
     try {
+      const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
       const verification = await verifyRegistrationResponse({
         response: registrationResponse,
         expectedChallenge: registrationOptions.challenge,
-        expectedOrigin: WebAuthnUtils.getRelyingPartyOrigin(),
-        expectedRPID: WebAuthnUtils.getRelyingPartyID(),
+        expectedOrigin: origin,
+        expectedRPID: rpID,
       });
 
       if (
