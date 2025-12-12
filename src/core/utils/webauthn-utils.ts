@@ -50,11 +50,12 @@ export class WebAuthnUtils {
       return WebAuthnUtils.cachedPatterns;
     }
 
-    // Parse and cache the patterns
+    // Parse and cache the patterns, filtering out empty strings
     WebAuthnUtils.cachedAllowedOrigins = allowedOrigins;
-    WebAuthnUtils.cachedPatterns = allowedOrigins.split(",").map((p) =>
-      p.trim()
-    );
+    WebAuthnUtils.cachedPatterns = allowedOrigins
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
     return WebAuthnUtils.cachedPatterns;
   }
 

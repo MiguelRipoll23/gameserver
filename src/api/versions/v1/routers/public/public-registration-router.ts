@@ -69,10 +69,10 @@ export class PublicRegistrationRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        const origin = c.req.header("Origin") ?? c.req.header("Referer");
+        const origin = c.req.header("Origin");
         
         if (!origin) {
-          return c.json({ error: "Missing Origin or Referer header" }, 400);
+          return c.json({ error: "Missing Origin header" }, 400);
         }
 
         const response = await this.registrationService.getOptions(validated, origin);
@@ -114,10 +114,10 @@ export class PublicRegistrationRouter {
       async (c) => {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
-        const origin = c.req.header("Origin") ?? c.req.header("Referer");
+        const origin = c.req.header("Origin");
         
         if (!origin) {
-          return c.json({ error: "Missing Origin or Referer header" }, 400);
+          return c.json({ error: "Missing Origin header" }, 400);
         }
 
         const response = await this.registrationService.verifyResponse(
