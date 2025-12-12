@@ -10,6 +10,7 @@ import {
   VerifyRegistrationRequestSchema,
 } from "../../schemas/registration-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import { extractAndValidateOrigin } from "../../utils/origin-utils.ts";
 
 @injectable()
 export class PublicRegistrationRouter {
@@ -65,11 +66,18 @@ export class PublicRegistrationRouter {
             },
           },
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Forbidden,
         },
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        const response = await this.registrationService.getOptions(validated);
+        const origin = extractAndValidateOrigin(c);
+        
+        if (typeof origin !== "string") {
+          return origin; // Return the 400 error response
+        }
+
+        const response = await this.registrationService.getOptions(validated, origin);
 
         return c.json(response, 200);
       }
@@ -103,14 +111,22 @@ export class PublicRegistrationRouter {
             },
           },
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Forbidden,
         },
       }),
       async (c) => {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
+        const origin = extractAndValidateOrigin(c);
+        
+        if (typeof origin !== "string") {
+          return origin; // Return the 400 error response
+        }
+
         const response = await this.registrationService.verifyResponse(
           connInfo,
-          validated
+          validated,
+          origin
         );
 
         return c.json(response, 200);

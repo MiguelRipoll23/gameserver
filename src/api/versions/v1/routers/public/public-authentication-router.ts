@@ -9,6 +9,7 @@ import {
   VerifyAuthenticationResponseSchema,
 } from "../../schemas/authentication-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import { extractAndValidateOrigin } from "../../utils/origin-utils.ts";
 
 @injectable()
 export class PublicAuthenticationRouter {
@@ -55,11 +56,18 @@ export class PublicAuthenticationRouter {
             },
           },
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Forbidden,
         },
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        const response = await this.authenticationService.getOptions(validated);
+        const origin = extractAndValidateOrigin(c);
+        
+        if (typeof origin !== "string") {
+          return origin; // Return the 400 error response
+        }
+
+        const response = await this.authenticationService.getOptions(validated, origin);
 
         return c.json(response, 200);
       }
@@ -94,14 +102,22 @@ export class PublicAuthenticationRouter {
             },
           },
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Forbidden,
         },
       }),
       async (c) => {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
+        const origin = extractAndValidateOrigin(c);
+        
+        if (typeof origin !== "string") {
+          return origin; // Return the 400 error response
+        }
+
         const response = await this.authenticationService.verifyResponse(
           connInfo,
-          validated
+          validated,
+          origin
         );
 
         return c.json(response, 200);
