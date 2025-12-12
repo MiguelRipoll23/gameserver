@@ -59,7 +59,8 @@ export class PublicAuthenticationRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        const response = await this.authenticationService.getOptions(validated);
+        const origin = c.req.header("Origin") ?? c.req.header("Referer") ?? "";
+        const response = await this.authenticationService.getOptions(validated, origin);
 
         return c.json(response, 200);
       }
@@ -99,9 +100,11 @@ export class PublicAuthenticationRouter {
       async (c) => {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
+        const origin = c.req.header("Origin") ?? c.req.header("Referer") ?? "";
         const response = await this.authenticationService.verifyResponse(
           connInfo,
-          validated
+          validated,
+          origin
         );
 
         return c.json(response, 200);

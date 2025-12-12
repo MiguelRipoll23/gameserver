@@ -69,7 +69,8 @@ export class PublicRegistrationRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        const response = await this.registrationService.getOptions(validated);
+        const origin = c.req.header("Origin") ?? c.req.header("Referer") ?? "";
+        const response = await this.registrationService.getOptions(validated, origin);
 
         return c.json(response, 200);
       }
@@ -108,9 +109,11 @@ export class PublicRegistrationRouter {
       async (c) => {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
+        const origin = c.req.header("Origin") ?? c.req.header("Referer") ?? "";
         const response = await this.registrationService.verifyResponse(
           connInfo,
-          validated
+          validated,
+          origin
         );
 
         return c.json(response, 200);
