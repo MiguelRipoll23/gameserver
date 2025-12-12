@@ -3,6 +3,7 @@ export class WebAuthnUtils {
   private static readonly DEFAULT_ALLOWED_ORIGINS = "http://localhost:8000";
   private static cachedPatterns: string[] | null = null;
   private static cachedAllowedOrigins: string | null = null;
+  private static regexCache: Map<string, RegExp> = new Map();
 
   /**
    * Gets the relying party name from environment variable or uses default
@@ -18,7 +19,7 @@ export class WebAuthnUtils {
    */
   public static isOriginAllowed(origin: string): boolean {
     // Input validation
-    if (!origin || typeof origin !== "string" || origin.trim().length === 0) {
+    if (typeof origin !== "string" || origin.trim().length === 0) {
       return false;
     }
 
@@ -69,7 +70,7 @@ export class WebAuthnUtils {
       const url = new URL(origin);
       return url.hostname;
     } catch {
-      throw new Error(`Invalid origin format: ${origin}`);
+      throw new Error("Invalid origin format");
     }
   }
 
@@ -87,12 +88,18 @@ export class WebAuthnUtils {
 
     // Wildcard pattern matching
     if (pattern.includes("*")) {
-      // Convert pattern to regex
-      // Escape special regex characters except *
-      const regexPattern = pattern
-        .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-        .replace(/\*/g, ".*");
-      const regex = new RegExp(`^${regexPattern}$`);
+      // Check if regex is already cached
+      let regex = WebAuthnUtils.regexCache.get(pattern);
+      
+      if (!regex) {
+        // Convert pattern to regex and cache it
+        const regexPattern = pattern
+          .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
+          .replace(/\*/g, ".*");
+        regex = new RegExp(`^${regexPattern}$`);
+        WebAuthnUtils.regexCache.set(pattern, regex);
+      }
+      
       return regex.test(origin);
     }
 
