@@ -3,7 +3,6 @@ export class WebAuthnUtils {
   private static readonly DEFAULT_ALLOWED_ORIGINS = "http://localhost:8000";
   private static cachedPatterns: string[] | null = null;
   private static cachedAllowedOrigins: string | null = null;
-  private static regexCache: Map<string, RegExp> = new Map();
 
   /**
    * Gets the relying party name from environment variable or uses default
@@ -76,6 +75,7 @@ export class WebAuthnUtils {
 
   /**
    * Matches an origin against a pattern (supports wildcards)
+   * Uses string-based matching instead of regex to avoid potential DoS attacks
    * @param origin - The origin to test
    * @param pattern - The pattern to match against (can include wildcards like *.example.com)
    * @returns true if the origin matches the pattern
@@ -86,21 +86,34 @@ export class WebAuthnUtils {
       return true;
     }
 
-    // Wildcard pattern matching
+    // Wildcard pattern matching using string operations
     if (pattern.includes("*")) {
-      // Check if regex is already cached
-      let regex = WebAuthnUtils.regexCache.get(pattern);
+      const parts = pattern.split("*");
+      const first = parts[0] ?? "";
+      const last = parts[parts.length - 1] ?? "";
       
-      if (!regex) {
-        // Convert pattern to regex and cache it
-        const regexPattern = pattern
-          .replace(/[.+?^${}()|[\]\\]/g, "\\$&")
-          .replace(/\*/g, ".*");
-        regex = new RegExp(`^${regexPattern}$`);
-        WebAuthnUtils.regexCache.set(pattern, regex);
+      // Check prefix
+      if (first && !origin.startsWith(first)) {
+        return false;
       }
       
-      return regex.test(origin);
+      // Check suffix
+      if (last && !origin.endsWith(last)) {
+        return false;
+      }
+      
+      // Check middle parts
+      let idx = first.length;
+      for (const part of parts.slice(1, -1)) {
+        if (!part) continue;
+        const next = origin.indexOf(part, idx);
+        if (next === -1) {
+          return false;
+        }
+        idx = next + part.length;
+      }
+      
+      return true;
     }
 
     return false;

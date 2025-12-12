@@ -9,6 +9,7 @@ import {
   VerifyAuthenticationResponseSchema,
 } from "../../schemas/authentication-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import { extractAndValidateOrigin } from "../../utils/origin-utils.ts";
 
 @injectable()
 export class PublicAuthenticationRouter {
@@ -55,14 +56,15 @@ export class PublicAuthenticationRouter {
             },
           },
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Forbidden,
         },
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        const origin = c.req.header("Origin");
+        const origin = extractAndValidateOrigin(c);
         
-        if (!origin) {
-          return c.json({ error: "Missing Origin header" }, 400);
+        if (typeof origin !== "string") {
+          return origin; // Return the 400 error response
         }
 
         const response = await this.authenticationService.getOptions(validated, origin);
@@ -100,15 +102,16 @@ export class PublicAuthenticationRouter {
             },
           },
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Forbidden,
         },
       }),
       async (c) => {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
-        const origin = c.req.header("Origin");
+        const origin = extractAndValidateOrigin(c);
         
-        if (!origin) {
-          return c.json({ error: "Missing Origin header" }, 400);
+        if (typeof origin !== "string") {
+          return origin; // Return the 400 error response
         }
 
         const response = await this.authenticationService.verifyResponse(

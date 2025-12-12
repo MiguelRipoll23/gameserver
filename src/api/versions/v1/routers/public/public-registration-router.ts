@@ -10,6 +10,7 @@ import {
   VerifyRegistrationRequestSchema,
 } from "../../schemas/registration-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import { extractAndValidateOrigin } from "../../utils/origin-utils.ts";
 
 @injectable()
 export class PublicRegistrationRouter {
@@ -65,14 +66,15 @@ export class PublicRegistrationRouter {
             },
           },
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Forbidden,
         },
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        const origin = c.req.header("Origin");
+        const origin = extractAndValidateOrigin(c);
         
-        if (!origin) {
-          return c.json({ error: "Missing Origin header" }, 400);
+        if (typeof origin !== "string") {
+          return origin; // Return the 400 error response
         }
 
         const response = await this.registrationService.getOptions(validated, origin);
@@ -109,15 +111,16 @@ export class PublicRegistrationRouter {
             },
           },
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Forbidden,
         },
       }),
       async (c) => {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
-        const origin = c.req.header("Origin");
+        const origin = extractAndValidateOrigin(c);
         
-        if (!origin) {
-          return c.json({ error: "Missing Origin header" }, 400);
+        if (typeof origin !== "string") {
+          return origin; // Return the 400 error response
         }
 
         const response = await this.registrationService.verifyResponse(
