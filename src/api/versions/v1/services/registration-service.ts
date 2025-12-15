@@ -26,6 +26,7 @@ import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class RegistrationService {
+  private static readonly emojiRegex = /[\p{Extended_Pictographic}]/u;
   constructor(
     private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
@@ -111,10 +112,7 @@ export class RegistrationService {
   }
 
   private validateNoEmojiInDisplayName(displayName: string): void {
-    // Regex to detect emojis
-    const emojiRegex = /[\p{Emoji}]/u;
-
-    if (emojiRegex.test(displayName)) {
+    if (RegistrationService.emojiRegex.test(displayName)) {
       throw new ServerError(
         "DISPLAY_NAME_CONTAINS_EMOJI",
         "Display name cannot include an emoji",
