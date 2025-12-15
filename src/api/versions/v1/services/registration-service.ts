@@ -39,6 +39,9 @@ export class RegistrationService {
     const { transactionId, displayName } = registrationOptionsRequest;
     console.log("Registration options for display name", displayName);
 
+    // Emojis are reserved for NPC
+    this.validateNoEmojiInDisplayName(displayName);
+
     await this.ensureUserDoesNotExist(displayName);
 
     if (!WebAuthnUtils.isOriginAllowed(origin)) {
@@ -105,6 +108,19 @@ export class RegistrationService {
     await this.addCredentialAndUserOrThrow(credential, user);
 
     return this.authenticationService.getResponseForUser(connectionInfo, user);
+  }
+
+  private validateNoEmojiInDisplayName(displayName: string): void {
+    // Regex to detect emojis
+    const emojiRegex = /[\p{Emoji}]/u;
+
+    if (emojiRegex.test(displayName)) {
+      throw new ServerError(
+        "DISPLAY_NAME_CONTAINS_EMOJI",
+        "Display name cannot include an emoji",
+        400
+      );
+    }
   }
 
   private async ensureUserDoesNotExist(displayName: string): Promise<void> {
