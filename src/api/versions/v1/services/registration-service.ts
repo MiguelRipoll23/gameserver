@@ -26,6 +26,7 @@ import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class RegistrationService {
+  private static readonly emojiRegex = /[\p{Extended_Pictographic}]/u;
   constructor(
     private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
@@ -38,6 +39,9 @@ export class RegistrationService {
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
     console.log("Registration options for display name", displayName);
+
+    // Emojis are reserved for NPC
+    this.validateNoEmojiInDisplayName(displayName);
 
     await this.ensureUserDoesNotExist(displayName);
 
@@ -105,6 +109,16 @@ export class RegistrationService {
     await this.addCredentialAndUserOrThrow(credential, user);
 
     return this.authenticationService.getResponseForUser(connectionInfo, user);
+  }
+
+  private validateNoEmojiInDisplayName(displayName: string): void {
+    if (RegistrationService.emojiRegex.test(displayName)) {
+      throw new ServerError(
+        "DISPLAY_NAME_CONTAINS_EMOJI",
+        "Display name cannot include an emoji",
+        400
+      );
+    }
   }
 
   private async ensureUserDoesNotExist(displayName: string): Promise<void> {
