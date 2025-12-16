@@ -11,8 +11,8 @@
     "drizzle-kit": "npm:drizzle-kit@^0.31.8",
     "drizzle-orm": "npm:drizzle-orm@^0.45.1",
     "pg": "npm:pg@^8.16.3",
-    "hono": "npm:hono@^4.11.0",
-    "zod": "npm:zod@^4.1.13"
+    "hono": "npm:hono@^4.11.1",
+    "zod": "npm:zod@^4.2.1"
   },
   "permissions": {
     "default": {
