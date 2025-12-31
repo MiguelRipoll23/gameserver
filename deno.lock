@@ -8,7 +8,7 @@
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@wok/djwt@^3.0.2": "3.0.2",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@^1.2.0": "1.2.0_hono@4.11.3_zod@4.2.1",
+    "npm:@hono/zod-openapi@^1.2.0": "1.2.0_hono@4.11.3_zod@4.3.0",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.3.10": "2.5.0",
     "npm:@peculiar/asn1-ecc@^2.3.8": "2.5.0",
@@ -22,7 +22,7 @@
     "npm:drizzle-orm@~0.45.1": "0.45.1_@types+pg@8.16.0_pg@8.16.3",
     "npm:hono@^4.11.3": "4.11.3",
     "npm:pg@^8.16.3": "8.16.3",
-    "npm:zod@^4.2.1": "4.2.1"
+    "npm:zod@^4.3.0": "4.3.0"
   },
   "jsr": {
     "@needle-di/core@1.1.0": {
@@ -58,7 +58,7 @@
     }
   },
   "npm": {
-    "@asteasolutions/zod-to-openapi@8.2.0_zod@4.2.1": {
+    "@asteasolutions/zod-to-openapi@8.2.0_zod@4.3.0": {
       "integrity": "sha512-u05zNUirlukJAf9oEHmxSF31L1XQhz9XdpVILt7+xhrz65oQqBpiOWFkGvRWL0IpjOUJ878idKoNmYPxrFnkeg==",
       "dependencies": [
         "openapi3-ts",
@@ -327,7 +327,7 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@1.2.0_hono@4.11.3_zod@4.2.1": {
+    "@hono/zod-openapi@1.2.0_hono@4.11.3_zod@4.3.0": {
       "integrity": "sha512-KDfHqv/Wy4elVseZXgokbHxeWuqBL+AZfqsOMpEihBMUsk/fJ+bLIi3Sf70JFVpt1Ihui8RasYrInozt7ZBDIA==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
@@ -337,7 +337,7 @@
         "zod"
       ]
     },
-    "@hono/zod-validator@0.7.6_hono@4.11.3_zod@4.2.1": {
+    "@hono/zod-validator@0.7.6_hono@4.11.3_zod@4.3.0": {
       "integrity": "sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw==",
       "dependencies": [
         "hono",
@@ -756,8 +756,8 @@
       "integrity": "sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A==",
       "bin": true
     },
-    "zod@4.2.1": {
-      "integrity": "sha512-0wZ1IRqGGhMP76gLqz8EyfBXKk0J2qo2+H3fi4mcUP/KtTocoX08nmIAHl1Z2kJIZbZee8KOpBCSNPRgauucjw=="
+    "zod@4.3.0": {
+      "integrity": "sha512-dXOXgs5b9ulOPotwXMEsAUoUPL2glchysY0RTJYVqJ7bU0Y5gqE1k3v19eCWrJsczrbae/Dt9+ajrJbr8Ot4uw=="
     }
   },
   "workspace": {
@@ -774,7 +774,7 @@
       "npm:drizzle-orm@~0.45.1",
       "npm:hono@^4.11.3",
       "npm:pg@^8.16.3",
-      "npm:zod@^4.2.1"
+      "npm:zod@^4.3.0"
     ]
   }
 }
