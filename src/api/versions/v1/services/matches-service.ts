@@ -38,8 +38,8 @@ export class MatchesService {
       pingMedianMilliseconds,
     } = body;
 
-    // Calculate available slots: total slots minus players in usersList
-    const availableSlots = totalSlots - usersList.length;
+    // Calculate available slots: total slots minus players in usersList minus the host (1)
+    const availableSlots = totalSlots - usersList.length - 1;
 
     try {
       // Use transaction to ensure match and match_users are created/updated atomically
