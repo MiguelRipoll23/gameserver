@@ -14,7 +14,7 @@ export const matchesTable = pgTable("matches", {
     .notNull()
     .unique()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-  version: varchar("version", { length: 16 }).notNull(),
+  clientVersion: varchar("client_version", { length: 16 }).notNull(),
   totalSlots: integer("total_slots").notNull(),
   availableSlots: integer("available_slots").notNull(),
   pingMedianMilliseconds: integer("ping_median_milliseconds").default(0)

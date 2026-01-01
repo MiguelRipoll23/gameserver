@@ -14,6 +14,7 @@ import {
   userScoresTable,
   usersTable,
   matchesTable,
+  matchUsersTable,
 } from "../../../../db/schema.ts";
 import { eq, desc, sql, gt, or, and, lt } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -90,6 +91,9 @@ export class UserScoresService {
     const request = await this.parseAndValidateSaveRequest(userId, body);
     console.debug("SaveScoresRequest", request);
 
+    // Verify non-host players are part of the match
+    await this.verifyPlayersInMatch(userId, request);
+
     // Use database transaction to ensure atomicity
     const db = this.databaseService.get();
     let notification: string | null = null;
@@ -157,6 +161,54 @@ export class UserScoresService {
     } catch (error) {
       console.error("Failed to parse and validate SaveScoresRequest:", error);
       throw new ServerError("BAD_REQUEST", "Invalid request body", 400);
+    }
+  }
+
+  private async verifyPlayersInMatch(
+    hostUserId: string,
+    request: SaveScoresRequest
+  ): Promise<void> {
+    const db = this.databaseService.get();
+
+    // Get the match ID for this host
+    const match = await db
+      .select({ id: matchesTable.id })
+      .from(matchesTable)
+      .where(eq(matchesTable.hostUserId, hostUserId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (!match) {
+      throw new ServerError(
+        "MATCH_NOT_FOUND",
+        "Match not found for host user",
+        400
+      );
+    }
+
+    // Get all allowed users for this match
+    const matchUsers = await db
+      .select({ userId: matchUsersTable.userId })
+      .from(matchUsersTable)
+      .where(eq(matchUsersTable.matchId, match.id));
+
+    const allowedUserIds = new Set(matchUsers.map((mu) => mu.userId));
+
+    // Verify that all non-host players in the request are part of the match
+    for (const playerScore of request) {
+      // Skip the host user
+      if (playerScore.userId === hostUserId) {
+        continue;
+      }
+
+      // Check if the player is in the allowed users list
+      if (!allowedUserIds.has(playerScore.userId)) {
+        throw new ServerError(
+          "PLAYER_NOT_IN_MATCH",
+          `Player ${playerScore.userId} is not part of the match`,
+          400
+        );
+      }
     }
   }
 

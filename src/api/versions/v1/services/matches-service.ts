@@ -6,7 +6,7 @@ import {
 } from "../schemas/matches-schemas.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
+import { matchesTable, matchUsersTable, userSessionsTable } from "../../../../db/schema.ts";
 import { and, eq, sql } from "drizzle-orm";
 
 @injectable()
@@ -30,10 +30,33 @@ export class MatchesService {
       throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
     }
 
+    const availableSlots = this.calculateAvailableSlots(
+      body.playerList,
+      body.totalSlots
+    );
+
+    await this.upsertMatch(userId, body, availableSlots);
+    await this.updateMatchUsers(userId, body.usersList);
+  }
+
+  private calculateAvailableSlots(
+    playerList: string[],
+    totalSlots: number
+  ): number {
+    // Calculate available slots by subtracting players count (excluding the host)
+    const playersCount = playerList.length - 1;
+    return totalSlots - playersCount;
+  }
+
+  private async upsertMatch(
+    userId: string,
+    body: AdvertiseMatchRequest,
+    availableSlots: number
+  ): Promise<void> {
+    const db = this.databaseService.get();
     const {
-      version,
+      clientVersion,
       totalSlots,
-      availableSlots,
       attributes,
       pingMedianMilliseconds,
     } = body;
@@ -44,7 +67,7 @@ export class MatchesService {
         .insert(matchesTable)
         .values({
           hostUserId: userId,
-          version: version,
+          clientVersion: clientVersion,
           totalSlots: totalSlots,
           availableSlots: availableSlots,
           attributes: attributes ?? {},
@@ -53,7 +76,7 @@ export class MatchesService {
         .onConflictDoUpdate({
           target: matchesTable.hostUserId,
           set: {
-            version: version,
+            clientVersion: clientVersion,
             totalSlots: totalSlots,
             availableSlots: availableSlots,
             attributes: attributes ?? {},
@@ -71,13 +94,51 @@ export class MatchesService {
     }
   }
 
+  private async updateMatchUsers(
+    userId: string,
+    usersList: string[]
+  ): Promise<void> {
+    const db = this.databaseService.get();
+
+    // Get the match ID for this host
+    const match = await db
+      .select({ id: matchesTable.id })
+      .from(matchesTable)
+      .where(eq(matchesTable.hostUserId, userId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (!match) {
+      throw new ServerError(
+        "MATCH_NOT_FOUND",
+        "Match not found after upsert",
+        500
+      );
+    }
+
+    // Delete existing match users
+    await db
+      .delete(matchUsersTable)
+      .where(eq(matchUsersTable.matchId, match.id));
+
+    // Insert new match users if any
+    if (usersList.length > 0) {
+      await db.insert(matchUsersTable).values(
+        usersList.map((uid) => ({
+          matchId: match.id,
+          userId: uid,
+        }))
+      );
+    }
+  }
+
   public async find(body: FindMatchesRequest): Promise<FindMatchesResponse> {
     const db = this.databaseService.get();
     const limit = body.limit ?? 20; // Default to 20 items per page
 
     // Build the query conditions
     const conditions = [
-      eq(matchesTable.version, body.clientVersion),
+      eq(matchesTable.clientVersion, body.clientVersion),
       sql`${matchesTable.availableSlots} >= ${body.totalSlots}`,
       sql`${matchesTable.updatedAt} >= NOW() - INTERVAL '5 minutes'`,
     ];
@@ -102,7 +163,7 @@ export class MatchesService {
       .select({
         id: matchesTable.id,
         hostUserId: matchesTable.hostUserId,
-        version: matchesTable.version,
+        clientVersion: matchesTable.clientVersion,
         totalSlots: matchesTable.totalSlots,
         availableSlots: matchesTable.availableSlots,
         attributes: matchesTable.attributes,
