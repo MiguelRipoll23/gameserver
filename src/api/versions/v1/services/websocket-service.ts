@@ -23,7 +23,7 @@ import {
 import { count, eq } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import {
-  BANNED_USER_CHANNEL,
+  KICK_USER_BROADCAST_CHANNEL,
   NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL,
   SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL,
 } from "../constants/broadcast-channel-constants.ts";
@@ -33,7 +33,7 @@ import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 export class WebSocketService implements WebSocketServer {
   private notifyOnlineUsersCountBroadcastChannel: BroadcastChannel;
   private sendTunnelMessageBroadcastChannel: BroadcastChannel;
-  private bannedUserBroadcastChannel: BroadcastChannel;
+  private kickUserBroadcastChannel: BroadcastChannel;
   private usersById: Map<string, WebSocketUser>;
   private usersByToken: Map<string, WebSocketUser>;
 
@@ -51,7 +51,9 @@ export class WebSocketService implements WebSocketServer {
     this.sendTunnelMessageBroadcastChannel = new BroadcastChannel(
       SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL
     );
-    this.bannedUserBroadcastChannel = new BroadcastChannel(BANNED_USER_CHANNEL);
+    this.kickUserBroadcastChannel = new BroadcastChannel(
+      KICK_USER_BROADCAST_CHANNEL
+    );
     this.addEventListeners();
     this.addBroadcastChannelListeners();
     this.dispatcher.registerCommandHandlers(this);
@@ -108,7 +110,7 @@ export class WebSocketService implements WebSocketServer {
     this.notifyOnlineUsersCountBroadcastChannel.onmessage =
       this.handleOnlineUsersBroadcastChannelMessage.bind(this);
 
-    this.bannedUserBroadcastChannel.onmessage =
+    this.kickUserBroadcastChannel.onmessage =
       this.handleBannedUserBroadcastChannelMessage.bind(this);
   }
 
@@ -421,7 +423,7 @@ export class WebSocketService implements WebSocketServer {
         `User with ID ${userId} not found locally, broadcasting kick message to other servers`
       );
 
-      this.bannedUserBroadcastChannel.postMessage({ userId });
+      this.kickUserBroadcastChannel.postMessage({ userId });
     }
 
     // Send UserBan notification to match host if user is in a match
