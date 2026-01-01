@@ -180,7 +180,11 @@ export class MatchesService {
       .then((rows) => rows[0]);
 
     if (!session) {
-      throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
+      throw new ServerError(
+        "NO_SESSION_FOUND",
+        "You must be logged in to advertise a match",
+        400
+      );
     }
   }
 
@@ -192,7 +196,7 @@ export class MatchesService {
     if (uniqueUserIds.size !== usersList.length) {
       throw new ServerError(
         "DUPLICATE_USERS_IN_LIST",
-        "usersList contains duplicate user IDs",
+        "The same player cannot be added multiple times",
         400
       );
     }
@@ -208,7 +212,7 @@ export class MatchesService {
     if (usersList.includes(hostUserId)) {
       throw new ServerError(
         "HOST_IN_USERS_LIST",
-        "Host user should not be included in the usersList",
+        "You cannot add yourself to the match as a player",
         400
       );
     }
@@ -230,8 +234,8 @@ export class MatchesService {
     const missingUserIds = usersList.filter((id) => !existingUserIds.has(id));
     if (missingUserIds.length > 0) {
       throw new ServerError(
-        "USER_NOT_FOUND",
-        `The following user IDs do not exist: ${missingUserIds.join(", ")}`,
+        "INVALID_USERS_LIST",
+        "The provided players list is invalid",
         400
       );
     }
@@ -248,7 +252,7 @@ export class MatchesService {
     if (usedSlots > totalSlots) {
       throw new ServerError(
         "INVALID_SLOT_CONFIGURATION",
-        "Total slots must be greater than or equal to the number of players including the host",
+        "The match does not have enough slots for all players",
         400
       );
     }
