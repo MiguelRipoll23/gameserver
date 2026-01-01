@@ -116,7 +116,7 @@ export class WebSocketService implements WebSocketServer {
       this.handleOnlineUsersBroadcastChannelMessage.bind(this);
 
     this.kickUserBroadcastChannel.onmessage =
-      this.handleBannedUserBroadcastChannelMessage.bind(this);
+      this.handleKickUserBroadcastChannelMessage.bind(this);
 
     this.sendUserBanNotificationBroadcastChannel.onmessage =
       this.handleUserBanNotificationBroadcastChannelMessage.bind(this);
@@ -142,7 +142,7 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private async handleBannedUserBroadcastChannelMessage(
+  private async handleKickUserBroadcastChannelMessage(
     event: MessageEvent
   ): Promise<void> {
     const { userId } = event.data;
