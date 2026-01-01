@@ -13,7 +13,7 @@ import {
   usersTable,
 } from "../../../../db/schema.ts";
 import { and, eq, sql, inArray } from "drizzle-orm";
-import { NodePgDatabase } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 @injectable()
 export class MatchesService {
@@ -52,7 +52,7 @@ export class MatchesService {
           .insert(matchesTable)
           .values({
             hostUserId: userId,
-            version: clientVersion,
+            clientVersion: clientVersion,
             totalSlots: totalSlots,
             availableSlots: availableSlots,
             attributes: attributes ?? {},
@@ -61,7 +61,7 @@ export class MatchesService {
           .onConflictDoUpdate({
             target: matchesTable.hostUserId,
             set: {
-              version: clientVersion,
+              clientVersion: clientVersion,
               totalSlots: totalSlots,
               availableSlots: availableSlots,
               attributes: attributes ?? {},
@@ -90,7 +90,7 @@ export class MatchesService {
 
     // Build the query conditions
     const conditions = [
-      eq(matchesTable.version, body.clientVersion),
+      eq(matchesTable.clientVersion, body.clientVersion),
       sql`${matchesTable.availableSlots} >= ${body.totalSlots}`,
       sql`${matchesTable.updatedAt} >= NOW() - INTERVAL '5 minutes'`,
     ];
@@ -115,7 +115,7 @@ export class MatchesService {
       .select({
         id: matchesTable.id,
         hostUserId: matchesTable.hostUserId,
-        version: matchesTable.version,
+        version: matchesTable.clientVersion,
         totalSlots: matchesTable.totalSlots,
         availableSlots: matchesTable.availableSlots,
         attributes: matchesTable.attributes,
