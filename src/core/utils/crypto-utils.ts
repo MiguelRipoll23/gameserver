@@ -28,6 +28,12 @@ export class CryptoUtils {
     // Remove dashes from UUID
     const unformatted = uuid.replace(/-/g, "");
     
+    if (unformatted.length !== 32) {
+      throw new Error(
+        `Invalid UUID format: expected 32 hex characters after removing dashes, got ${unformatted.length}`
+      );
+    }
+    
     // Convert to bytes (each character is a byte)
     const encoder = new TextEncoder();
     return encoder.encode(unformatted);
