@@ -99,7 +99,7 @@ export class WebSocketService implements WebSocketServer {
     addEventListener(KICK_USER_EVENT, (event): void => {
       // deno-lint-ignore no-explicit-any
       const { userId } = (event as CustomEvent<any>).detail;
-      this.kickUser(userId);
+      void this.kickUser(userId);
     });
   }
 
@@ -134,7 +134,9 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private handleBannedUserBroadcastChannelMessage(event: MessageEvent): void {
+  private async handleBannedUserBroadcastChannelMessage(
+    event: MessageEvent
+  ): Promise<void> {
     const { userId } = event.data;
     const user = this.usersById.get(userId);
 
@@ -154,7 +156,7 @@ export class WebSocketService implements WebSocketServer {
     }
 
     // Send UserBan notification to match host if user is in a match
-    this.sendUserBanNotificationToMatchHost(userId);
+    await this.sendUserBanNotificationToMatchHost(userId);
   }
 
   private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {
@@ -406,7 +408,7 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private kickUser(userId: string): void {
+  private async kickUser(userId: string): Promise<void> {
     const user = this.usersById.get(userId);
 
     if (user) {
@@ -427,7 +429,7 @@ export class WebSocketService implements WebSocketServer {
     }
 
     // Send UserBan notification to match host if user is in a match
-    this.sendUserBanNotificationToMatchHost(userId);
+    await this.sendUserBanNotificationToMatchHost(userId);
   }
 
   /**
