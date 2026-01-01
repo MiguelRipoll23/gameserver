@@ -15,24 +15,25 @@ import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
-import { matchesTable, matchUsersTable, userSessionsTable } from "../../../../db/schema.ts";
+import {
+  matchesTable,
+  matchUsersTable,
+  userSessionsTable,
+} from "../../../../db/schema.ts";
 import { count, eq, inArray } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import {
-  KICK_USER_CHANNEL,
+  BANNED_USER_CHANNEL,
   NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL,
   SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL,
 } from "../constants/broadcast-channel-constants.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
-import { CryptoUtils } from "../../../../core/utils/crypto-utils.ts";
-
-const UUID_BYTES_SIZE = 32;
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
   private notifyOnlineUsersCountBroadcastChannel: BroadcastChannel;
   private sendTunnelMessageBroadcastChannel: BroadcastChannel;
-  private kickUserBroadcastChannel: BroadcastChannel;
+  private bannedUserBroadcastChannel: BroadcastChannel;
   private usersById: Map<string, WebSocketUser>;
   private usersByToken: Map<string, WebSocketUser>;
 
@@ -50,7 +51,7 @@ export class WebSocketService implements WebSocketServer {
     this.sendTunnelMessageBroadcastChannel = new BroadcastChannel(
       SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL
     );
-    this.kickUserBroadcastChannel = new BroadcastChannel(KICK_USER_CHANNEL);
+    this.bannedUserBroadcastChannel = new BroadcastChannel(BANNED_USER_CHANNEL);
     this.addEventListeners();
     this.addBroadcastChannelListeners();
     this.dispatcher.registerCommandHandlers(this);
@@ -107,8 +108,8 @@ export class WebSocketService implements WebSocketServer {
     this.notifyOnlineUsersCountBroadcastChannel.onmessage =
       this.handleOnlineUsersBroadcastChannelMessage.bind(this);
 
-    this.kickUserBroadcastChannel.onmessage =
-      this.handleKickUserBroadcastChannelMessage.bind(this);
+    this.bannedUserBroadcastChannel.onmessage =
+      this.handleBannedUserBroadcastChannelMessage.bind(this);
   }
 
   private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
@@ -131,7 +132,7 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private handleKickUserBroadcastChannelMessage(event: MessageEvent): void {
+  private handleBannedUserBroadcastChannelMessage(event: MessageEvent): void {
     const { userId } = event.data;
     const user = this.usersById.get(userId);
 
@@ -420,7 +421,7 @@ export class WebSocketService implements WebSocketServer {
         `User with ID ${userId} not found locally, broadcasting kick message to other servers`
       );
 
-      this.kickUserBroadcastChannel.postMessage({ userId });
+      this.bannedUserBroadcastChannel.postMessage({ userId });
     }
 
     // Send UserBan notification to match host if user is in a match
@@ -453,47 +454,46 @@ export class WebSocketService implements WebSocketServer {
         return;
       }
 
-      // Get the host user IDs for all matches
-      const matchIds = matchUsers.map((mu) => mu.matchId);
+      // Get the match where the banned user is a participant
+      // A user can only be in one match at a time
+      const matchId = matchUsers[0].matchId;
       const matches = await db
         .select({
           matchId: matchesTable.id,
           hostUserId: matchesTable.hostUserId,
         })
         .from(matchesTable)
-        .where(inArray(matchesTable.id, matchIds));
+        .where(eq(matchesTable.id, matchId));
 
       if (matches.length === 0) {
         console.error(
-          `No matches found where banned user ${bannedUserId} was a participant`
+          `No match found where banned user ${bannedUserId} was a participant`
         );
         return;
       }
 
-      // Send UserBan notification to each match host
-      for (const match of matches) {
-        const hostUserId = match.hostUserId;
-        const hostUser = this.usersById.get(hostUserId);
+      // Send UserBan notification to the match host
+      const match = matches[0];
+      const hostUserId = match.hostUserId;
+      const hostUser = this.usersById.get(hostUserId);
 
-        if (!hostUser) {
-          console.info(
-            `Match host ${hostUserId} is not connected to this server instance`
-          );
-          continue;
-        }
-
-        // Build UserBan message: [CommandID (1 byte)][UserID (32 bytes)]
-        const userIdBytes = CryptoUtils.uuidToUnformattedBytes(bannedUserId);
-        const userBanPayload = BinaryWriter.build()
-          .unsignedInt8(WebSocketType.UserBan)
-          .bytes(userIdBytes, UUID_BYTES_SIZE)
-          .toArrayBuffer();
-
-        this.sendMessage(hostUser, userBanPayload);
-        console.log(
-          `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`
+      if (!hostUser) {
+        console.info(
+          `Match host ${hostUserId} is not connected to this server instance`
         );
+        return;
       }
+
+      const bannedUserNetworkId = bannedUserId.replace(/-/g, "");
+      const userBanPayload = BinaryWriter.build()
+        .unsignedInt8(WebSocketType.UserBan)
+        .fixedLengthString(bannedUserNetworkId, 32)
+        .toArrayBuffer();
+
+      this.sendMessage(hostUser, userBanPayload);
+      console.log(
+        `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`
+      );
     } catch (error) {
       console.error(
         `Error sending UserBan notification for user ${bannedUserId}:`,
