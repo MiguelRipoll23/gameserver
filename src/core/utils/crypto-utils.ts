@@ -20,9 +20,11 @@ export class CryptoUtils {
   }
 
   /**
-   * Converts a UUID string to an unformatted 32-byte representation (hex string without dashes).
+   * Converts a UUID string to an unformatted 32-byte ASCII representation.
+   * The UUID dashes are removed and the resulting 32-character hex string is encoded as UTF-8.
+   * This is the format expected by the WebSocket protocol for user IDs.
    * @param uuid UUID string in format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-   * @returns Uint8Array of 32 bytes representing the UUID as hex characters
+   * @returns Uint8Array of 32 bytes representing the ASCII-encoded UUID hex string (without dashes)
    */
   public static uuidToUnformattedBytes(uuid: string): Uint8Array {
     // Remove dashes from UUID

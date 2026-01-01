@@ -26,6 +26,8 @@ import {
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 import { CryptoUtils } from "../../../../core/utils/crypto-utils.ts";
 
+const UUID_BYTES_SIZE = 32;
+
 @injectable()
 export class WebSocketService implements WebSocketServer {
   private notifyOnlineUsersCountBroadcastChannel: BroadcastChannel;
@@ -482,7 +484,7 @@ export class WebSocketService implements WebSocketServer {
       const userIdBytes = CryptoUtils.uuidToUnformattedBytes(bannedUserId);
       const userBanPayload = BinaryWriter.build()
         .unsignedInt8(WebSocketType.UserBan)
-        .bytes(userIdBytes, 32)
+        .bytes(userIdBytes, UUID_BYTES_SIZE)
         .toArrayBuffer();
 
       this.sendMessage(hostUser, userBanPayload);
