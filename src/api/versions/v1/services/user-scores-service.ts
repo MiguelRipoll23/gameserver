@@ -205,7 +205,7 @@ export class UserScoresService {
       if (!allowedUserIds.has(playerScore.userId)) {
         throw new ServerError(
           "PLAYER_NOT_IN_MATCH",
-          `Player ${playerScore.userId} is not part of the match`,
+          "One or more players are not authorized for this match",
           400
         );
       }

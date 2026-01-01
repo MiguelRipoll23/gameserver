@@ -43,9 +43,29 @@ export class MatchesService {
     playerList: string[],
     totalSlots: number
   ): number {
+    // Validate playerList has at least 1 player (the host)
+    if (playerList.length === 0) {
+      throw new ServerError(
+        "INVALID_PLAYER_LIST",
+        "Player list must contain at least one player (the host)",
+        400
+      );
+    }
+
     // Calculate available slots by subtracting players count (excluding the host)
     const playersCount = playerList.length - 1;
-    return totalSlots - playersCount;
+    const availableSlots = totalSlots - playersCount;
+
+    // Ensure available slots is not negative
+    if (availableSlots < 0) {
+      throw new ServerError(
+        "TOO_MANY_PLAYERS",
+        "Number of players exceeds total slots",
+        400
+      );
+    }
+
+    return availableSlots;
   }
 
   private async upsertMatch(
@@ -116,20 +136,23 @@ export class MatchesService {
       );
     }
 
-    // Delete existing match users
-    await db
-      .delete(matchUsersTable)
-      .where(eq(matchUsersTable.matchId, match.id));
+    // Use transaction to ensure atomicity of delete-then-insert operation
+    await db.transaction(async (tx) => {
+      // Delete existing match users
+      await tx
+        .delete(matchUsersTable)
+        .where(eq(matchUsersTable.matchId, match.id));
 
-    // Insert new match users if any
-    if (usersList.length > 0) {
-      await db.insert(matchUsersTable).values(
-        usersList.map((uid) => ({
-          matchId: match.id,
-          userId: uid,
-        }))
-      );
-    }
+      // Insert new match users if any
+      if (usersList.length > 0) {
+        await tx.insert(matchUsersTable).values(
+          usersList.map((uid) => ({
+            matchId: match.id,
+            userId: uid,
+          }))
+        );
+      }
+    });
   }
 
   public async find(body: FindMatchesRequest): Promise<FindMatchesResponse> {
