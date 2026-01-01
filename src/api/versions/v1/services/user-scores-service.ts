@@ -85,8 +85,8 @@ export class UserScoresService {
   }
 
   public async save(userId: string, body: ArrayBuffer): Promise<void> {
-    // Check if user is hosting a match
-    const matchId = await this.validateUserIsHostingMatch(userId);
+    // Check if user is hosting a match and get the match ID
+    const matchId = await this.getHostedMatchId(userId);
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
     console.debug("SaveScoresRequest", request);
@@ -131,7 +131,13 @@ export class UserScoresService {
     }
   }
 
-  private async validateUserIsHostingMatch(userId: string): Promise<number> {
+  /**
+   * Gets the match ID for the match hosted by the user
+   * @param userId The ID of the user
+   * @returns The match ID
+   * @throws ServerError if the user is not hosting a match
+   */
+  private async getHostedMatchId(userId: string): Promise<number> {
     const db = this.databaseService.get();
 
     const hostedMatches = await db
