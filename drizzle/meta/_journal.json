@@ -225,6 +225,13 @@
       "when": 1764444207581,
       "tag": "0031_volatile_pyro",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1767272694927,
+      "tag": "0032_unknown_speedball",
+      "breakpoints": true
     }
   ]
 }
