@@ -51,9 +51,20 @@ export class MatchesService {
       );
     }
 
-    // Calculate available slots: total slots minus players in usersList minus the host (1)
-    const availableSlots = totalSlots - usersList.length - 1;
+    // Calculate used slots: players in usersList plus the host (1)
+    const usedSlots = usersList.length + 1;
 
+    // Ensure that availableSlots is never negative
+    if (usedSlots > totalSlots) {
+      throw new ServerError(
+        "INVALID_SLOT_CONFIGURATION",
+        "Total slots must be greater than or equal to the number of players including the host",
+        400
+      );
+    }
+
+    // Calculate available slots: total slots minus used slots
+    const availableSlots = totalSlots - usedSlots;
     try {
       // Use transaction to ensure match and match_users are created/updated atomically
       await db.transaction(async (tx) => {
