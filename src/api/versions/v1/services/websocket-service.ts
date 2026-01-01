@@ -26,6 +26,7 @@ import {
   KICK_USER_BROADCAST_CHANNEL,
   NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL,
   SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL,
+  SEND_USER_BAN_NOTIFICATION_BROADCAST_CHANNEL,
 } from "../constants/broadcast-channel-constants.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 
@@ -34,6 +35,7 @@ export class WebSocketService implements WebSocketServer {
   private notifyOnlineUsersCountBroadcastChannel: BroadcastChannel;
   private sendTunnelMessageBroadcastChannel: BroadcastChannel;
   private kickUserBroadcastChannel: BroadcastChannel;
+  private sendUserBanNotificationBroadcastChannel: BroadcastChannel;
   private usersById: Map<string, WebSocketUser>;
   private usersByToken: Map<string, WebSocketUser>;
 
@@ -53,6 +55,9 @@ export class WebSocketService implements WebSocketServer {
     );
     this.kickUserBroadcastChannel = new BroadcastChannel(
       KICK_USER_BROADCAST_CHANNEL
+    );
+    this.sendUserBanNotificationBroadcastChannel = new BroadcastChannel(
+      SEND_USER_BAN_NOTIFICATION_BROADCAST_CHANNEL
     );
     this.addEventListeners();
     this.addBroadcastChannelListeners();
@@ -112,6 +117,9 @@ export class WebSocketService implements WebSocketServer {
 
     this.kickUserBroadcastChannel.onmessage =
       this.handleBannedUserBroadcastChannelMessage.bind(this);
+
+    this.sendUserBanNotificationBroadcastChannel.onmessage =
+      this.handleUserBanNotificationBroadcastChannelMessage.bind(this);
   }
 
   private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
@@ -157,6 +165,32 @@ export class WebSocketService implements WebSocketServer {
 
     // Send UserBan notification to match host if user is in a match
     await this.sendUserBanNotificationToMatchHost(userId);
+  }
+
+  private handleUserBanNotificationBroadcastChannelMessage(
+    event: MessageEvent
+  ): void {
+    const { hostUserId, bannedUserNetworkId } = event.data;
+    const hostUser = this.usersById.get(hostUserId);
+
+    if (!hostUser) {
+      console.info(
+        `Match host ${hostUserId} is not connected to this server instance`
+      );
+      return;
+    }
+
+    try {
+      this.sendUserBanNotificationPayload(hostUser, bannedUserNetworkId);
+      console.log(
+        `Sent UserBan notification to host ${hostUserId} for banned user (networkId: ${bannedUserNetworkId})`
+      );
+    } catch (error) {
+      console.error(
+        `Error sending UserBan notification to host ${hostUserId}:`,
+        error
+      );
+    }
   }
 
   private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {
@@ -440,71 +474,120 @@ export class WebSocketService implements WebSocketServer {
     bannedUserId: string
   ): Promise<void> {
     try {
-      const db = this.databaseService.get();
+      const hostUserId = await this.findMatchHostForBannedUser(bannedUserId);
 
-      // Find all matches where the banned user is a participant
-      const matchUsers = await db
-        .select({
-          matchId: matchUsersTable.matchId,
-        })
-        .from(matchUsersTable)
-        .where(eq(matchUsersTable.userId, bannedUserId))
-        .limit(1);
-
-      if (matchUsers.length === 0) {
-        // User is not in any match as a participant
-        console.info(
-          `Banned user ${bannedUserId} is not a participant in any match`
-        );
+      if (!hostUserId) {
         return;
       }
 
-      // Get the match where the banned user is a participant
-      // A user can only be in one match at a time
-      const matchId = matchUsers[0].matchId;
-      const matches = await db
-        .select({
-          matchId: matchesTable.id,
-          hostUserId: matchesTable.hostUserId,
-        })
-        .from(matchesTable)
-        .where(eq(matchesTable.id, matchId));
-
-      if (matches.length === 0) {
-        console.error(
-          `No match found where banned user ${bannedUserId} was a participant`
-        );
-        return;
-      }
-
-      // Send UserBan notification to the match host
-      const match = matches[0];
-      const hostUserId = match.hostUserId;
-      const hostUser = this.usersById.get(hostUserId);
-
-      if (!hostUser) {
-        console.info(
-          `Match host ${hostUserId} is not connected to this server instance`
-        );
-        return;
-      }
-
-      const bannedUserNetworkId = bannedUserId.replace(/-/g, "");
-      const userBanPayload = BinaryWriter.build()
-        .unsignedInt8(WebSocketType.UserBan)
-        .fixedLengthString(bannedUserNetworkId, 32)
-        .toArrayBuffer();
-
-      this.sendMessage(hostUser, userBanPayload);
-      console.log(
-        `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`
-      );
+      this.deliverUserBanNotificationToHost(hostUserId, bannedUserId);
     } catch (error) {
       console.error(
         `Error sending UserBan notification for user ${bannedUserId}:`,
         error
       );
     }
+  }
+
+  /**
+   * Finds the host user ID of the match where the banned user is a participant.
+   * Returns null if the user is not in any match.
+   */
+  private async findMatchHostForBannedUser(
+    bannedUserId: string
+  ): Promise<string | null> {
+    const db = this.databaseService.get();
+
+    // Find the match host using a single JOIN query for efficiency
+    const result = await db
+      .select({
+        matchId: matchesTable.id,
+        hostUserId: matchesTable.hostUserId,
+      })
+      .from(matchUsersTable)
+      .innerJoin(matchesTable, eq(matchUsersTable.matchId, matchesTable.id))
+      .where(eq(matchUsersTable.userId, bannedUserId))
+      .limit(1);
+
+    if (result.length === 0) {
+      console.info(
+        `Banned user ${bannedUserId} is not a participant in any match`
+      );
+      return null;
+    }
+
+    return result[0].hostUserId;
+  }
+
+  /**
+   * Delivers the UserBan notification to the match host.
+   * If the host is connected locally, sends directly; otherwise broadcasts to other server instances.
+   */
+  private deliverUserBanNotificationToHost(
+    hostUserId: string,
+    bannedUserId: string
+  ): void {
+    const hostUser = this.usersById.get(hostUserId);
+    const bannedUserNetworkId = bannedUserId.replace(/-/g, "");
+
+    if (!hostUser) {
+      // Host not found locally, broadcast to other server instances
+      this.broadcastUserBanNotification(
+        hostUserId,
+        bannedUserNetworkId,
+        bannedUserId
+      );
+      return;
+    }
+
+    // Host is connected locally, send directly
+    this.sendUserBanNotificationPayload(hostUser, bannedUserNetworkId);
+    console.log(
+      `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`
+    );
+  }
+
+  /**
+   * Broadcasts the UserBan notification to other server instances.
+   */
+  private broadcastUserBanNotification(
+    hostUserId: string,
+    bannedUserNetworkId: string,
+    bannedUserId: string
+  ): void {
+    console.info(
+      `Match host ${hostUserId} is not connected to this server instance, broadcasting to other servers`
+    );
+
+    try {
+      this.sendUserBanNotificationBroadcastChannel.postMessage({
+        hostUserId,
+        bannedUserNetworkId,
+      });
+      console.log(
+        `Broadcasted UserBan notification for host ${hostUserId} and banned user ${bannedUserId}`
+      );
+    } catch (error) {
+      console.error(
+        `Failed to broadcast UserBan notification for host ${hostUserId}:`,
+        error
+      );
+    }
+  }
+
+  /**
+   * Sends the UserBan notification payload to a specific user.
+   */
+  private sendUserBanNotificationPayload(
+    user: WebSocketUser,
+    bannedUserNetworkId: string
+  ): void {
+    const userBanPayload = BinaryWriter.build()
+      .unsignedInt8(WebSocketType.UserBan)
+      .fixedLengthString(bannedUserNetworkId, 32)
+      .toArrayBuffer();
+
+    this.sendMessage(user, userBanPayload);
   }
 
   @CommandHandler(WebSocketType.PlayerIdentity)
