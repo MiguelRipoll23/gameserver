@@ -448,7 +448,7 @@ export class WebSocketService implements WebSocketServer {
       if (matchUsers.length === 0) {
         // User is not in any match as a participant
         console.log(
-          `Banned user ${bannedUserId} is not in any match as participant`
+          `Banned user ${bannedUserId} is not a participant in any match`
         );
         return;
       }
@@ -465,7 +465,7 @@ export class WebSocketService implements WebSocketServer {
 
       if (matches.length === 0) {
         console.error(
-          `No matches found for banned user ${bannedUserId} participants`
+          `No matches found where banned user ${bannedUserId} was a participant`
         );
         return;
       }
