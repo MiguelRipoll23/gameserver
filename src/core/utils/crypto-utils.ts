@@ -18,4 +18,18 @@ export class CryptoUtils {
       keyUsages
     );
   }
+
+  /**
+   * Converts a UUID string to an unformatted 32-byte representation (hex string without dashes).
+   * @param uuid UUID string in format "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+   * @returns Uint8Array of 32 bytes representing the UUID as hex characters
+   */
+  public static uuidToUnformattedBytes(uuid: string): Uint8Array {
+    // Remove dashes from UUID
+    const unformatted = uuid.replace(/-/g, "");
+    
+    // Convert to bytes (each character is a byte)
+    const encoder = new TextEncoder();
+    return encoder.encode(unformatted);
+  }
 }
