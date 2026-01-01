@@ -14,6 +14,7 @@ import {
   userScoresTable,
   usersTable,
   matchesTable,
+  matchUsersTable,
 } from "../../../../db/schema.ts";
 import { eq, desc, sql, gt, or, and, lt } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -84,8 +85,8 @@ export class UserScoresService {
   }
 
   public async save(userId: string, body: ArrayBuffer): Promise<void> {
-    // Check if user is hosting a match
-    await this.validateUserIsHostingMatch(userId);
+    // Check if user is hosting a match and get the match ID
+    const matchId = await this.getHostedMatchId(userId);
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
     console.debug("SaveScoresRequest", request);
@@ -96,7 +97,10 @@ export class UserScoresService {
 
     try {
       await db.transaction(async (tx) => {
-        // Update all player scores within a single transaction
+        // Validate non-host players are part of the match within transaction to prevent TOCTOU
+        await this.validateNonHostPlayers(tx, userId, matchId, request);
+
+        // Update all player scores within the same transaction
         for (const playerScore of request) {
           const message = await this.updateWithTransaction(
             tx,
@@ -127,11 +131,17 @@ export class UserScoresService {
     }
   }
 
-  private async validateUserIsHostingMatch(userId: string): Promise<void> {
+  /**
+   * Gets the match ID for the match hosted by the user
+   * @param userId The ID of the user
+   * @returns The match ID
+   * @throws ServerError if the user is not hosting a match
+   */
+  private async getHostedMatchId(userId: string): Promise<number> {
     const db = this.databaseService.get();
 
     const hostedMatches = await db
-      .select()
+      .select({ id: matchesTable.id })
       .from(matchesTable)
       .where(eq(matchesTable.hostUserId, userId))
       .limit(1);
@@ -143,6 +153,8 @@ export class UserScoresService {
         400
       );
     }
+
+    return hostedMatches[0].id;
   }
 
   private async parseAndValidateSaveRequest(
@@ -294,6 +306,45 @@ export class UserScoresService {
         "Invalid pagination cursor format",
         400
       );
+    }
+  }
+
+  /**
+   * Validates that all non-host players in the score request are part of the match
+   * @param tx Database transaction
+   * @param hostUserId The ID of the host user
+   * @param matchId The ID of the match
+   * @param request The score save request containing player scores
+   */
+  private async validateNonHostPlayers(
+    tx: NodePgDatabase,
+    hostUserId: string,
+    matchId: number,
+    request: SaveScoresRequest
+  ): Promise<void> {
+    // Get all user IDs from match_users table for this match
+    const matchUsers = await tx
+      .select({ userId: matchUsersTable.userId })
+      .from(matchUsersTable)
+      .where(eq(matchUsersTable.matchId, matchId));
+
+    const matchUserIds = new Set(matchUsers.map((mu) => mu.userId));
+
+    // Check that all non-host players in the request are part of the match
+    for (const playerScore of request) {
+      // Skip the host user
+      if (playerScore.userId === hostUserId) {
+        continue;
+      }
+
+      // Check if non-host player is in the match_users table
+      if (!matchUserIds.has(playerScore.userId)) {
+        throw new ServerError(
+          "PLAYER_NOT_IN_MATCH",
+          `Player ${playerScore.userId} is not part of the match`,
+          400
+        );
+      }
     }
   }
 }

@@ -6,8 +6,14 @@ import {
 } from "../schemas/matches-schemas.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
-import { and, eq, sql } from "drizzle-orm";
+import {
+  matchesTable,
+  matchUsersTable,
+  userSessionsTable,
+  usersTable,
+} from "../../../../db/schema.ts";
+import { and, eq, sql, inArray } from "drizzle-orm";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 @injectable()
 export class MatchesService {
@@ -17,50 +23,57 @@ export class MatchesService {
     userId: string,
     body: AdvertiseMatchRequest
   ): Promise<void> {
-    // Get the user session from database
     const db = this.databaseService.get();
-    const session = await db
-      .select({ token: userSessionsTable.token })
-      .from(userSessionsTable)
-      .where(eq(userSessionsTable.userId, userId))
-      .limit(1)
-      .then((rows) => rows[0]);
-
-    if (!session) {
-      throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
-    }
+    await this.validateUserSession(db, userId);
 
     const {
-      version,
+      clientVersion,
       totalSlots,
-      availableSlots,
+      usersList,
       attributes,
       pingMedianMilliseconds,
     } = body;
 
+    // Run all validations
+    this.validateNoDuplicateUsers(usersList);
+    this.validateHostNotInUsersList(userId, usersList);
+    await this.validateUsersExist(db, usersList);
+    this.validateSlotConfiguration(usersList, totalSlots);
+
+    // Calculate available slots: total slots minus used slots
+    const usedSlots = usersList.length + 1;
+    const availableSlots = totalSlots - usedSlots;
+
     try {
-      // Use upsert operation to insert or update match
-      await db
-        .insert(matchesTable)
-        .values({
-          hostUserId: userId,
-          version: version,
-          totalSlots: totalSlots,
-          availableSlots: availableSlots,
-          attributes: attributes ?? {},
-          pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
-        })
-        .onConflictDoUpdate({
-          target: matchesTable.hostUserId,
-          set: {
-            version: version,
+      // Use transaction to ensure match and match_users are created/updated atomically
+      await db.transaction(async (tx) => {
+        // Use upsert operation to insert or update match
+        const [match] = await tx
+          .insert(matchesTable)
+          .values({
+            hostUserId: userId,
+            clientVersion: clientVersion,
             totalSlots: totalSlots,
             availableSlots: availableSlots,
             attributes: attributes ?? {},
             pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
-            updatedAt: new Date(),
-          },
-        });
+          })
+          .onConflictDoUpdate({
+            target: matchesTable.hostUserId,
+            set: {
+              clientVersion: clientVersion,
+              totalSlots: totalSlots,
+              availableSlots: availableSlots,
+              attributes: attributes ?? {},
+              pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
+              updatedAt: new Date(),
+            },
+          })
+          .returning({ id: matchesTable.id });
+
+        // Populate match_users table
+        await this.populateMatchUsers(tx, match.id, usersList);
+      });
     } catch (error) {
       console.error("Failed to create match:", error);
       throw new ServerError(
@@ -77,7 +90,7 @@ export class MatchesService {
 
     // Build the query conditions
     const conditions = [
-      eq(matchesTable.version, body.clientVersion),
+      eq(matchesTable.clientVersion, body.clientVersion),
       sql`${matchesTable.availableSlots} >= ${body.totalSlots}`,
       sql`${matchesTable.updatedAt} >= NOW() - INTERVAL '5 minutes'`,
     ];
@@ -102,7 +115,7 @@ export class MatchesService {
       .select({
         id: matchesTable.id,
         hostUserId: matchesTable.hostUserId,
-        version: matchesTable.version,
+        clientVersion: matchesTable.clientVersion,
         totalSlots: matchesTable.totalSlots,
         availableSlots: matchesTable.availableSlots,
         attributes: matchesTable.attributes,
@@ -150,5 +163,125 @@ export class MatchesService {
     }
 
     console.log(`Deleted match for user ${userId}`);
+  }
+
+  /**
+   * Validates that a user session exists for the given userId
+   */
+  private async validateUserSession(
+    db: NodePgDatabase,
+    userId: string
+  ): Promise<void> {
+    const session = await db
+      .select({ token: userSessionsTable.token })
+      .from(userSessionsTable)
+      .where(eq(userSessionsTable.userId, userId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (!session) {
+      throw new ServerError(
+        "NO_SESSION_FOUND",
+        "You must be logged in to advertise a match",
+        400
+      );
+    }
+  }
+
+  /**
+   * Validates that usersList contains no duplicate user IDs
+   */
+  private validateNoDuplicateUsers(usersList: string[]): void {
+    const uniqueUserIds = new Set(usersList);
+    if (uniqueUserIds.size !== usersList.length) {
+      throw new ServerError(
+        "DUPLICATE_USERS_IN_LIST",
+        "The same player cannot be added multiple times",
+        400
+      );
+    }
+  }
+
+  /**
+   * Validates that the host user is not included in the usersList
+   */
+  private validateHostNotInUsersList(
+    hostUserId: string,
+    usersList: string[]
+  ): void {
+    if (usersList.includes(hostUserId)) {
+      throw new ServerError(
+        "HOST_IN_USERS_LIST",
+        "You cannot add yourself to the match as a player",
+        400
+      );
+    }
+  }
+
+  /**
+   * Validates that all user IDs in usersList exist in the users table
+   */
+  private async validateUsersExist(
+    db: NodePgDatabase,
+    usersList: string[]
+  ): Promise<void> {
+    if (usersList.length === 0) return;
+    const existingUsers = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(inArray(usersTable.id, usersList));
+    const existingUserIds = new Set(existingUsers.map((u) => u.id));
+    const missingUserIds = usersList.filter((id) => !existingUserIds.has(id));
+    if (missingUserIds.length > 0) {
+      throw new ServerError(
+        "INVALID_USERS_LIST",
+        "The provided players list is invalid",
+        400
+      );
+    }
+  }
+
+  /**
+   * Validates that used slots do not exceed total slots
+   */
+  private validateSlotConfiguration(
+    usersList: string[],
+    totalSlots: number
+  ): void {
+    const usedSlots = usersList.length + 1;
+    if (usedSlots > totalSlots) {
+      throw new ServerError(
+        "INVALID_SLOT_CONFIGURATION",
+        "The match does not have enough slots for all players",
+        400
+      );
+    }
+  }
+
+  /**
+   * Populates the match_users table with the list of users participating in the match
+   * @param tx Database transaction
+   * @param matchId The ID of the match
+   * @param usersList Array of user IDs (UUIDs) participating in the match
+   */
+  private async populateMatchUsers(
+    tx: NodePgDatabase,
+    matchId: number,
+    usersList: string[]
+  ): Promise<void> {
+    // First, delete existing match users for this match to ensure clean state
+    await tx
+      .delete(matchUsersTable)
+      .where(eq(matchUsersTable.matchId, matchId));
+
+    // Insert new match users if the list is not empty
+    if (usersList.length > 0) {
+      const matchUsersValues = usersList.map((userId) => ({
+        matchId,
+        userId,
+      }));
+
+      await tx.insert(matchUsersTable).values(matchUsersValues);
+    }
   }
 }
