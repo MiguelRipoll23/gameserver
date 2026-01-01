@@ -4,4 +4,5 @@ export enum WebSocketType {
   Tunnel = 2,
   OnlinePlayers = 3,
   ChatMessage = 4,
+  UserBan = 5,
 }
