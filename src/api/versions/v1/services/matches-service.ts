@@ -6,7 +6,7 @@ import {
 } from "../schemas/matches-schemas.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
+import { matchesTable, matchPlayersTable, userSessionsTable } from "../../../../db/schema.ts";
 import { and, eq, sql } from "drizzle-orm";
 
 @injectable()
@@ -34,19 +34,25 @@ export class MatchesService {
       version,
       totalSlots,
       availableSlots,
+      playersList,
       attributes,
       pingMedianMilliseconds,
     } = body;
 
+    // Calculate availableSlots from playersList if provided
+    const calculatedAvailableSlots = playersList !== undefined
+      ? playersList.length - 1  // Subtract 1 for the host
+      : availableSlots;
+
     try {
       // Use upsert operation to insert or update match
-      await db
+      const result = await db
         .insert(matchesTable)
         .values({
           hostUserId: userId,
           version: version,
           totalSlots: totalSlots,
-          availableSlots: availableSlots,
+          availableSlots: calculatedAvailableSlots,
           attributes: attributes ?? {},
           pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
         })
@@ -55,12 +61,18 @@ export class MatchesService {
           set: {
             version: version,
             totalSlots: totalSlots,
-            availableSlots: availableSlots,
+            availableSlots: calculatedAvailableSlots,
             attributes: attributes ?? {},
             pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
             updatedAt: new Date(),
           },
-        });
+        })
+        .returning({ id: matchesTable.id });
+
+      // Save match players if playersList is provided
+      if (playersList !== undefined && playersList.length > 0) {
+        await this.saveMatchPlayers(result[0].id, playersList);
+      }
     } catch (error) {
       console.error("Failed to create match:", error);
       throw new ServerError(
@@ -150,5 +162,27 @@ export class MatchesService {
     }
 
     console.log(`Deleted match for user ${userId}`);
+  }
+
+  private async saveMatchPlayers(
+    matchId: number,
+    playersList: string[]
+  ): Promise<void> {
+    const db = this.databaseService.get();
+
+    // First, delete existing players for this match
+    await db
+      .delete(matchPlayersTable)
+      .where(eq(matchPlayersTable.matchId, matchId));
+
+    // Insert new players
+    if (playersList.length > 0) {
+      await db.insert(matchPlayersTable).values(
+        playersList.map((userId) => ({
+          matchId: matchId,
+          userId: userId,
+        }))
+      );
+    }
   }
 }
