@@ -16,7 +16,7 @@ import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
 import { matchesTable, matchUsersTable, userSessionsTable } from "../../../../db/schema.ts";
-import { count, eq } from "drizzle-orm";
+import { count, eq, inArray } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import {
   KICK_USER_CHANNEL,
@@ -428,7 +428,7 @@ export class WebSocketService implements WebSocketServer {
   }
 
   /**
-   * Sends UserBan notification to the host of the match where the banned user is a participant.
+   * Sends UserBan notification to the hosts of all matches where the banned user is a participant.
    * This method is called immediately after a user is banned/kicked.
    */
   private async sendUserBanNotificationToMatchHost(
@@ -437,16 +437,15 @@ export class WebSocketService implements WebSocketServer {
     try {
       const db = this.databaseService.get();
 
-      // Find if the banned user is in any match (as a participant)
-      const matchUser = await db
+      // Find all matches where the banned user is a participant
+      const matchUsers = await db
         .select({
           matchId: matchUsersTable.matchId,
         })
         .from(matchUsersTable)
-        .where(eq(matchUsersTable.userId, bannedUserId))
-        .limit(1);
+        .where(eq(matchUsersTable.userId, bannedUserId));
 
-      if (matchUser.length === 0) {
+      if (matchUsers.length === 0) {
         // User is not in any match as a participant
         console.log(
           `Banned user ${bannedUserId} is not in any match as participant`
@@ -454,43 +453,47 @@ export class WebSocketService implements WebSocketServer {
         return;
       }
 
-      // Get the host user ID for this match
-      const match = await db
+      // Get the host user IDs for all matches
+      const matchIds = matchUsers.map((mu) => mu.matchId);
+      const matches = await db
         .select({
+          matchId: matchesTable.id,
           hostUserId: matchesTable.hostUserId,
         })
         .from(matchesTable)
-        .where(eq(matchesTable.id, matchUser[0].matchId))
-        .limit(1);
+        .where(inArray(matchesTable.id, matchIds));
 
-      if (match.length === 0) {
+      if (matches.length === 0) {
         console.error(
-          `Match ${matchUser[0].matchId} not found for banned user ${bannedUserId}`
+          `No matches found for banned user ${bannedUserId} participants`
         );
         return;
       }
 
-      const hostUserId = match[0].hostUserId;
-      const hostUser = this.usersById.get(hostUserId);
+      // Send UserBan notification to each match host
+      for (const match of matches) {
+        const hostUserId = match.hostUserId;
+        const hostUser = this.usersById.get(hostUserId);
 
-      if (!hostUser) {
+        if (!hostUser) {
+          console.log(
+            `Match host ${hostUserId} is not connected to this server instance`
+          );
+          continue;
+        }
+
+        // Build UserBan message: [CommandID (1 byte)][UserID (32 bytes)]
+        const userIdBytes = CryptoUtils.uuidToUnformattedBytes(bannedUserId);
+        const userBanPayload = BinaryWriter.build()
+          .unsignedInt8(WebSocketType.UserBan)
+          .bytes(userIdBytes, UUID_BYTES_SIZE)
+          .toArrayBuffer();
+
+        this.sendMessage(hostUser, userBanPayload);
         console.log(
-          `Match host ${hostUserId} is not connected to this server instance`
+          `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`
         );
-        return;
       }
-
-      // Build UserBan message: [CommandID (1 byte)][UserID (32 bytes)]
-      const userIdBytes = CryptoUtils.uuidToUnformattedBytes(bannedUserId);
-      const userBanPayload = BinaryWriter.build()
-        .unsignedInt8(WebSocketType.UserBan)
-        .bytes(userIdBytes, UUID_BYTES_SIZE)
-        .toArrayBuffer();
-
-      this.sendMessage(hostUser, userBanPayload);
-      console.log(
-        `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`
-      );
     } catch (error) {
       console.error(
         `Error sending UserBan notification for user ${bannedUserId}:`,

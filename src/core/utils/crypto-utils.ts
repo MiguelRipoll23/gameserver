@@ -36,6 +36,13 @@ export class CryptoUtils {
       );
     }
     
+    // Validate that all characters are valid hexadecimal
+    if (!/^[0-9a-fA-F]{32}$/.test(unformatted)) {
+      throw new Error(
+        `Invalid UUID format: UUID contains non-hexadecimal characters`
+      );
+    }
+    
     // Convert to bytes (each character is a byte)
     const encoder = new TextEncoder();
     return encoder.encode(unformatted);
