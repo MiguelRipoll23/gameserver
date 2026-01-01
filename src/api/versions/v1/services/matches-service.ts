@@ -44,6 +44,7 @@ export class MatchesService {
     totalSlots: number
   ): number {
     // Validate playerList has at least 1 player (the host)
+    // Note: The host must always be included in the playerList
     if (playerList.length === 0) {
       throw new ServerError(
         "INVALID_PLAYER_LIST",
@@ -52,7 +53,8 @@ export class MatchesService {
       );
     }
 
-    // Calculate available slots by subtracting players count (excluding the host)
+    // Calculate available slots by subtracting non-host players count
+    // playerList.length - 1 excludes the host from the count
     const playersCount = playerList.length - 1;
     const availableSlots = totalSlots - playersCount;
 
@@ -129,8 +131,9 @@ export class MatchesService {
       .then((rows) => rows[0]);
 
     if (!match) {
+      console.error(`Match not found after upsert for user ${userId}`);
       throw new ServerError(
-        "MATCH_NOT_FOUND",
+        "MATCH_UPSERT_FAILED",
         "Match not found after upsert",
         500
       );

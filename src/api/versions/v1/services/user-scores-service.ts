@@ -204,7 +204,7 @@ export class UserScoresService {
       // Check if the player is in the allowed users list
       if (!allowedUserIds.has(playerScore.userId)) {
         throw new ServerError(
-          "PLAYER_NOT_IN_MATCH",
+          "UNAUTHORIZED",
           "One or more players are not authorized for this match",
           400
         );
