@@ -142,9 +142,7 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private async handleKickUserBroadcastChannelMessage(
-    event: MessageEvent
-  ): Promise<void> {
+  private handleKickUserBroadcastChannelMessage(event: MessageEvent): void {
     const { userId } = event.data;
     const user = this.usersById.get(userId);
 
@@ -162,9 +160,6 @@ export class WebSocketService implements WebSocketServer {
         `User with ID ${userId} not found in current server instance`
       );
     }
-
-    // Send UserBan notification to match host if user is in a match
-    await this.sendUserBanNotificationToMatchHost(userId);
   }
 
   private handleUserBanNotificationBroadcastChannelMessage(
@@ -453,9 +448,6 @@ export class WebSocketService implements WebSocketServer {
         webSocket.close(1000, "User has been banned");
         console.log(`Kicked user ${user.getName()} due to ban`);
       }
-
-      // Send UserBan notification to match host if user is in a match
-      await this.sendUserBanNotificationToMatchHost(userId);
     } else {
       // User not found locally, broadcast to other server instances
       console.log(
@@ -464,6 +456,9 @@ export class WebSocketService implements WebSocketServer {
 
       this.kickUserBroadcastChannel.postMessage({ userId });
     }
+
+    // Send UserBan notification to match host if user is in a match
+    await this.sendUserBanNotificationToMatchHost(userId);
   }
 
   /**
