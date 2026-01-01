@@ -63,8 +63,8 @@ export class AuthenticatedUserScoresRouter {
       createRoute({
         method: "post",
         path: "/",
-        summary: "Save user score",
-        description: "Updates the user score using an encrypted payload",
+        summary: "Save user scores",
+        description: "Updates user scores using an encrypted payload",
         tags: ["User scores"],
         request: {
           body: {
