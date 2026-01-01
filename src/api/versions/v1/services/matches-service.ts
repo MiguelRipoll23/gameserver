@@ -42,6 +42,15 @@ export class MatchesService {
     // Validate that the host is not in the usersList
     this.validateHostNotInUsersList(userId, usersList);
 
+    // Validate that usersList doesn't exceed available capacity
+    if (usersList.length >= totalSlots) {
+      throw new ServerError(
+        "INVALID_USERS_LIST",
+        "usersList length must be less than totalSlots",
+        400
+      );
+    }
+
     // Calculate available slots: total slots minus players in usersList minus the host (1)
     const availableSlots = totalSlots - usersList.length - 1;
 
