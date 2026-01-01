@@ -40,8 +40,9 @@ export class MatchesService {
     } = body;
 
     // Calculate availableSlots from playersList if provided
+    // playersList contains other players (not including the host)
     const calculatedAvailableSlots = playersList !== undefined
-      ? playersList.length - 1  // Subtract 1 for the host
+      ? totalSlots - playersList.length - 1  // Subtract playersList and 1 for host
       : availableSlots;
 
     try {
