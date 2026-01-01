@@ -35,8 +35,8 @@ export class MatchesService {
     } = body;
 
     // Run all validations
+    this.validateNoDuplicateUsers(usersList);
     this.validateHostNotInUsersList(userId, usersList);
-    this.validateUsersListCapacity(usersList, totalSlots);
     await this.validateUsersExist(db, usersList);
     this.validateSlotConfiguration(usersList, totalSlots);
 
@@ -115,7 +115,7 @@ export class MatchesService {
       .select({
         id: matchesTable.id,
         hostUserId: matchesTable.hostUserId,
-        version: matchesTable.clientVersion,
+        clientVersion: matchesTable.clientVersion,
         totalSlots: matchesTable.totalSlots,
         availableSlots: matchesTable.availableSlots,
         attributes: matchesTable.attributes,
@@ -185,6 +185,20 @@ export class MatchesService {
   }
 
   /**
+   * Validates that usersList contains no duplicate user IDs
+   */
+  private validateNoDuplicateUsers(usersList: string[]): void {
+    const uniqueUserIds = new Set(usersList);
+    if (uniqueUserIds.size !== usersList.length) {
+      throw new ServerError(
+        "DUPLICATE_USERS_IN_LIST",
+        "usersList contains duplicate user IDs",
+        400
+      );
+    }
+  }
+
+  /**
    * Validates that the host user is not included in the usersList
    */
   private validateHostNotInUsersList(
@@ -195,22 +209,6 @@ export class MatchesService {
       throw new ServerError(
         "HOST_IN_USERS_LIST",
         "Host user should not be included in the usersList",
-        400
-      );
-    }
-  }
-
-  /**
-   * Validates that usersList doesn't exceed available capacity
-   */
-  private validateUsersListCapacity(
-    usersList: string[],
-    totalSlots: number
-  ): void {
-    if (usersList.length >= totalSlots) {
-      throw new ServerError(
-        "INVALID_USERS_LIST",
-        "usersList length must be less than totalSlots",
         400
       );
     }
