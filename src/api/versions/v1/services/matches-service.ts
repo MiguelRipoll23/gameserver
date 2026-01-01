@@ -8,6 +8,7 @@ import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { matchesTable, matchUsersTable, userSessionsTable } from "../../../../db/schema.ts";
 import { and, eq, sql } from "drizzle-orm";
+import { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 @injectable()
 export class MatchesService {
@@ -37,6 +38,9 @@ export class MatchesService {
       attributes,
       pingMedianMilliseconds,
     } = body;
+
+    // Validate that the host is not in the usersList
+    this.validateHostNotInUsersList(userId, usersList);
 
     // Calculate available slots: total slots minus players in usersList minus the host (1)
     const availableSlots = totalSlots - usersList.length - 1;
@@ -163,13 +167,31 @@ export class MatchesService {
   }
 
   /**
+   * Validates that the host user is not included in the usersList
+   * @param hostUserId The ID of the host user
+   * @param usersList Array of user IDs participating in the match
+   */
+  private validateHostNotInUsersList(
+    hostUserId: string,
+    usersList: string[]
+  ): void {
+    if (usersList.includes(hostUserId)) {
+      throw new ServerError(
+        "HOST_IN_USERS_LIST",
+        "Host user should not be included in the usersList",
+        400
+      );
+    }
+  }
+
+  /**
    * Populates the match_users table with the list of users participating in the match
    * @param tx Database transaction
    * @param matchId The ID of the match
    * @param usersList Array of user IDs (UUIDs) participating in the match
    */
   private async populateMatchUsers(
-    tx: any,
+    tx: NodePgDatabase,
     matchId: number,
     usersList: string[]
   ): Promise<void> {
