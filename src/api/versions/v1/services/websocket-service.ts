@@ -20,7 +20,7 @@ import {
   matchUsersTable,
   userSessionsTable,
 } from "../../../../db/schema.ts";
-import { count, eq, inArray } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import {
   BANNED_USER_CHANNEL,
