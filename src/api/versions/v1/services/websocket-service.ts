@@ -431,7 +431,7 @@ export class WebSocketService implements WebSocketServer {
   }
 
   /**
-   * Sends UserBan notification to the hosts of all matches where the banned user is a participant.
+   * Sends a UserBan notification to the host of a match where the banned user is a participant.
    * This method is called immediately after a user is banned/kicked.
    */
   private async sendUserBanNotificationToMatchHost(
