@@ -447,7 +447,7 @@ export class WebSocketService implements WebSocketServer {
 
       if (matchUsers.length === 0) {
         // User is not in any match as a participant
-        console.log(
+        console.info(
           `Banned user ${bannedUserId} is not a participant in any match`
         );
         return;
@@ -476,7 +476,7 @@ export class WebSocketService implements WebSocketServer {
         const hostUser = this.usersById.get(hostUserId);
 
         if (!hostUser) {
-          console.log(
+          console.info(
             `Match host ${hostUserId} is not connected to this server instance`
           );
           continue;
