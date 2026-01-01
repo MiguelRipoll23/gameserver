@@ -91,16 +91,16 @@ export class UserScoresService {
     const request = await this.parseAndValidateSaveRequest(userId, body);
     console.debug("SaveScoresRequest", request);
 
-    // Validate non-host players are part of the match
-    await this.validateNonHostPlayers(userId, matchId, request);
-
     // Use database transaction to ensure atomicity
     const db = this.databaseService.get();
     let notification: string | null = null;
 
     try {
       await db.transaction(async (tx) => {
-        // Update all player scores within a single transaction
+        // Validate non-host players are part of the match within transaction to prevent TOCTOU
+        await this.validateNonHostPlayers(tx, userId, matchId, request);
+
+        // Update all player scores within the same transaction
         for (const playerScore of request) {
           const message = await this.updateWithTransaction(
             tx,
@@ -311,19 +311,19 @@ export class UserScoresService {
 
   /**
    * Validates that all non-host players in the score request are part of the match
+   * @param tx Database transaction
    * @param hostUserId The ID of the host user
    * @param matchId The ID of the match
    * @param request The score save request containing player scores
    */
   private async validateNonHostPlayers(
+    tx: NodePgDatabase,
     hostUserId: string,
     matchId: number,
     request: SaveScoresRequest
   ): Promise<void> {
-    const db = this.databaseService.get();
-
     // Get all user IDs from match_users table for this match
-    const matchUsers = await db
+    const matchUsers = await tx
       .select({ userId: matchUsersTable.userId })
       .from(matchUsersTable)
       .where(eq(matchUsersTable.matchId, matchId));
