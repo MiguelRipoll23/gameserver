@@ -6,8 +6,13 @@ import {
 } from "../schemas/matches-schemas.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import { matchesTable, matchUsersTable, userSessionsTable } from "../../../../db/schema.ts";
-import { and, eq, sql } from "drizzle-orm";
+import {
+  matchesTable,
+  matchUsersTable,
+  userSessionsTable,
+  usersTable,
+} from "../../../../db/schema.ts";
+import { and, eq, sql, inArray } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 @injectable()
@@ -18,18 +23,8 @@ export class MatchesService {
     userId: string,
     body: AdvertiseMatchRequest
   ): Promise<void> {
-    // Get the user session from database
     const db = this.databaseService.get();
-    const session = await db
-      .select({ token: userSessionsTable.token })
-      .from(userSessionsTable)
-      .where(eq(userSessionsTable.userId, userId))
-      .limit(1)
-      .then((rows) => rows[0]);
-
-    if (!session) {
-      throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
-    }
+    await this.validateUserSession(db, userId);
 
     const {
       clientVersion,
@@ -39,32 +34,16 @@ export class MatchesService {
       pingMedianMilliseconds,
     } = body;
 
-    // Validate that the host is not in the usersList
+    // Run all validations
     this.validateHostNotInUsersList(userId, usersList);
-
-    // Validate that usersList doesn't exceed available capacity
-    if (usersList.length >= totalSlots) {
-      throw new ServerError(
-        "INVALID_USERS_LIST",
-        "usersList length must be less than totalSlots",
-        400
-      );
-    }
-
-    // Calculate used slots: players in usersList plus the host (1)
-    const usedSlots = usersList.length + 1;
-
-    // Ensure that availableSlots is never negative
-    if (usedSlots > totalSlots) {
-      throw new ServerError(
-        "INVALID_SLOT_CONFIGURATION",
-        "Total slots must be greater than or equal to the number of players including the host",
-        400
-      );
-    }
+    this.validateUsersListCapacity(usersList, totalSlots);
+    await this.validateUsersExist(db, usersList);
+    this.validateSlotConfiguration(usersList, totalSlots);
 
     // Calculate available slots: total slots minus used slots
+    const usedSlots = usersList.length + 1;
     const availableSlots = totalSlots - usedSlots;
+
     try {
       // Use transaction to ensure match and match_users are created/updated atomically
       await db.transaction(async (tx) => {
@@ -187,9 +166,26 @@ export class MatchesService {
   }
 
   /**
+   * Validates that a user session exists for the given userId
+   */
+  private async validateUserSession(
+    db: NodePgDatabase,
+    userId: string
+  ): Promise<void> {
+    const session = await db
+      .select({ token: userSessionsTable.token })
+      .from(userSessionsTable)
+      .where(eq(userSessionsTable.userId, userId))
+      .limit(1)
+      .then((rows) => rows[0]);
+
+    if (!session) {
+      throw new ServerError("NO_SESSION_FOUND", "User session not found", 400);
+    }
+  }
+
+  /**
    * Validates that the host user is not included in the usersList
-   * @param hostUserId The ID of the host user
-   * @param usersList Array of user IDs participating in the match
    */
   private validateHostNotInUsersList(
     hostUserId: string,
@@ -199,6 +195,62 @@ export class MatchesService {
       throw new ServerError(
         "HOST_IN_USERS_LIST",
         "Host user should not be included in the usersList",
+        400
+      );
+    }
+  }
+
+  /**
+   * Validates that usersList doesn't exceed available capacity
+   */
+  private validateUsersListCapacity(
+    usersList: string[],
+    totalSlots: number
+  ): void {
+    if (usersList.length >= totalSlots) {
+      throw new ServerError(
+        "INVALID_USERS_LIST",
+        "usersList length must be less than totalSlots",
+        400
+      );
+    }
+  }
+
+  /**
+   * Validates that all user IDs in usersList exist in the users table
+   */
+  private async validateUsersExist(
+    db: NodePgDatabase,
+    usersList: string[]
+  ): Promise<void> {
+    if (usersList.length === 0) return;
+    const existingUsers = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(inArray(usersTable.id, usersList));
+    const existingUserIds = new Set(existingUsers.map((u) => u.id));
+    const missingUserIds = usersList.filter((id) => !existingUserIds.has(id));
+    if (missingUserIds.length > 0) {
+      throw new ServerError(
+        "USER_NOT_FOUND",
+        `The following user IDs do not exist: ${missingUserIds.join(", ")}`,
+        400
+      );
+    }
+  }
+
+  /**
+   * Validates that used slots do not exceed total slots
+   */
+  private validateSlotConfiguration(
+    usersList: string[],
+    totalSlots: number
+  ): void {
+    const usedSlots = usersList.length + 1;
+    if (usedSlots > totalSlots) {
+      throw new ServerError(
+        "INVALID_SLOT_CONFIGURATION",
+        "Total slots must be greater than or equal to the number of players including the host",
         400
       );
     }
