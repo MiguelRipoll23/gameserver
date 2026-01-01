@@ -446,7 +446,8 @@ export class WebSocketService implements WebSocketServer {
           matchId: matchUsersTable.matchId,
         })
         .from(matchUsersTable)
-        .where(eq(matchUsersTable.userId, bannedUserId));
+        .where(eq(matchUsersTable.userId, bannedUserId))
+        .limit(1);
 
       if (matchUsers.length === 0) {
         // User is not in any match as a participant
