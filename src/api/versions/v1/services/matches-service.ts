@@ -39,11 +39,31 @@ export class MatchesService {
       pingMedianMilliseconds,
     } = body;
 
+    // Validate that either playersList or availableSlots is provided
+    if (playersList === undefined && availableSlots === undefined) {
+      throw new ServerError(
+        "INVALID_REQUEST",
+        "Either playersList or availableSlots must be provided",
+        400
+      );
+    }
+
     // Calculate availableSlots from playersList if provided
     // playersList contains other players (not including the host)
-    const calculatedAvailableSlots = playersList !== undefined
-      ? totalSlots - playersList.length - 1  // Subtract playersList and 1 for host
-      : availableSlots;
+    let calculatedAvailableSlots: number;
+    if (playersList !== undefined) {
+      calculatedAvailableSlots = totalSlots - playersList.length - 1;
+      // Validate that availableSlots is not negative
+      if (calculatedAvailableSlots < 0) {
+        throw new ServerError(
+          "INVALID_PLAYERS_LIST",
+          "Number of players exceeds total slots available",
+          400
+        );
+      }
+    } else {
+      calculatedAvailableSlots = availableSlots!;
+    }
 
     try {
       // Use upsert operation to insert or update match
@@ -70,8 +90,8 @@ export class MatchesService {
         })
         .returning({ id: matchesTable.id });
 
-      // Save match players if playersList is provided
-      if (playersList !== undefined && playersList.length > 0) {
+      // Save match players if playersList is provided (including empty arrays to clear players)
+      if (playersList !== undefined) {
         await this.saveMatchPlayers(result[0].id, playersList);
       }
     } catch (error) {
