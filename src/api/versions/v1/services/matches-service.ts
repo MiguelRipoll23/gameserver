@@ -6,7 +6,7 @@ import {
 } from "../schemas/matches-schemas.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import { matchesTable, userSessionsTable } from "../../../../db/schema.ts";
+import { matchesTable, matchUsersTable, userSessionsTable } from "../../../../db/schema.ts";
 import { and, eq, sql } from "drizzle-orm";
 
 @injectable()
@@ -31,36 +31,46 @@ export class MatchesService {
     }
 
     const {
-      version,
+      clientVersion,
       totalSlots,
-      availableSlots,
+      usersList,
       attributes,
       pingMedianMilliseconds,
     } = body;
 
+    // Calculate available slots: total slots minus players in usersList
+    const availableSlots = totalSlots - usersList.length;
+
     try {
-      // Use upsert operation to insert or update match
-      await db
-        .insert(matchesTable)
-        .values({
-          hostUserId: userId,
-          version: version,
-          totalSlots: totalSlots,
-          availableSlots: availableSlots,
-          attributes: attributes ?? {},
-          pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
-        })
-        .onConflictDoUpdate({
-          target: matchesTable.hostUserId,
-          set: {
-            version: version,
+      // Use transaction to ensure match and match_users are created/updated atomically
+      await db.transaction(async (tx) => {
+        // Use upsert operation to insert or update match
+        const [match] = await tx
+          .insert(matchesTable)
+          .values({
+            hostUserId: userId,
+            version: clientVersion,
             totalSlots: totalSlots,
             availableSlots: availableSlots,
             attributes: attributes ?? {},
             pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
-            updatedAt: new Date(),
-          },
-        });
+          })
+          .onConflictDoUpdate({
+            target: matchesTable.hostUserId,
+            set: {
+              version: clientVersion,
+              totalSlots: totalSlots,
+              availableSlots: availableSlots,
+              attributes: attributes ?? {},
+              pingMedianMilliseconds: pingMedianMilliseconds ?? 0,
+              updatedAt: new Date(),
+            },
+          })
+          .returning({ id: matchesTable.id });
+
+        // Populate match_users table
+        await this.populateMatchUsers(tx, match.id, usersList);
+      });
     } catch (error) {
       console.error("Failed to create match:", error);
       throw new ServerError(
@@ -150,5 +160,32 @@ export class MatchesService {
     }
 
     console.log(`Deleted match for user ${userId}`);
+  }
+
+  /**
+   * Populates the match_users table with the list of users participating in the match
+   * @param tx Database transaction
+   * @param matchId The ID of the match
+   * @param usersList Array of user IDs (UUIDs) participating in the match
+   */
+  private async populateMatchUsers(
+    tx: any,
+    matchId: number,
+    usersList: string[]
+  ): Promise<void> {
+    // First, delete existing match users for this match to ensure clean state
+    await tx
+      .delete(matchUsersTable)
+      .where(eq(matchUsersTable.matchId, matchId));
+
+    // Insert new match users if the list is not empty
+    if (usersList.length > 0) {
+      const matchUsersValues = usersList.map((userId) => ({
+        matchId,
+        userId,
+      }));
+
+      await tx.insert(matchUsersTable).values(matchUsersValues);
+    }
   }
 }
