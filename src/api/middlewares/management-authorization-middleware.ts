@@ -3,7 +3,7 @@ import { injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
 
 @injectable()
-export class AuthorizationManagerMiddleware {
+export class ManagementAuthorizationMiddleware {
   public create() {
     return createMiddleware(async (c, next) => {
       const roles = c.get("userRoles");
@@ -12,8 +12,8 @@ export class AuthorizationManagerMiddleware {
     });
   }
 
-  private hasManagerRole(roles: string[]): void {
-    if (roles.includes("manager") === false) {
+  private hasManagerRole(roles: string[] | undefined): void {
+    if (!roles?.includes("manager")) {
       throw new ServerError(
         "NO_MANAGER_ROLE",
         "Missing manager role",
