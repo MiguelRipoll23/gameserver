@@ -15,7 +15,9 @@ import { ServerResponse } from "../../models/server-response.ts";
 export class ManagementUserModerationRouter {
   private app: OpenAPIHono;
 
-  constructor(private userModerationService = inject(UserModerationService)) {
+  constructor(
+    private userModerationService = inject(UserModerationService)
+  ) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }

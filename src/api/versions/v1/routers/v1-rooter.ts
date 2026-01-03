@@ -3,6 +3,7 @@ import { V1PublicRouter } from "./public-router.ts";
 import { V1AuthenticatedRouter } from "./authenticated-router.ts";
 import { inject, injectable } from "@needle-di/core";
 import { V1ManagementUserRouter } from "./management-router.ts";
+import { V1ModerationRouter } from "./moderation-router.ts";
 import { SignatureService } from "../services/signature-service.ts";
 
 @injectable()
@@ -13,6 +14,7 @@ export class V1Router {
     private publicRouter = inject(V1PublicRouter),
     private authenticatedRouter = inject(V1AuthenticatedRouter),
     private managementRouter = inject(V1ManagementUserRouter),
+    private moderationRouter = inject(V1ModerationRouter),
     private signatureService = inject(SignatureService)
   ) {
     this.app = new OpenAPIHono();
@@ -31,5 +33,6 @@ export class V1Router {
     this.app.route("/", this.publicRouter.getRouter());
     this.app.route("/", this.authenticatedRouter.getRouter());
     this.app.route("/", this.managementRouter.getRouter());
+    this.app.route("/", this.moderationRouter.getRouter());
   }
 }
