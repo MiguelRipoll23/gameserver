@@ -130,7 +130,7 @@ export class UserModerationService {
 
     // Get the latest ban
     const latestBan = await db
-      .select()
+      .select({ id: userBansTable.id, expiresAt: userBansTable.expiresAt })
       .from(userBansTable)
       .where(eq(userBansTable.userId, userId))
       .orderBy(desc(userBansTable.createdAt))
