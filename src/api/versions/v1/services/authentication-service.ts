@@ -68,7 +68,7 @@ export class AuthenticationService {
 
     await this.kvService.setAuthenticationOptions(transactionId, {
       data: options,
-      createdAt: Temporal.Now.instant().epochMilliseconds,
+      createdAt: Date.now(),
     });
 
     return options;
@@ -173,7 +173,7 @@ export class AuthenticationService {
 
     if (
       createdAt + KV_OPTIONS_EXPIRATION_TIME <
-      Temporal.Now.instant().epochMilliseconds
+      Date.now()
     ) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_EXPIRED",
@@ -419,7 +419,7 @@ export class AuthenticationService {
       if (userBans.length === 0) return;
 
       const latestBan = userBans[0];
-      const nowInstant = Temporal.Now.instant();
+      const now = new Date();
 
       if (!latestBan.expiresAt) {
         throw new ServerError(
@@ -429,21 +429,11 @@ export class AuthenticationService {
         );
       }
 
-      const expiresInstant = Temporal.Instant.from(
-        latestBan.expiresAt.toISOString()
-      );
-
-      if (Temporal.Instant.compare(expiresInstant, nowInstant) > 0) {
-        const timeZoneId =
-          typeof Temporal.Now.timeZoneId === "function"
-            ? Temporal.Now.timeZoneId()
-            : Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-        const localExpiry = expiresInstant.toZonedDateTimeISO(timeZoneId);
-        const formattedDate = localExpiry.toLocaleString("en-US", {
+      if (latestBan.expiresAt > now) {
+        const formattedDate = latestBan.expiresAt.toLocaleString("en-US", {
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           dateStyle: "medium",
           timeStyle: "long",
-          timeZoneName: "short",
         });
 
         throw new ServerError(
