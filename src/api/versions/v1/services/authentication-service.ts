@@ -434,9 +434,12 @@ export class AuthenticationService {
       );
 
       if (Temporal.Instant.compare(expiresInstant, nowInstant) > 0) {
-        const localExpiry = expiresInstant.toZonedDateTimeISO(
-          Temporal.Now.timeZoneId()
-        );
+        const timeZoneId =
+          typeof Temporal.Now.timeZoneId === "function"
+            ? Temporal.Now.timeZoneId()
+            : Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+        const localExpiry = expiresInstant.toZonedDateTimeISO(timeZoneId);
         const formattedDate = localExpiry.toLocaleString("en-US", {
           dateStyle: "medium",
           timeStyle: "long",
