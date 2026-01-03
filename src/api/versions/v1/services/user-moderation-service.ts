@@ -39,8 +39,8 @@ export class UserModerationService {
 
     try {
       insertedBan = await db.transaction(async (tx) => {
-        // Check if user exists
-        await this.checkUserExists(tx, userId);
+        // Check if user exists and lock the row to prevent race conditions
+        await this.checkUserExists(tx, userId, true);
 
         // Check for existing active ban
         const existingBans = await tx
@@ -333,14 +333,17 @@ export class UserModerationService {
 
   private async checkUserExists(
     tx: NodePgDatabase,
-    userId: string
+    userId: string,
+    lock: boolean = false
   ): Promise<void> {
     try {
-      const users = await tx
+      const baseQuery = tx
         .select()
         .from(usersTable)
         .where(eq(usersTable.id, userId))
         .limit(1);
+
+      const users = await (lock ? baseQuery.for("update") : baseQuery);
 
       if (users.length === 0) {
         throw new ServerError("USER_NOT_FOUND", "User not found", 404);
