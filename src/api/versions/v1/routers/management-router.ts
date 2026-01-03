@@ -13,7 +13,7 @@ export class V1ManagementUserRouter {
   private app: OpenAPIHono;
 
   constructor(
-    private authorizationMiddleware = inject(AuthorizationManagerMiddleware),
+    private authorizationManagerMiddleware = inject(AuthorizationManagerMiddleware),
     private versionRouter = inject(ManagementVersionRouter),
     private configurationRouter = inject(ManagementConfigurationRouter),
     private serverMessagesRouter = inject(ManagementServerMessagesRouter),
@@ -31,11 +31,11 @@ export class V1ManagementUserRouter {
   }
 
   private setMiddlewares(): void {
-    this.setAuthorizationMiddleware();
+    this.setAuthorizationManagerMiddleware();
   }
 
-  private setAuthorizationMiddleware(): void {
-    this.app.use("*", this.authorizationMiddleware.create());
+  private setAuthorizationManagerMiddleware(): void {
+    this.app.use("*", this.authorizationManagerMiddleware.create());
   }
 
   private setRoutes(): void {
