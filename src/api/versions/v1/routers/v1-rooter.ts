@@ -32,7 +32,7 @@ export class V1Router {
   private setRoutes(): void {
     this.app.route("/", this.publicRouter.getRouter());
     this.app.route("/", this.authenticatedRouter.getRouter());
-    this.app.route("/", this.managementRouter.getRouter());
     this.app.route("/", this.moderationRouter.getRouter());
+    this.app.route("/", this.managementRouter.getRouter());
   }
 }
