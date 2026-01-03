@@ -433,7 +433,7 @@ export class AuthenticationService {
         latestBan.expiresAt.toISOString()
       );
 
-      if (expiresInstant > nowInstant) {
+      if (Temporal.Instant.compare(expiresInstant, nowInstant) > 0) {
         const localExpiry = expiresInstant.toZonedDateTimeISO(
           Temporal.Now.timeZoneId()
         );
