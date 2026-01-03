@@ -1,6 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
-import { ModeratorAuthorizationMiddleware } from "../../../middlewares/moderator-authorization-middleware.ts";
+import { V1ModeratorAuthorizationMiddleware } from "../../../middlewares/moderator-authorization-middleware.ts";
 import { ManagementUserModerationRouter } from "./management/management-user-moderation-router.ts";
 
 @injectable()
@@ -8,7 +8,7 @@ export class V1ModerationRouter {
   private app: OpenAPIHono;
 
   constructor(
-    private moderatorAuthorizationMiddleware = inject(ModeratorAuthorizationMiddleware),
+    private moderatorAuthorizationMiddleware = inject(V1ModeratorAuthorizationMiddleware),
     private userModerationRouter = inject(ManagementUserModerationRouter)
   ) {
     this.app = new OpenAPIHono();

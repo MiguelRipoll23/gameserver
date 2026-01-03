@@ -1,6 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
-import { AuthorizationManagerMiddleware } from "../../../middlewares/authorization-manager-middleware.ts";
+import { V1AuthorizationManagerMiddleware } from "../../../middlewares/authorization-manager-middleware.ts";
 import { ManagementNotificationRouter } from "./management/management-notification-router.ts";
 import { ManagementServerMessagesRouter } from "./management/management-server-messages-router.ts";
 import { ManagementConfigurationRouter } from "./management/management-configuration-router.ts";
@@ -13,7 +13,7 @@ export class V1ManagementUserRouter {
   private app: OpenAPIHono;
 
   constructor(
-    private authorizationManagerMiddleware = inject(AuthorizationManagerMiddleware),
+    private authorizationManagerMiddleware = inject(V1AuthorizationManagerMiddleware),
     private versionRouter = inject(ManagementVersionRouter),
     private configurationRouter = inject(ManagementConfigurationRouter),
     private serverMessagesRouter = inject(ManagementServerMessagesRouter),

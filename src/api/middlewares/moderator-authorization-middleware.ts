@@ -3,7 +3,7 @@ import { injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
 
 @injectable()
-export class ModeratorAuthorizationMiddleware {
+export class V1ModeratorAuthorizationMiddleware {
   public create() {
     return createMiddleware(async (c, next) => {
       const roles = c.get("userRoles");
