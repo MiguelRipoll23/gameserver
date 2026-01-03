@@ -42,7 +42,33 @@ export class UserModerationService {
         // Check if user exists
         await this.checkUserExists(tx, userId);
 
-        // Create ban record with explicit conflict target
+        // Check for existing ban
+        const existingBans = await tx
+          .select({ id: userBansTable.id, expiresAt: userBansTable.expiresAt })
+          .from(userBansTable)
+          .where(eq(userBansTable.userId, userId))
+          .limit(1);
+
+        if (existingBans.length > 0) {
+          const existingBan = existingBans[0];
+          const now = new Date();
+          
+          // If ban has not expired (either permanent or still active), throw error
+          if (!existingBan.expiresAt || existingBan.expiresAt > now) {
+            throw new ServerError(
+              "USER_ALREADY_BANNED",
+              "User is already banned",
+              409
+            );
+          }
+          
+          // Delete expired ban
+          await tx
+            .delete(userBansTable)
+            .where(eq(userBansTable.id, existingBan.id));
+        }
+
+        // Create ban record
         const result = await tx
           .insert(userBansTable)
           .values({
@@ -50,7 +76,6 @@ export class UserModerationService {
             reason,
             expiresAt,
           })
-          .onConflictDoNothing({ target: [userBansTable.userId] })
           .returning({ id: userBansTable.id });
 
         return result;
@@ -69,9 +94,9 @@ export class UserModerationService {
 
     if (insertedBan.length === 0) {
       throw new ServerError(
-        "USER_ALREADY_BANNED",
-        "User is already banned",
-        409
+        "DATABASE_ERROR",
+        "Failed to create ban record",
+        500
       );
     }
 
