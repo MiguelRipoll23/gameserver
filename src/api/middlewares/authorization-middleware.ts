@@ -16,7 +16,7 @@ export class AuthorizationMiddleware {
     if (roles.includes("manager") === false) {
       throw new ServerError(
         "NO_MANAGEMENT_ROLE",
-        "Missing management role",
+        "Missing manager role",
         403,
       );
     }
