@@ -88,14 +88,6 @@ export class UserModerationService {
       );
     }
 
-    if (insertedBan.length === 0) {
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to create ban record",
-        500
-      );
-    }
-
     console.log(
       `User ${userId} has been banned for: ${reason}${
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
