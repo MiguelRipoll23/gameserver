@@ -10,12 +10,16 @@ import {
   GetUserReportsQuerySchema,
 } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import { ModeratorAuthorizationMiddleware } from "../../../../middlewares/moderator-authorization-middleware.ts";
 
 @injectable()
 export class ManagementUserModerationRouter {
   private app: OpenAPIHono;
 
-  constructor(private userModerationService = inject(UserModerationService)) {
+  constructor(
+    private userModerationService = inject(UserModerationService),
+    private moderatorAuthorizationMiddleware = inject(ModeratorAuthorizationMiddleware)
+  ) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
@@ -155,7 +159,8 @@ export class ManagementUserModerationRouter {
         const validated = c.req.valid("json");
         await this.userModerationService.banUser(validated);
         return c.body(null, 204);
-      }
+      },
+      this.moderatorAuthorizationMiddleware.create()
     );
   }
 
@@ -181,7 +186,8 @@ export class ManagementUserModerationRouter {
         const userId = c.req.param("userId");
         await this.userModerationService.unbanUser(userId);
         return c.body(null, 204);
-      }
+      },
+      this.moderatorAuthorizationMiddleware.create()
     );
   }
 }
