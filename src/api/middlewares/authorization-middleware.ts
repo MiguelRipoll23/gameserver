@@ -7,12 +7,12 @@ export class AuthorizationMiddleware {
   public create() {
     return createMiddleware(async (c, next) => {
       const roles = c.get("userRoles");
-      this.hasManagementRole(roles);
+      this.hasManagerRole(roles);
       await next();
     });
   }
 
-  private hasManagementRole(roles: string[]): void {
+  private hasManagerRole(roles: string[]): void {
     if (roles.includes("manager") === false) {
       throw new ServerError(
         "NO_MANAGER_ROLE",
