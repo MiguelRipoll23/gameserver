@@ -72,10 +72,6 @@ export class PublicRegistrationRouter {
       async (c) => {
         const validated = c.req.valid("json");
         const origin = extractAndValidateOrigin(c);
-        
-        if (typeof origin !== "string") {
-          return origin; // Return the 400 error response
-        }
 
         const response = await this.registrationService.getOptions(validated, origin);
 
@@ -118,10 +114,6 @@ export class PublicRegistrationRouter {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
         const origin = extractAndValidateOrigin(c);
-        
-        if (typeof origin !== "string") {
-          return origin; // Return the 400 error response
-        }
 
         const response = await this.registrationService.verifyResponse(
           connInfo,
