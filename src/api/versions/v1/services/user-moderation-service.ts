@@ -16,7 +16,7 @@ import {
   userReportsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 import { KICK_USER_EVENT } from "../constants/event-constants.ts";
 import { KVService } from "./kv-service.ts";
 
@@ -42,11 +42,12 @@ export class UserModerationService {
         // Check if user exists
         await this.checkUserExists(tx, userId);
 
-        // Check for existing ban
+        // Check for existing active ban
         const existingBans = await tx
           .select({ id: userBansTable.id, expiresAt: userBansTable.expiresAt })
           .from(userBansTable)
           .where(eq(userBansTable.userId, userId))
+          .orderBy(desc(userBansTable.createdAt))
           .limit(1);
 
         if (existingBans.length > 0) {
@@ -61,11 +62,6 @@ export class UserModerationService {
               409
             );
           }
-          
-          // Delete expired ban
-          await tx
-            .delete(userBansTable)
-            .where(eq(userBansTable.id, existingBan.id));
         }
 
         // Create ban record
@@ -132,18 +128,38 @@ export class UserModerationService {
   public async unbanUser(userId: string): Promise<void> {
     const db = this.databaseService.get();
 
-    const deleted = await db
-      .delete(userBansTable)
+    // Get the latest ban
+    const latestBan = await db
+      .select()
+      .from(userBansTable)
       .where(eq(userBansTable.userId, userId))
-      .returning();
+      .orderBy(desc(userBansTable.createdAt))
+      .limit(1);
 
-    if (deleted.length === 0) {
+    if (latestBan.length === 0) {
       throw new ServerError(
         "USER_NOT_BANNED",
         `User with id ${userId} is not banned`,
         404
       );
     }
+
+    // Check if the latest ban is actually active
+    const now = new Date();
+    const ban = latestBan[0];
+    if (ban.expiresAt && ban.expiresAt <= now) {
+      throw new ServerError(
+        "USER_NOT_BANNED",
+        `User with id ${userId} is not banned`,
+        404
+      );
+    }
+
+    // Delete the latest ban
+    const deleted = await db
+      .delete(userBansTable)
+      .where(eq(userBansTable.id, ban.id))
+      .returning();
 
     try {
       await this.kvService.unbanUser(userId);
