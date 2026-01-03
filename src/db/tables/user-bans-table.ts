@@ -15,7 +15,6 @@ export const userBansTable = pgTable(
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     userId: uuid("user_id")
       .notNull()
-      .unique()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     reason: varchar("reason", { length: 500 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

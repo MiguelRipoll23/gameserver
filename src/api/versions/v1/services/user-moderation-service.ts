@@ -16,7 +16,7 @@ import {
   userReportsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt } from "drizzle-orm";
 import { KICK_USER_EVENT } from "../constants/event-constants.ts";
 import { KVService } from "./kv-service.ts";
 
@@ -39,10 +39,32 @@ export class UserModerationService {
 
     try {
       insertedBan = await db.transaction(async (tx) => {
-        // Check if user exists
-        await this.checkUserExists(tx, userId);
+        // Check if user exists and lock the row to prevent race conditions
+        await this.checkUserExists(tx, userId, true);
 
-        // Create ban record with explicit conflict target
+        // Check for existing active ban
+        const existingBans = await tx
+          .select({ id: userBansTable.id, expiresAt: userBansTable.expiresAt })
+          .from(userBansTable)
+          .where(eq(userBansTable.userId, userId))
+          .orderBy(desc(userBansTable.createdAt))
+          .limit(1);
+
+        if (existingBans.length > 0) {
+          const existingBan = existingBans[0];
+          const now = new Date();
+          
+          // If ban has not expired (either permanent or still active), throw error
+          if (!existingBan.expiresAt || existingBan.expiresAt > now) {
+            throw new ServerError(
+              "USER_ALREADY_BANNED",
+              "User is already banned",
+              409
+            );
+          }
+        }
+
+        // Create ban record
         const result = await tx
           .insert(userBansTable)
           .values({
@@ -50,7 +72,6 @@ export class UserModerationService {
             reason,
             expiresAt,
           })
-          .onConflictDoNothing({ target: [userBansTable.userId] })
           .returning({ id: userBansTable.id });
 
         return result;
@@ -64,14 +85,6 @@ export class UserModerationService {
         "DATABASE_ERROR",
         "Failed to create ban record",
         500
-      );
-    }
-
-    if (insertedBan.length === 0) {
-      throw new ServerError(
-        "USER_ALREADY_BANNED",
-        "User is already banned",
-        409
       );
     }
 
@@ -107,18 +120,38 @@ export class UserModerationService {
   public async unbanUser(userId: string): Promise<void> {
     const db = this.databaseService.get();
 
-    const deleted = await db
-      .delete(userBansTable)
+    // Get the latest ban
+    const latestBan = await db
+      .select({ id: userBansTable.id, expiresAt: userBansTable.expiresAt })
+      .from(userBansTable)
       .where(eq(userBansTable.userId, userId))
-      .returning();
+      .orderBy(desc(userBansTable.createdAt))
+      .limit(1);
 
-    if (deleted.length === 0) {
+    if (latestBan.length === 0) {
       throw new ServerError(
         "USER_NOT_BANNED",
         `User with id ${userId} is not banned`,
         404
       );
     }
+
+    // Check if the latest ban is actually active
+    const now = new Date();
+    const ban = latestBan[0];
+    if (ban.expiresAt && ban.expiresAt <= now) {
+      throw new ServerError(
+        "USER_NOT_BANNED",
+        `User with id ${userId} is not banned`,
+        404
+      );
+    }
+
+    // Delete the latest ban
+    const deleted = await db
+      .delete(userBansTable)
+      .where(eq(userBansTable.id, ban.id))
+      .returning();
 
     try {
       await this.kvService.unbanUser(userId);
@@ -292,14 +325,17 @@ export class UserModerationService {
 
   private async checkUserExists(
     tx: NodePgDatabase,
-    userId: string
+    userId: string,
+    lock: boolean = false
   ): Promise<void> {
     try {
-      const users = await tx
+      const baseQuery = tx
         .select()
         .from(usersTable)
         .where(eq(usersTable.id, userId))
         .limit(1);
+
+      const users = await (lock ? baseQuery.for("update") : baseQuery);
 
       if (users.length === 0) {
         throw new ServerError("USER_NOT_FOUND", "User not found", 404);

@@ -62,10 +62,6 @@ export class PublicAuthenticationRouter {
       async (c) => {
         const validated = c.req.valid("json");
         const origin = extractAndValidateOrigin(c);
-        
-        if (typeof origin !== "string") {
-          return origin; // Return the 400 error response
-        }
 
         const response = await this.authenticationService.getOptions(validated, origin);
 
@@ -109,10 +105,6 @@ export class PublicAuthenticationRouter {
         const connInfo = getConnInfo(c);
         const validated = c.req.valid("json");
         const origin = extractAndValidateOrigin(c);
-        
-        if (typeof origin !== "string") {
-          return origin; // Return the 400 error response
-        }
 
         const response = await this.authenticationService.verifyResponse(
           connInfo,
