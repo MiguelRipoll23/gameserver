@@ -12,11 +12,8 @@ export class ModeratorAuthorizationMiddleware {
     });
   }
 
-  private hasManagerOrModeratorRole(roles: string[]): void {
-    if (
-      roles.includes("moderator") === false &&
-      roles.includes("manager") === false
-    ) {
+  private hasManagerOrModeratorRole(roles: string[] | undefined): void {
+    if (!roles?.some((role) => role === "moderator" || role === "manager")) {
       throw new ServerError(
         "NO_MANAGER_OR_MODERATOR_ROLE",
         "Missing manager or moderator role",
