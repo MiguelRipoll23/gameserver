@@ -7,16 +7,16 @@ export class ModeratorAuthorizationMiddleware {
   public create() {
     return createMiddleware(async (c, next) => {
       const roles = c.get("userRoles");
-      this.hasModeratorRole(roles);
+      this.hasManagerOrModeratorRole(roles);
       await next();
     });
   }
 
-  private hasModeratorRole(roles: string[]): void {
-    if (roles.includes("moderator") === false) {
+  private hasManagerOrModeratorRole(roles: string[] | undefined): void {
+    if (!roles?.some((role) => role === "moderator" || role === "manager")) {
       throw new ServerError(
-        "NO_MODERATOR_ROLE",
-        "Missing moderator role",
+        "NO_MANAGER_OR_MODERATOR_ROLE",
+        "Missing manager or moderator role",
         403,
       );
     }
