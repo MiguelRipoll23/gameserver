@@ -37,7 +37,19 @@ export class V1ManagementUserRouter {
   }
 
   private setAuthorizationManagerMiddleware(): void {
-    this.app.use("*", this.managementAuthorizationMiddleware.create());
+    this.app.use("*", async (c, next) => {
+      if (c.req.path.endsWith("/user-roles/add")) {
+        await this.managementAuthorizationMiddleware.create([
+          "manager",
+          "moderator",
+        ])(c, next);
+      } else {
+        await this.managementAuthorizationMiddleware.create(["manager"])(
+          c,
+          next
+        );
+      }
+    });
   }
 
   private setRoutes(): void {
