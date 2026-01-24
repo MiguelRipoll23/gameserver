@@ -16,7 +16,7 @@
     "npm:@peculiar/asn1-schema@^2.3.8": "2.5.0",
     "npm:@peculiar/asn1-x509@^2.3.8": "2.5.0",
     "npm:@peculiar/x509@^1.13.0": "1.14.0",
-    "npm:@scalar/hono-api-reference@~0.9.35": "0.9.35_hono@4.11.5",
+    "npm:@scalar/hono-api-reference@~0.9.36": "0.9.36_hono@4.11.5",
     "npm:@types/pg@^8.16.0": "8.16.0",
     "npm:drizzle-kit@*": "0.31.8_esbuild@0.25.12",
     "npm:drizzle-kit@~0.31.8": "0.31.8_esbuild@0.25.12",
@@ -468,8 +468,8 @@
         "tsyringe"
       ]
     },
-    "@scalar/core@0.3.32": {
-      "integrity": "sha512-5qUC2l1fhLyKw1iKAbuQCWb2TNZ4Y52MDc7MA7RA7QLdJ0QPBzk2UAJ0ZuYY2dIhZ3qTcpuqtF4EXEllXHoNOA==",
+    "@scalar/core@0.3.33": {
+      "integrity": "sha512-eEnj3Xl66VhD5h+Py+r3k3C5GuXucfUNc9o6XfGU/lKJTN9foEa9wgwyH2Lr6IHCtn+SoIgCn3ZS9g1REcXeZQ==",
       "dependencies": [
         "@scalar/types"
       ]
@@ -477,15 +477,15 @@
     "@scalar/helpers@0.2.8": {
       "integrity": "sha512-aXXRF4sCaiGZIRpZ1MUcnl8y0Q9pPG1VXqQMWacVWDh6zQN9cuayTC/TbODzWeldp50sgJ1E8MpHvpeV7CEF9g=="
     },
-    "@scalar/hono-api-reference@0.9.35_hono@4.11.5": {
-      "integrity": "sha512-+/PUAfZc0fBDgcZ57nnBrR+2CpVyfO//trmsrTyHxxmWxGR4pjL7YPExn24HxULLdWE0mVg+klNsrC4oUem0Aw==",
+    "@scalar/hono-api-reference@0.9.36_hono@4.11.5": {
+      "integrity": "sha512-fh1U0vsZfPvhqtjhhVm1JORdDaCNfWmUilb0PsWNsAO/uTdYArFZqVT3eTkMR4KOF56jfey0k0rkPUaVeLSSUw==",
       "dependencies": [
         "@scalar/core",
         "hono"
       ]
     },
-    "@scalar/types@0.5.8": {
-      "integrity": "sha512-eL8zojDI9QB+kNRkuM80auTKHnzNrlOLC8ZLUJVnY0Jj5ZtoInKMDGodgQXK1wOSDTcfVfgLALOY1zb6cFFlCg==",
+    "@scalar/types@0.5.9": {
+      "integrity": "sha512-aj3Zju0HsyI2SCIPPejRGLsGCfkf5CRv4QLHcZB36uUo5WuzQ/PN4wxJPc5JpT0t+gLNj7lWjv/+RxDR0w57OA==",
       "dependencies": [
         "@scalar/helpers",
         "nanoid",
@@ -769,7 +769,7 @@
       "jsr:@std/encoding@^1.0.10",
       "jsr:@wok/djwt@^3.0.2",
       "npm:@hono/zod-openapi@^1.2.0",
-      "npm:@scalar/hono-api-reference@~0.9.35",
+      "npm:@scalar/hono-api-reference@~0.9.36",
       "npm:@types/pg@^8.16.0",
       "npm:drizzle-kit@~0.31.8",
       "npm:drizzle-orm@~0.45.1",
