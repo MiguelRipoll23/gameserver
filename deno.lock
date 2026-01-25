@@ -16,7 +16,7 @@
     "npm:@peculiar/asn1-schema@^2.3.8": "2.5.0",
     "npm:@peculiar/asn1-x509@^2.3.8": "2.5.0",
     "npm:@peculiar/x509@^1.13.0": "1.14.0",
-    "npm:@scalar/hono-api-reference@~0.9.36": "0.9.36_hono@4.11.5",
+    "npm:@scalar/hono-api-reference@~0.9.37": "0.9.37_hono@4.11.5",
     "npm:@types/pg@^8.16.0": "8.16.0",
     "npm:drizzle-kit@*": "0.31.8_esbuild@0.25.12",
     "npm:drizzle-kit@~0.31.8": "0.31.8_esbuild@0.25.12",
@@ -468,24 +468,24 @@
         "tsyringe"
       ]
     },
-    "@scalar/core@0.3.33": {
-      "integrity": "sha512-eEnj3Xl66VhD5h+Py+r3k3C5GuXucfUNc9o6XfGU/lKJTN9foEa9wgwyH2Lr6IHCtn+SoIgCn3ZS9g1REcXeZQ==",
+    "@scalar/core@0.3.34": {
+      "integrity": "sha512-dZnpkrnjiPvPLa/sIdjoaxdVoYowWUqC5nCCXJI+29laMIII6dCze8ThxLPGN1b9gJ8cYcQwBrwr+RNCjqJgdQ==",
       "dependencies": [
         "@scalar/types"
       ]
     },
-    "@scalar/helpers@0.2.8": {
-      "integrity": "sha512-aXXRF4sCaiGZIRpZ1MUcnl8y0Q9pPG1VXqQMWacVWDh6zQN9cuayTC/TbODzWeldp50sgJ1E8MpHvpeV7CEF9g=="
+    "@scalar/helpers@0.2.9": {
+      "integrity": "sha512-Y4ffJF0yELdwZ0BKgonqn3SumIgRn1WKyYCVHD+TDM7qRFChdGRypyt20+efHs26fmJeyBAIIv2laICj5uimiw=="
     },
-    "@scalar/hono-api-reference@0.9.36_hono@4.11.5": {
-      "integrity": "sha512-fh1U0vsZfPvhqtjhhVm1JORdDaCNfWmUilb0PsWNsAO/uTdYArFZqVT3eTkMR4KOF56jfey0k0rkPUaVeLSSUw==",
+    "@scalar/hono-api-reference@0.9.37_hono@4.11.5": {
+      "integrity": "sha512-eprpFplQoirRmfC5fWo90jLQX5x01H7QS2XrRDmNES207eaEvtUZHyW9vPV7Bi9ltjrnqG8WK2oPMd/uZClptg==",
       "dependencies": [
         "@scalar/core",
         "hono"
       ]
     },
-    "@scalar/types@0.5.9": {
-      "integrity": "sha512-aj3Zju0HsyI2SCIPPejRGLsGCfkf5CRv4QLHcZB36uUo5WuzQ/PN4wxJPc5JpT0t+gLNj7lWjv/+RxDR0w57OA==",
+    "@scalar/types@0.5.10": {
+      "integrity": "sha512-37qAHQC2J7O+Mt8u0HOZttTQPQ1OEWKWxo9SMbahYKTosL9k1KtTG2F3EB33EkW3WqEVQitkUKrM0+MVM2HeYQ==",
       "dependencies": [
         "@scalar/helpers",
         "nanoid",
@@ -769,7 +769,7 @@
       "jsr:@std/encoding@^1.0.10",
       "jsr:@wok/djwt@^3.0.2",
       "npm:@hono/zod-openapi@^1.2.0",
-      "npm:@scalar/hono-api-reference@~0.9.36",
+      "npm:@scalar/hono-api-reference@~0.9.37",
       "npm:@types/pg@^8.16.0",
       "npm:drizzle-kit@~0.31.8",
       "npm:drizzle-orm@~0.45.1",
