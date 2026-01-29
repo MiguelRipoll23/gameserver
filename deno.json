@@ -2,7 +2,7 @@
   "imports": {
     "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.2.0",
     "@needle-di/core": "jsr:@needle-di/core@^1.1.0",
-    "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.9.37",
+    "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.9.38",
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.2.2",
     "@simplewebauthn/types": "jsr:@simplewebauthn/types@^12.0.0",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
