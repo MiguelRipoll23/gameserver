@@ -3,7 +3,7 @@ import { NotificationChannelName } from "../enums/notification-channel-enum.ts";
 
 export const PushServerNotificationSchema = z.object({
   channelName: z
-    .enum(NotificationChannelName)
+    .nativeEnum(NotificationChannelName)
     .describe("Human-readable channel identifier exposed by the API")
     .openapi({
       example: NotificationChannelName.Global,
@@ -19,7 +19,7 @@ export type PushServerNotification = z.infer<
 
 export const PushUserNotificationSchema = z.object({
   channelName: z
-    .enum(NotificationChannelName)
+    .nativeEnum(NotificationChannelName)
     .describe("Human-readable channel identifier exposed by the API")
     .openapi({
       example: NotificationChannelName.Global,
