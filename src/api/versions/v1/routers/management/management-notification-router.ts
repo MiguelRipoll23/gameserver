@@ -6,6 +6,9 @@ import {
   PushUserNotificationSchema,
 } from "../../schemas/notification-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import {
+  NotificationChannelNameToType,
+} from "../../enums/notification-channel-enum.ts";
 
 @injectable()
 export class ManagementNotificationRouter {
@@ -51,8 +54,11 @@ export class ManagementNotificationRouter {
         },
       }),
       (c) => {
-        const { channelId, text } = c.req.valid("json");
-        this.notificationService.notify(channelId, text);
+        const { channelName, text } = c.req.valid("json");
+        this.notificationService.notify(
+          NotificationChannelNameToType[channelName],
+          text
+        );
 
         return c.body(null, 204);
       }
@@ -86,8 +92,12 @@ export class ManagementNotificationRouter {
         },
       }),
       (c) => {
-        const { channelId, userId, text } = c.req.valid("json");
-        this.notificationService.notifyUser(channelId, userId, text);
+        const { channelName, userId, text } = c.req.valid("json");
+        this.notificationService.notifyUser(
+          NotificationChannelNameToType[channelName],
+          userId,
+          text
+        );
 
         return c.body(null, 204);
       }
