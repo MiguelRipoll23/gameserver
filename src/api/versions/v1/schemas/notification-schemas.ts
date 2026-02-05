@@ -1,12 +1,12 @@
 import { z } from "@hono/zod-openapi";
-import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
+import { NotificationChannelName } from "../enums/notification-channel-enum.ts";
 
 export const PushServerNotificationSchema = z.object({
-  channelId: z
-    .enum(NotificationChannelType)
-    .describe("The notification channel type")
+  channelName: z
+    .enum(NotificationChannelName)
+    .describe("Human-readable channel identifier exposed by the API")
     .openapi({
-      example: NotificationChannelType.Global,
+      example: NotificationChannelName.Global,
     }),
   text: z.string().min(1).describe("The notification message text").openapi({
     example: "This is a test notification coming from the server",
@@ -18,11 +18,11 @@ export type PushServerNotification = z.infer<
 >;
 
 export const PushUserNotificationSchema = z.object({
-  channelId: z
-    .enum(NotificationChannelType)
-    .describe("The notification channel type")
+  channelName: z
+    .enum(NotificationChannelName)
+    .describe("Human-readable channel identifier exposed by the API")
     .openapi({
-      example: NotificationChannelType.Global,
+      example: NotificationChannelName.Global,
     }),
   userId: z
     .string()
