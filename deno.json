@@ -8,7 +8,7 @@
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@types/pg": "npm:@types/pg@^8.16.0",
     "@wok/djwt": "jsr:@wok/djwt@^3.0.2",
-    "drizzle-kit": "npm:drizzle-kit@^0.31.8",
+    "drizzle-kit": "npm:drizzle-kit@^0.31.9",
     "drizzle-orm": "npm:drizzle-orm@^0.45.1",
     "pg": "npm:pg@^8.18.0",
     "hono": "npm:hono@^4.11.9",
