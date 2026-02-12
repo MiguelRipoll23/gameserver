@@ -8,12 +8,12 @@ import { ConnInfo } from "hono/conninfo";
 import { WebAuthnUtils } from "../../../../core/utils/webauthn-utils.ts";
 import {
   AuthenticationResponseJSON,
+  type AuthenticatorTransportFuture,
   generateAuthenticationOptions,
   PublicKeyCredentialRequestOptionsJSON,
   VerifiedAuthenticationResponse,
   verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
-import { AuthenticatorTransportFuture } from "@simplewebauthn/types";
 import { ServerError } from "../models/server-error.ts";
 import { ICEService } from "./ice-service.ts";
 import {
