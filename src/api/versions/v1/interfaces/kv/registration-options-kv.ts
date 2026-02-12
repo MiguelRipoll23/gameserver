@@ -1,4 +1,4 @@
-import { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/types";
+import { PublicKeyCredentialCreationOptionsJSON } from "@simplewebauthn/server";
 
 export interface RegistrationOptionsKV {
   data: PublicKeyCredentialCreationOptionsJSON;

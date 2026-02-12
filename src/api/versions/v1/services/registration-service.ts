@@ -3,11 +3,11 @@ import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   generateRegistrationOptions,
-  PublicKeyCredentialCreationOptionsJSON,
-  VerifiedRegistrationResponse,
   verifyRegistrationResponse,
+  type PublicKeyCredentialCreationOptionsJSON,
+  type RegistrationResponseJSON,
+  type VerifiedRegistrationResponse,
 } from "@simplewebauthn/server";
-import { RegistrationResponseJSON } from "@simplewebauthn/types";
 import { AuthenticationService } from "./authentication-service.ts";
 import { ConnInfo } from "hono/conninfo";
 import { WebAuthnUtils } from "../../../../core/utils/webauthn-utils.ts";
