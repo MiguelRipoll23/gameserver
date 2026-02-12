@@ -7,12 +7,12 @@ import { JWTService } from "../../../../core/services/jwt-service.ts";
 import { ConnInfo } from "hono/conninfo";
 import { WebAuthnUtils } from "../../../../core/utils/webauthn-utils.ts";
 import {
-  AuthenticationResponseJSON,
-  type AuthenticatorTransportFuture,
   generateAuthenticationOptions,
-  PublicKeyCredentialRequestOptionsJSON,
-  VerifiedAuthenticationResponse,
   verifyAuthenticationResponse,
+  type AuthenticationResponseJSON,
+  type AuthenticatorTransportFuture,
+  type PublicKeyCredentialRequestOptionsJSON,
+  type VerifiedAuthenticationResponse,
 } from "@simplewebauthn/server";
 import { ServerError } from "../models/server-error.ts";
 import { ICEService } from "./ice-service.ts";
