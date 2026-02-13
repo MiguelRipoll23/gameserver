@@ -48,7 +48,7 @@
     "predeploy": "deno task migrate",
     "runtime": {
       "entrypoint": "src/main.ts",
-      "args": ["--unstable-kv"]
+      "args": ["--unstable-kv --unstable-broadcast-channel"]
     }
   }
 }
