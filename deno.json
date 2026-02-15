@@ -14,11 +14,6 @@
     "zod": "npm:zod@^4.3.6"
   },
   "permissions": {
-    "default": {
-      "env": true,
-      "read": true,
-      "net": true
-    },
     "development": {
       "env": true,
       "read": true,
@@ -33,22 +28,23 @@
       "sys": true
     }
   },
+  "unstable": ["kv", "broadcast-channel", "temporal"],
+  "compilerOptions": {
+    "experimentalDecorators": true
+  },
   "tasks": {
-    "dev": "deno run --permission-set=development --unstable-temporal --unstable-kv --unstable-broadcast-channel --env --watch src/main.ts",
-    "debug": "deno run --inspect-wait --permission-set=development --unstable-temporal --unstable-kv --unstable-broadcast-channel --env --watch src/main.ts",
+    "dev": "deno run --permission-set=development --env --watch src/main.ts",
+    "debug": "deno run --inspect-wait --permission-set=development --env --watch src/main.ts",
     "check": "deno check src/main.ts",
     "studio": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit studio",
     "generate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit generate",
     "migrate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit migrate"
   },
-  "compilerOptions": {
-    "experimentalDecorators": true
-  },
   "deploy": {
     "predeploy": "deno task migrate",
     "runtime": {
       "entrypoint": "src/main.ts",
-      "args": ["--unstable-kv --unstable-broadcast-channel"]
+      "args": ["--unstable-kv", "--unstable-broadcast-channel", "--unstable-temporal"]
     }
   }
 }
