@@ -1,4 +1,11 @@
-import { pgTable, varchar, integer, boolean, uuid, timestamp } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  varchar,
+  integer,
+  boolean,
+  uuid,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userReportsTable = pgTable("user_reports", {
