@@ -1,4 +1,11 @@
-import { pgTable, varchar, integer, boolean, uuid } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  varchar,
+  integer,
+  boolean,
+  uuid,
+  timestamp,
+} from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userReportsTable = pgTable("user_reports", {
@@ -11,6 +18,9 @@ export const userReportsTable = pgTable("user_reports", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   reason: varchar("reason", { length: 500 }).notNull(),
   automatic: boolean("automatic").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 
 export type UserReportEntity = typeof userReportsTable.$inferSelect;
