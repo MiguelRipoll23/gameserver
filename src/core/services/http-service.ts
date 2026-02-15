@@ -39,13 +39,6 @@ export class HTTPService {
 
   private setMiddlewares(): void {
     this.app.use("*", logger());
-    this.app.use("/", async (c, next) => {
-      if (c.req.path === "/") {
-        const jwt = await this.jwtService.createManagementToken();
-        console.log("🔑", jwt);
-      }
-      await next();
-    });
     this.app.use("*", serveStatic({ root: "./static" }));
     this.setBodyLimitMiddleware();
   }

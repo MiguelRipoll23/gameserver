@@ -1,5 +1,4 @@
-import { create, Payload, verify } from "@wok/djwt";
-import { CryptoUtils } from "../utils/crypto-utils.ts";
+import { Payload, verify } from "@wok/djwt";
 import { injectable } from "@needle-di/core";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
@@ -17,6 +16,7 @@ export class JWTService {
 
     if (secret === undefined) {
       // Fallback to an in-memory key when no secret is configured.
+      console.warn("⚠️ JWT_SECRET not set — using in-memory key");
       this.key = await crypto.subtle.generateKey(
         {
           name: "HMAC",
@@ -26,14 +26,16 @@ export class JWTService {
         ["sign", "verify"],
       );
     } else {
-      const encodedSecret = btoa(secret);
+      const secretBytes = new TextEncoder().encode(secret);
 
-      this.key = await CryptoUtils.base64ToCryptoKey(
-        encodedSecret,
+      this.key = await crypto.subtle.importKey(
+        "raw",
+        secretBytes,
         {
           name: "HMAC",
           hash: "SHA-512",
         },
+        true,
         ["sign", "verify"],
       );
     }
@@ -57,17 +59,5 @@ export class JWTService {
     }
 
     return payload;
-  }
-
-  public async createManagementToken() {
-    return await create(
-      { alg: "HS512", typ: "JWT" },
-      {
-        id: "00000000-0000-0000-0000-000000000000",
-        name: "Management",
-        roles: ["manager"],
-      },
-      await this.getKey(),
-    );
   }
 }
