@@ -1,8 +1,8 @@
 import { create, Payload, verify } from "@wok/djwt";
 import { CryptoUtils } from "../utils/crypto-utils.ts";
 import { injectable } from "@needle-di/core";
-import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
+import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 
 @injectable()
 export class JWTService {
@@ -16,23 +16,27 @@ export class JWTService {
     const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
 
     if (secret === undefined) {
-      throw new ServerError(
-        "INVALID_SERVER_CONFIGURATION",
-        "Missing JWT secret environment variable",
-        500
+      // Fallback to an in-memory key when no secret is configured.
+      this.key = await crypto.subtle.generateKey(
+        {
+          name: "HMAC",
+          hash: "SHA-512",
+        },
+        true,
+        ["sign", "verify"],
+      );
+    } else {
+      const encodedSecret = btoa(secret);
+
+      this.key = await CryptoUtils.base64ToCryptoKey(
+        encodedSecret,
+        {
+          name: "HMAC",
+          hash: "SHA-512",
+        },
+        ["sign", "verify"],
       );
     }
-
-    const encodedSecret = btoa(secret);
-
-    this.key = await CryptoUtils.base64ToCryptoKey(
-      encodedSecret,
-      {
-        name: "HMAC",
-        hash: "SHA-512",
-      },
-      ["sign", "verify"]
-    );
 
     return this.key;
   }
@@ -55,7 +59,7 @@ export class JWTService {
     return payload;
   }
 
-  public async getManagementToken() {
+  public async createManagementToken() {
     return await create(
       { alg: "HS512", typ: "JWT" },
       {
@@ -63,7 +67,7 @@ export class JWTService {
         name: "Management",
         roles: ["manager"],
       },
-      await this.getKey()
+      await this.getKey(),
     );
   }
 }

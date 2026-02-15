@@ -5,9 +5,7 @@ import { JWTService } from "../../core/services/jwt-service.ts";
 
 @injectable()
 export class AuthenticationMiddleware {
-  constructor(private jwtService = inject(JWTService)) {
-    this.generateJWT();
-  }
+  constructor(private jwtService = inject(JWTService)) {}
 
   public create() {
     return createMiddleware(async (c, next) => {
@@ -28,19 +26,15 @@ export class AuthenticationMiddleware {
     authorization: string | null,
     accessToken: string | null,
   ): string {
-    const token = authorization === null
-      ? accessToken
-      : authorization.replace("Bearer", "").trim();
+    const token =
+      authorization === null
+        ? accessToken
+        : authorization.replace("Bearer", "").trim();
 
     if (token === null || token.length === 0) {
       throw new ServerError("NO_TOKEN_PROVIDED", "No token provided", 401);
     }
 
     return token;
-  }
-
-  private async generateJWT() {
-    const jwt = await this.jwtService.getManagementToken();
-    console.log("🔑", jwt);
   }
 }

@@ -9,6 +9,7 @@ import { RootRouter } from "../routers/root_rooter.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
 import { HonoVariables } from "../types/hono-variables-type.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
+import { JWTService } from "./jwt-service.ts";
 
 @injectable()
 export class HTTPService {
@@ -16,7 +17,8 @@ export class HTTPService {
 
   constructor(
     private rootRooter = inject(RootRouter),
-    private apiRouter = inject(APIRouter)
+    private apiRouter = inject(APIRouter),
+    private jwtService = inject(JWTService),
   ) {
     this.app = new OpenAPIHono();
     this.configure();
@@ -37,6 +39,13 @@ export class HTTPService {
 
   private setMiddlewares(): void {
     this.app.use("*", logger());
+    this.app.use("/", async (c, next) => {
+      if (c.req.path === "/") {
+        const jwt = await this.jwtService.createManagementToken();
+        console.log("🔑", jwt);
+      }
+      await next();
+    });
     this.app.use("*", serveStatic({ root: "./static" }));
     this.setBodyLimitMiddleware();
   }
@@ -50,10 +59,10 @@ export class HTTPService {
           throw new ServerError(
             "BODY_SIZE_LIMIT_EXCEEDED",
             "Request body size limit exceeded",
-            413
+            413,
           );
         },
-      })
+      }),
     );
   }
 
