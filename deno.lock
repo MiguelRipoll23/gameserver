@@ -3,12 +3,11 @@
   "specifiers": {
     "jsr:@needle-di/core@^1.1.0": "1.1.0",
     "jsr:@simplewebauthn/server@^13.2.2": "13.2.2",
-    "jsr:@simplewebauthn/types@12": "12.0.0",
     "jsr:@std/encoding@0.221": "0.221.0",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "jsr:@wok/djwt@^3.0.2": "3.0.2",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@^1.2.1": "1.2.1_hono@4.11.9_zod@4.3.6",
+    "npm:@hono/zod-openapi@^1.2.2": "1.2.2_hono@4.11.9_zod@4.3.6",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.3.10": "2.5.0",
     "npm:@peculiar/asn1-ecc@^2.3.8": "2.5.0",
@@ -41,9 +40,6 @@
         "npm:@peculiar/x509"
       ]
     },
-    "@simplewebauthn/types@12.0.0": {
-      "integrity": "fd5c9890c4e96111cc01a4f85748fea8dd7dc4c448cd741704a9137c606724a8"
-    },
     "@std/encoding@0.221.0": {
       "integrity": "d1dd76ef0dc5d14088411e6dc1dede53bf8308c95d1537df1214c97137208e45"
     },
@@ -58,8 +54,8 @@
     }
   },
   "npm": {
-    "@asteasolutions/zod-to-openapi@8.4.0_zod@4.3.6": {
-      "integrity": "sha512-Ckp971tmTw4pnv+o7iK85ldBHBKk6gxMaoNyLn3c2Th/fKoTG8G3jdYuOanpdGqwlDB0z01FOjry2d32lfTqrA==",
+    "@asteasolutions/zod-to-openapi@8.4.1_zod@4.3.6": {
+      "integrity": "sha512-WmJUsFINbnWxGvHSd16aOjgKf+5GsfdxruO2YDLcgplsidakCauik1lhlk83YDH06265Yd1XtUyF24o09uygpw==",
       "dependencies": [
         "openapi3-ts",
         "zod"
@@ -327,8 +323,8 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@1.2.1_hono@4.11.9_zod@4.3.6": {
-      "integrity": "sha512-aZza4V8wkqpdHBWFNPiCeWd0cGOXbYuQW9AyezHs/jwQm5p67GkUyXwfthAooAwnG7thTpvOJkThZpCoY6us8w==",
+    "@hono/zod-openapi@1.2.2_hono@4.11.9_zod@4.3.6": {
+      "integrity": "sha512-va6vsL23wCJ1d0Vd+vGL1XOt+wPwItxirYafuhlW9iC2MstYr2FvsI7mctb45eBTjZfkqB/3LYDJEppPjOEiHw==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
         "@hono/zod-validator",
@@ -764,10 +760,9 @@
     "dependencies": [
       "jsr:@needle-di/core@^1.1.0",
       "jsr:@simplewebauthn/server@^13.2.2",
-      "jsr:@simplewebauthn/types@12",
       "jsr:@std/encoding@^1.0.10",
       "jsr:@wok/djwt@^3.0.2",
-      "npm:@hono/zod-openapi@^1.2.1",
+      "npm:@hono/zod-openapi@^1.2.2",
       "npm:@scalar/hono-api-reference@~0.9.40",
       "npm:@types/pg@^8.16.0",
       "npm:drizzle-kit@~0.31.9",
