@@ -8,6 +8,13 @@
       "when": 1771182467126,
       "tag": "0000_furry_paper_doll",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771185352541,
+      "tag": "0001_nifty_tomas",
+      "breakpoints": true
     }
   ]
 }
