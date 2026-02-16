@@ -81,18 +81,15 @@ export class KVService {
     transactionId: string,
   ): Promise<AuthenticationOptionsKV | null> {
     const key = [KV_AUTHENTICATION_OPTIONS, transactionId];
+    const kv = this.getKv();
     const entry: Deno.KvEntryMaybe<AuthenticationOptionsKV> =
-      await this.getKv().get<AuthenticationOptionsKV>(key);
+      await kv.get<AuthenticationOptionsKV>(key);
 
     if (entry.value === null) {
       return null;
     }
 
-    const result = await this.getKv()
-      .atomic()
-      .check(entry)
-      .delete(key)
-      .commit();
+    const result = await kv.atomic().check(entry).delete(key).commit();
 
     if (!result.ok) {
       return null;
