@@ -8,6 +8,7 @@ import {
   KV_REGISTRATION_OPTIONS,
   KV_SIGNATURE_KEYS,
   KV_USER_KEYS,
+  KV_USER_KEYS_EXPIRATION_TIME,
   KV_VERSION,
 } from "../constants/kv-constants.ts";
 import { AuthenticationOptionsKV } from "../interfaces/kv/authentication-options-kv.ts";
@@ -43,7 +44,7 @@ export class KVService {
   }
 
   public async consumeRegistrationOptionsByTransactionId(
-    transactionId: string
+    transactionId: string,
   ): Promise<RegistrationOptionsKV | null> {
     const key = [KV_REGISTRATION_OPTIONS, transactionId];
     const kv = this.getKv();
@@ -65,19 +66,19 @@ export class KVService {
 
   public async setRegistrationOptions(
     transactionId: string,
-    registrationOptions: RegistrationOptionsKV
+    registrationOptions: RegistrationOptionsKV,
   ): Promise<void> {
     await this.getKv().set(
       [KV_REGISTRATION_OPTIONS, transactionId],
       registrationOptions,
       {
         expireIn: KV_OPTIONS_EXPIRATION_TIME,
-      }
+      },
     );
   }
 
   public async takeAuthenticationOptionsByTransactionId(
-    transactionId: string
+    transactionId: string,
   ): Promise<AuthenticationOptionsKV | null> {
     const key = [KV_AUTHENTICATION_OPTIONS, transactionId];
     const entry: Deno.KvEntryMaybe<AuthenticationOptionsKV> =
@@ -102,14 +103,14 @@ export class KVService {
 
   public async setAuthenticationOptions(
     requestId: string,
-    authenticationOptions: AuthenticationOptionsKV
+    authenticationOptions: AuthenticationOptionsKV,
   ): Promise<void> {
     await this.getKv().set(
       [KV_AUTHENTICATION_OPTIONS, requestId],
       authenticationOptions,
       {
         expireIn: KV_OPTIONS_EXPIRATION_TIME,
-      }
+      },
     );
   }
 
@@ -121,7 +122,7 @@ export class KVService {
   }
 
   public async setConfiguration(
-    configuration: ConfigurationType
+    configuration: ConfigurationType,
   ): Promise<void> {
     await this.getKv().set([KV_CONFIGURATION], configuration);
   }
@@ -137,12 +138,12 @@ export class KVService {
 
   public async setUserKey(userId: string, key: string): Promise<void> {
     await this.getKv().set([KV_USER_KEYS, userId], key, {
-      expireIn: 60 * 60 * 1_000,
+      expireIn: KV_USER_KEYS_EXPIRATION_TIME,
     });
   }
 
   public async deleteUserTemporaryData(
-    userId: string
+    userId: string,
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
     return await this.getKv().atomic().delete([KV_USER_KEYS, userId]).commit();
   }

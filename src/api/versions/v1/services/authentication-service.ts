@@ -21,7 +21,11 @@ import {
   GetAuthenticationOptionsRequest,
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
-import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
+import {
+  KV_OPTIONS_EXPIRATION_TIME,
+  JWT_EXPIRATION_SECONDS,
+  SESSION_LIFETIME_SECONDS,
+} from "../constants/kv-constants.ts";
 import {
   rolesTable,
   userBansTable,
@@ -125,7 +129,7 @@ export class AuthenticationService {
     // Create JWT for client authentication (expires in 1 day)
     const jwtKey = await this.jwtService.getKey();
     const nowSeconds = Math.floor(Date.now() / 1000);
-    const expSeconds = nowSeconds + 24 * 60 * 60; // 1 day
+    const expSeconds = nowSeconds + JWT_EXPIRATION_SECONDS; // 1 day
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
       { id: userId, name: userDisplayName, roles: userRoles, exp: expSeconds },
@@ -258,6 +262,7 @@ export class AuthenticationService {
       return verification;
     } catch (error) {
       console.error(error);
+      if (error instanceof ServerError) throw error;
       throw new ServerError(
         "AUTHENTICATION_FAILED",
         "Authentication failed",
@@ -376,7 +381,7 @@ export class AuthenticationService {
             .where(
               and(
                 eq(userSessionsTable.userId, user.id),
-                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '24 hours'`,
+                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '${SESSION_LIFETIME_SECONDS} seconds'`,
               ),
             )
             .limit(1);
