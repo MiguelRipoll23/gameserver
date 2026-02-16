@@ -21,7 +21,11 @@ import {
   GetAuthenticationOptionsRequest,
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
-import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
+import {
+  KV_OPTIONS_EXPIRATION_TIME,
+  JWT_EXPIRATION_SECONDS,
+  SESSION_LIFETIME_SECONDS,
+} from "../constants/kv-constants.ts";
 import {
   rolesTable,
   userBansTable,
@@ -43,12 +47,12 @@ export class AuthenticationService {
     private databaseService = inject(DatabaseService),
     private jwtService = inject(JWTService),
     private signatureService = inject(SignatureService),
-    private iceService = inject(ICEService)
+    private iceService = inject(ICEService),
   ) {}
 
   public async getOptions(
     authenticationRequest: GetAuthenticationOptionsRequest,
-    origin: string
+    origin: string,
   ): Promise<object> {
     const { transactionId } = authenticationRequest;
 
@@ -56,7 +60,7 @@ export class AuthenticationService {
       throw new ServerError(
         "ORIGIN_NOT_ALLOWED",
         "Origin is not in the allowed list",
-        403
+        403,
       );
     }
 
@@ -77,7 +81,7 @@ export class AuthenticationService {
   public async verifyResponse(
     connectionInfo: ConnInfo,
     authenticationRequest: VerifyAuthenticationRequest,
-    origin: string
+    origin: string,
   ): Promise<AuthenticationResponse> {
     const { transactionId } = authenticationRequest;
     const authenticationResponse =
@@ -87,23 +91,22 @@ export class AuthenticationService {
       throw new ServerError(
         "ORIGIN_NOT_ALLOWED",
         "Origin is not in the allowed list",
-        403
+        403,
       );
     }
 
-    const authenticationOptions = await this.getAuthenticationOptionsOrThrow(
-      transactionId
-    );
+    const authenticationOptions =
+      await this.getAuthenticationOptionsOrThrow(transactionId);
 
     const credential = await this.getCredentialOrThrow(
-      authenticationResponse.id
+      authenticationResponse.id,
     );
 
     const verification = await this.verifyAuthenticationResponse(
       authenticationResponse,
       authenticationOptions,
       credential,
-      origin
+      origin,
     );
 
     await this.updateCredentialCounter(credential, verification);
@@ -116,24 +119,26 @@ export class AuthenticationService {
 
   public async getResponseForUser(
     connectionInfo: ConnInfo,
-    user: UserEntity
+    user: UserEntity,
   ): Promise<AuthenticationResponse> {
     const userId = user.id;
     const userDisplayName = user.displayName;
     const userPublicIp = connectionInfo.remote.address ?? null;
     const userRoles = await this.getUserRoles(userId);
 
-    // Create JWT for client authentication
+    // Create JWT for client authentication (expires in 1 day)
     const jwtKey = await this.jwtService.getKey();
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const expSeconds = nowSeconds + JWT_EXPIRATION_SECONDS; // 1 day
     const authenticationToken = await create(
       { alg: "HS512", typ: "JWT" },
-      { id: userId, name: userDisplayName, roles: userRoles },
-      jwtKey
+      { id: userId, name: userDisplayName, roles: userRoles, exp: expSeconds },
+      jwtKey,
     );
 
     // Generate and store symmetric key for this user session
     const userSymmetricKey: string = encodeBase64(
-      crypto.getRandomValues(new Uint8Array(32)).buffer
+      crypto.getRandomValues(new Uint8Array(32)).buffer,
     );
     await this.kvService.setUserKey(userId, userSymmetricKey);
 
@@ -154,31 +159,28 @@ export class AuthenticationService {
   }
 
   private async getAuthenticationOptionsOrThrow(
-    transactionId: string
+    transactionId: string,
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
     const authenticationOptions =
       await this.kvService.takeAuthenticationOptionsByTransactionId(
-        transactionId
+        transactionId,
       );
 
     if (authenticationOptions === null) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_NOT_FOUND",
         "Authentication options not found",
-        400
+        400,
       );
     }
 
     const createdAt = authenticationOptions.createdAt;
 
-    if (
-      createdAt + KV_OPTIONS_EXPIRATION_TIME <
-      Date.now()
-    ) {
+    if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_EXPIRED",
         "Authentication options expired",
-        400
+        400,
       );
     }
 
@@ -186,7 +188,7 @@ export class AuthenticationService {
   }
 
   private async getCredentialOrThrow(
-    id: string
+    id: string,
   ): Promise<UserCredentialEntity> {
     try {
       const credentials =
@@ -202,7 +204,7 @@ export class AuthenticationService {
         throw new ServerError(
           "CREDENTIAL_NOT_FOUND",
           "Credential not found",
-          400
+          400,
         );
       }
 
@@ -213,14 +215,14 @@ export class AuthenticationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to retrieve credential",
-        500
+        500,
       );
     }
   }
 
   private transformCredentialForWebAuthn(credential: UserCredentialEntity) {
     const publicKeyBuffer = new Uint8Array(
-      Base64Utils.base64UrlToArrayBuffer(credential.publicKey)
+      Base64Utils.base64UrlToArrayBuffer(credential.publicKey),
     );
 
     return {
@@ -237,7 +239,7 @@ export class AuthenticationService {
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
     credential: UserCredentialEntity,
-    origin: string
+    origin: string,
   ): Promise<VerifiedAuthenticationResponse> {
     try {
       const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
@@ -253,24 +255,25 @@ export class AuthenticationService {
         throw new ServerError(
           "AUTHENTICATION_FAILED",
           "Authentication failed",
-          400
+          400,
         );
       }
 
       return verification;
     } catch (error) {
       console.error(error);
+      if (error instanceof ServerError) throw error;
       throw new ServerError(
         "AUTHENTICATION_FAILED",
         "Authentication failed",
-        400
+        400,
       );
     }
   }
 
   private async updateCredentialCounter(
     credential: UserCredentialEntity,
-    verification: VerifiedAuthenticationResponse
+    verification: VerifiedAuthenticationResponse,
   ): Promise<void> {
     const { authenticationInfo } = verification;
     const newCounter = authenticationInfo.newCounter;
@@ -285,23 +288,23 @@ export class AuthenticationService {
             .where(
               and(
                 eq(userCredentialsTable.id, credential.id),
-                lt(userCredentialsTable.counter, newCounter)
-              )
+                lt(userCredentialsTable.counter, newCounter),
+              ),
             );
-        }
+        },
       );
     } catch (error) {
       console.error("Failed to update credential counter:", error);
       throw new ServerError(
         "CREDENTIAL_COUNTER_UPDATE_FAILED",
         "Failed to update credential counter",
-        500
+        500,
       );
     }
   }
 
   private async getUserOrThrowError(
-    credential: UserCredentialEntity
+    credential: UserCredentialEntity,
   ): Promise<UserEntity> {
     const userId = credential.userId;
 
@@ -314,7 +317,7 @@ export class AuthenticationService {
             .from(usersTable)
             .where(eq(usersTable.id, userId))
             .limit(1);
-        }
+        },
       );
 
       if (users.length === 0) {
@@ -339,7 +342,7 @@ export class AuthenticationService {
             .from(userRolesTable)
             .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
             .where(eq(userRolesTable.userId, userId));
-        }
+        },
       );
 
       return userRoleResults.map((role: { name: string }) => role.name);
@@ -348,7 +351,7 @@ export class AuthenticationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to retrieve user roles",
-        500
+        500,
       );
     }
   }
@@ -378,8 +381,8 @@ export class AuthenticationService {
             .where(
               and(
                 eq(userSessionsTable.userId, user.id),
-                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '24 hours'`
-              )
+                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '${SESSION_LIFETIME_SECONDS} seconds'`,
+              ),
             )
             .limit(1);
         });
@@ -388,7 +391,7 @@ export class AuthenticationService {
         throw new ServerError(
           "USER_ALREADY_SIGNED_IN",
           "Please disconnect from other devices before signing in.",
-          409
+          409,
         );
       }
     } catch (error) {
@@ -397,7 +400,7 @@ export class AuthenticationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to check for existing sessions",
-        500
+        500,
       );
     }
   }
@@ -413,7 +416,7 @@ export class AuthenticationService {
             .where(eq(userBansTable.userId, user.id))
             .orderBy(desc(userBansTable.createdAt))
             .limit(1);
-        }
+        },
       );
 
       if (userBans.length === 0) return;
@@ -425,7 +428,7 @@ export class AuthenticationService {
         throw new ServerError(
           "USER_BANNED_PERMANENTLY",
           "Your account has been permanently banned",
-          403
+          403,
         );
       }
 
@@ -439,7 +442,7 @@ export class AuthenticationService {
         throw new ServerError(
           "USER_BANNED_TEMPORARILY",
           `Your account is temporarily banned until ${formattedDate}.`,
-          403
+          403,
         );
       }
     } catch (error) {
@@ -448,7 +451,7 @@ export class AuthenticationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to retrieve user bans",
-        500
+        500,
       );
     }
   }
