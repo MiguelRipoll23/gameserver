@@ -28,7 +28,7 @@
       "sys": true
     }
   },
-  "unstable": ["kv", "broadcast-channel", "temporal"],
+  "unstable": ["kv", "broadcast-channel"],
   "compilerOptions": {
     "experimentalDecorators": true
   },
@@ -44,7 +44,7 @@
     "predeploy": "deno task migrate",
     "runtime": {
       "entrypoint": "src/main.ts",
-      "args": ["--unstable-kv", "--unstable-broadcast-channel", "--unstable-temporal"]
+      "args": ["--unstable-kv", "--unstable-broadcast-channel"]
     }
   }
 }
