@@ -39,7 +39,8 @@ export class WebAuthnUtils {
    * @returns Array of origin patterns
    */
   private static getAllowedOriginPatterns(): string[] {
-    const allowedOrigins = Deno.env.get("RP_ALLOWED_ORIGINS") ??
+    const allowedOrigins =
+      Deno.env.get("RP_ALLOWED_ORIGINS") ??
       WebAuthnUtils.DEFAULT_ALLOWED_ORIGINS;
 
     // Return cached patterns if the env var hasn't changed
@@ -91,17 +92,17 @@ export class WebAuthnUtils {
       const parts = pattern.split("*");
       const first = parts[0] ?? "";
       const last = parts[parts.length - 1] ?? "";
-      
+
       // Check prefix
       if (first && !origin.startsWith(first)) {
         return false;
       }
-      
+
       // Check suffix
       if (last && !origin.endsWith(last)) {
         return false;
       }
-      
+
       // Check middle parts
       let idx = first.length;
       for (const part of parts.slice(1, -1)) {
@@ -112,7 +113,7 @@ export class WebAuthnUtils {
         }
         idx = next + part.length;
       }
-      
+
       return true;
     }
 
