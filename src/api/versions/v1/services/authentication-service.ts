@@ -369,35 +369,22 @@ export class AuthenticationService {
   private async getUserOrThrowError(
     credential: UserCredentialEntity,
   ): Promise<UserEntity> {
-    const userId = credential.userId;
-
-    try {
-      const users = await this.databaseService.executeWithUserContext(
-        userId,
-        (tx) => {
-          return tx
-            .select()
-            .from(usersTable)
-            .where(eq(usersTable.id, userId))
-            .limit(1);
-        },
-      );
-
-      if (users.length === 0) {
-        throw new ServerError("USER_NOT_FOUND", "User not found", 400);
-      }
-
-      return users[0];
-    } catch (error) {
-      if (error instanceof ServerError) throw error;
-      console.error("Failed to query user:", error);
-      throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
-    }
+    return await this.getUserByIdOrThrow(credential.userId);
   }
 
   private async getUserByIdOrThrow(userId: string): Promise<UserEntity> {
+    const users = await this.fetchUsersById(userId);
+
+    if (users.length === 0) {
+      throw new ServerError("USER_NOT_FOUND", "User not found", 400);
+    }
+
+    return users[0];
+  }
+
+  private async fetchUsersById(userId: string): Promise<UserEntity[]> {
     try {
-      const users = await this.databaseService.executeWithUserContext(
+      return await this.databaseService.executeWithUserContext(
         userId,
         (tx) => {
           return tx
@@ -407,15 +394,9 @@ export class AuthenticationService {
             .limit(1);
         },
       );
-
-      if (users.length === 0) {
-        throw new ServerError("USER_NOT_FOUND", "User not found", 400);
-      }
-
-      return users[0];
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to query user by id:", error);
+      console.error("Failed to query user:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
     }
   }
