@@ -201,17 +201,30 @@ export class AuthenticationService {
         refreshToken: await this.createAndStoreRefreshToken(user.id),
       };
     } catch (error) {
-      console.error(
-        JSON.stringify({
-          event: "refresh_token_validation_failed",
-          refreshTokenHash,
-          userId: tokenData.userId,
-          errorCode: error instanceof ServerError ? error.code : "UNKNOWN_ERROR",
-          errorStatus:
-            error instanceof ServerError ? error.statusCode : "UNKNOWN_STATUS",
-          errorMessage: error instanceof Error ? error.message : String(error),
-        }),
-      );
+      const logPayload = JSON.stringify({
+        event: "refresh_token_validation_failed",
+        refreshTokenHash,
+        userId: tokenData.userId,
+        errorCode: error instanceof ServerError ? error.code : "UNKNOWN_ERROR",
+        errorStatus:
+          error instanceof ServerError ? error.statusCode : "UNKNOWN_STATUS",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+
+      const expectedRejectionCodes = new Set([
+        "USER_BANNED_PERMANENTLY",
+        "USER_BANNED_TEMPORARILY",
+        "SESSION_NOT_FOUND",
+      ]);
+
+      if (
+        error instanceof ServerError &&
+        expectedRejectionCodes.has(error.code)
+      ) {
+        console.warn(logPayload);
+      } else {
+        console.error(logPayload);
+      }
 
       // NOTE: This flow is fail-closed. The refresh token has already been
       // consumed atomically before downstream validation. If this stage fails
@@ -495,7 +508,7 @@ export class AuthenticationService {
             .where(
               and(
                 eq(userSessionsTable.userId, userId),
-                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '${SESSION_LIFETIME_SECONDS} seconds'`,
+                sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
               ),
             )
             .limit(1);
@@ -526,7 +539,7 @@ export class AuthenticationService {
             .where(
               and(
                 eq(userSessionsTable.userId, user.id),
-                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '${SESSION_LIFETIME_SECONDS} seconds'`,
+                sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
               ),
             )
             .limit(1);

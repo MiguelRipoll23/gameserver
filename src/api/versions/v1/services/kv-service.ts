@@ -182,9 +182,18 @@ export class KVService {
   }
 
   public async invalidateRefreshTokensByUserId(userId: string): Promise<void> {
-    const currentVersion = await this.getRefreshTokenVersion(userId);
+    const kv = this.getKv();
+    const key: Deno.KvKey = [KV_REFRESH_TOKEN_VERSIONS, userId];
 
-    await this.getKv().set([KV_REFRESH_TOKEN_VERSIONS, userId], currentVersion + 1);
+    while (true) {
+      const entry = await kv.get<number>(key);
+      const nextVersion = (entry.value ?? 0) + 1;
+      const result = await kv.atomic().check(entry).set(key, nextVersion).commit();
+
+      if (result.ok) {
+        return;
+      }
+    }
   }
 
   public async setRefreshToken(
