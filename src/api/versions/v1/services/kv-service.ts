@@ -5,6 +5,7 @@ import {
   KV_BANNED_USERS,
   KV_CONFIGURATION,
   KV_OPTIONS_EXPIRATION_TIME,
+  KV_REFRESH_TOKENS,
   KV_REGISTRATION_OPTIONS,
   KV_SIGNATURE_KEYS,
   KV_USER_KEYS,
@@ -16,6 +17,7 @@ import { RegistrationOptionsKV } from "../interfaces/kv/registration-options-kv.
 import { VersionKV } from "../interfaces/kv/version-kv.ts";
 import { ConfigurationType } from "../types/configuration-type.ts";
 import { SignatureKeysKV } from "../interfaces/kv/signature-keys-kv.ts";
+import { RefreshTokenKV } from "../interfaces/kv/refresh-token-kv.ts";
 
 @injectable()
 export class KVService {
@@ -169,6 +171,37 @@ export class KVService {
       userId,
     ]);
     return entry.value === true;
+  }
+
+  public async setRefreshToken(
+    tokenHash: string,
+    refreshToken: RefreshTokenKV,
+  ): Promise<void> {
+    const ttl = Math.max(0, refreshToken.expiresAt - Date.now());
+
+    await this.getKv().set([KV_REFRESH_TOKENS, tokenHash], refreshToken, {
+      expireIn: ttl,
+    });
+  }
+
+  public async consumeRefreshToken(
+    tokenHash: string,
+  ): Promise<RefreshTokenKV | null> {
+    const key = [KV_REFRESH_TOKENS, tokenHash];
+    const kv = this.getKv();
+    const entry = await kv.get<RefreshTokenKV>(key);
+
+    if (entry.value === null) {
+      return null;
+    }
+
+    const result = await kv.atomic().check(entry).delete(key).commit();
+
+    if (!result.ok) {
+      return null;
+    }
+
+    return entry.value;
   }
 
   private getKv(): Deno.Kv {

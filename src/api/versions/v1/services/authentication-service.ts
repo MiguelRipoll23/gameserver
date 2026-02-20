@@ -19,11 +19,14 @@ import { ICEService } from "./ice-service.ts";
 import {
   AuthenticationResponse,
   GetAuthenticationOptionsRequest,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
 import {
+  ACCESS_TOKEN_EXPIRATION_SECONDS,
   KV_OPTIONS_EXPIRATION_TIME,
-  JWT_EXPIRATION_SECONDS,
+  REFRESH_TOKEN_EXPIRATION_SECONDS,
   SESSION_LIFETIME_SECONDS,
 } from "../constants/kv-constants.ts";
 import {
@@ -125,16 +128,12 @@ export class AuthenticationService {
     const userDisplayName = user.displayName;
     const userPublicIp = connectionInfo.remote.address ?? null;
     const userRoles = await this.getUserRoles(userId);
-
-    // Create JWT for client authentication (expires in 1 day)
-    const jwtKey = await this.jwtService.getKey();
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const expSeconds = nowSeconds + JWT_EXPIRATION_SECONDS; // 1 day
-    const authenticationToken = await create(
-      { alg: "HS512", typ: "JWT" },
-      { id: userId, name: userDisplayName, roles: userRoles, exp: expSeconds },
-      jwtKey,
+    const accessToken = await this.createAccessToken(
+      userId,
+      userDisplayName,
+      userRoles,
     );
+    const refreshToken = await this.createAndStoreRefreshToken(userId);
 
     // Generate and store symmetric key for this user session
     const userSymmetricKey: string = encodeBase64(
@@ -148,7 +147,8 @@ export class AuthenticationService {
     const rtcIceServers = await this.iceService.getServers();
 
     return {
-      authenticationToken,
+      accessToken,
+      refreshToken,
       userId,
       userDisplayName,
       userPublicIp,
@@ -156,6 +156,69 @@ export class AuthenticationService {
       serverSignaturePublicKey,
       rtcIceServers,
     };
+  }
+
+  public async refreshTokens(
+    refreshRequest: RefreshTokenRequest,
+  ): Promise<RefreshTokenResponse> {
+    const { refreshToken } = refreshRequest;
+    const refreshTokenHash = await this.hashToken(refreshToken);
+    const tokenData = await this.kvService.consumeRefreshToken(refreshTokenHash);
+
+    if (tokenData === null || tokenData.expiresAt <= Date.now()) {
+      throw new ServerError("INVALID_REFRESH_TOKEN", "Invalid refresh token", 401);
+    }
+
+    const user = await this.getUserByIdOrThrow(tokenData.userId);
+    await this.ensureUserNotBanned(user);
+    const userRoles = await this.getUserRoles(user.id);
+
+    return {
+      accessToken: await this.createAccessToken(user.id, user.displayName, userRoles),
+      refreshToken: await this.createAndStoreRefreshToken(user.id),
+    };
+  }
+
+  private async createAccessToken(
+    userId: string,
+    userDisplayName: string,
+    userRoles: string[],
+  ): Promise<string> {
+    const jwtKey = await this.jwtService.getKey();
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const expSeconds = nowSeconds + ACCESS_TOKEN_EXPIRATION_SECONDS;
+
+    return await create(
+      { alg: "HS512", typ: "JWT" },
+      { id: userId, name: userDisplayName, roles: userRoles, exp: expSeconds },
+      jwtKey,
+    );
+  }
+
+  private async createAndStoreRefreshToken(userId: string): Promise<string> {
+    const refreshToken = encodeBase64(
+      crypto.getRandomValues(new Uint8Array(64)).buffer,
+    );
+    const refreshTokenHash = await this.hashToken(refreshToken);
+    const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
+
+    await this.kvService.setRefreshToken(refreshTokenHash, {
+      userId,
+      expiresAt,
+    });
+
+    return refreshToken;
+  }
+
+  private async hashToken(token: string): Promise<string> {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(token),
+    );
+
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
   }
 
   private async getAuthenticationOptionsOrThrow(
@@ -328,6 +391,31 @@ export class AuthenticationService {
     } catch (error) {
       if (error instanceof ServerError) throw error;
       console.error("Failed to query user:", error);
+      throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
+    }
+  }
+
+  private async getUserByIdOrThrow(userId: string): Promise<UserEntity> {
+    try {
+      const users = await this.databaseService.executeWithUserContext(
+        userId,
+        (tx) => {
+          return tx
+            .select()
+            .from(usersTable)
+            .where(eq(usersTable.id, userId))
+            .limit(1);
+        },
+      );
+
+      if (users.length === 0) {
+        throw new ServerError("USER_NOT_FOUND", "User not found", 400);
+      }
+
+      return users[0];
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to query user by id:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
     }
   }
