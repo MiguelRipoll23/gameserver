@@ -245,7 +245,7 @@ export class AuthenticationService {
 
     return await create(
       { alg: "HS512", typ: "JWT" },
-      { id: userId, name: userDisplayName, roles: userRoles, exp: expSeconds },
+      { sub: userId, name: userDisplayName, roles: userRoles, iat: nowSeconds, exp: expSeconds },
       jwtKey,
     );
   }
@@ -258,6 +258,11 @@ export class AuthenticationService {
     const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
     const tokenVersion = await this.kvService.getRefreshTokenVersion(userId);
 
+    // NOTE: There is a TOCTOU window between reading tokenVersion and writing
+    // the refresh token entry. If invalidation runs in between, this token can
+    // be immediately stale. This is intentionally fail-closed (safe) but may
+    // feel confusing to users. Avoiding it would require an atomic,
+    // cross-key transactional approach.
     await this.kvService.setRefreshToken(refreshTokenHash, {
       userId,
       expiresAt,

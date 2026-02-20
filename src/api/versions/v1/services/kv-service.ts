@@ -200,7 +200,11 @@ export class KVService {
     tokenHash: string,
     refreshToken: RefreshTokenKV,
   ): Promise<void> {
-    const ttl = Math.max(0, refreshToken.expiresAt - Date.now());
+    const ttl = refreshToken.expiresAt - Date.now();
+
+    if (ttl <= 0) {
+      return;
+    }
 
     await this.getKv().set([KV_REFRESH_TOKENS, tokenHash], refreshToken, {
       expireIn: ttl,

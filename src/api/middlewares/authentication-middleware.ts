@@ -14,7 +14,7 @@ export class AuthenticationMiddleware {
       const jwt = this.getTokenFromContext(authorization, accessToken);
       const payload = await this.jwtService.verify(jwt);
 
-      c.set("userId", payload.id);
+      c.set("userId", payload.sub);
       c.set("userName", payload.name);
       c.set("userRoles", payload.roles ?? []);
 
