@@ -19,11 +19,14 @@ import { ICEService } from "./ice-service.ts";
 import {
   AuthenticationResponse,
   GetAuthenticationOptionsRequest,
+  RefreshTokenRequest,
+  RefreshTokenResponse,
   VerifyAuthenticationRequest,
 } from "../schemas/authentication-schemas.ts";
 import {
+  ACCESS_TOKEN_EXPIRATION_SECONDS,
   KV_OPTIONS_EXPIRATION_TIME,
-  JWT_EXPIRATION_SECONDS,
+  REFRESH_TOKEN_EXPIRATION_SECONDS,
   SESSION_LIFETIME_SECONDS,
 } from "../constants/kv-constants.ts";
 import {
@@ -125,16 +128,12 @@ export class AuthenticationService {
     const userDisplayName = user.displayName;
     const userPublicIp = connectionInfo.remote.address ?? null;
     const userRoles = await this.getUserRoles(userId);
-
-    // Create JWT for client authentication (expires in 1 day)
-    const jwtKey = await this.jwtService.getKey();
-    const nowSeconds = Math.floor(Date.now() / 1000);
-    const expSeconds = nowSeconds + JWT_EXPIRATION_SECONDS; // 1 day
-    const authenticationToken = await create(
-      { alg: "HS512", typ: "JWT" },
-      { id: userId, name: userDisplayName, roles: userRoles, exp: expSeconds },
-      jwtKey,
+    const accessToken = await this.createAccessToken(
+      userId,
+      userDisplayName,
+      userRoles,
     );
+    const refreshToken = await this.createAndStoreRefreshToken(userId);
 
     // Generate and store symmetric key for this user session
     const userSymmetricKey: string = encodeBase64(
@@ -148,7 +147,8 @@ export class AuthenticationService {
     const rtcIceServers = await this.iceService.getServers();
 
     return {
-      authenticationToken,
+      accessToken,
+      refreshToken,
       userId,
       userDisplayName,
       userPublicIp,
@@ -156,6 +156,136 @@ export class AuthenticationService {
       serverSignaturePublicKey,
       rtcIceServers,
     };
+  }
+
+  public async refreshTokens(
+    refreshRequest: RefreshTokenRequest,
+  ): Promise<RefreshTokenResponse> {
+    const { refreshToken } = refreshRequest;
+    const refreshTokenHash = await AuthenticationService.hashToken(refreshToken);
+    const tokenData = await this.kvService.consumeRefreshToken(refreshTokenHash);
+
+    if (tokenData === null || tokenData.expiresAt <= Date.now()) {
+      throw new ServerError("INVALID_REFRESH_TOKEN", "Invalid refresh token", 401);
+    }
+
+    console.info(
+      JSON.stringify({
+        event: "refresh_token_consumed",
+        refreshTokenHash,
+        userId: tokenData.userId,
+        tokenVersion: tokenData.tokenVersion,
+      }),
+    );
+
+    try {
+      const currentTokenVersion = await this.kvService.getRefreshTokenVersion(
+        tokenData.userId,
+      );
+
+      if (tokenData.tokenVersion !== currentTokenVersion) {
+        throw new ServerError(
+          "TOKEN_VERSION_MISMATCH",
+          "Invalid refresh token",
+          401,
+        );
+      }
+
+      const user = await this.getUserByIdOrThrow(tokenData.userId);
+      await this.ensureUserNotBanned(user);
+      await this.ensureUserHasActiveSession(user.id);
+      const userRoles = await this.getUserRoles(user.id);
+
+      return {
+        accessToken: await this.createAccessToken(
+          user.id,
+          user.displayName,
+          userRoles,
+        ),
+        refreshToken: await this.createAndStoreRefreshToken(user.id),
+      };
+    } catch (error) {
+      const logPayload = JSON.stringify({
+        event: "refresh_token_validation_failed",
+        refreshTokenHash,
+        userId: tokenData.userId,
+        errorCode: error instanceof ServerError ? error.getCode() : "UNKNOWN_ERROR",
+        errorStatus:
+          error instanceof ServerError ? error.getStatusCode() : "UNKNOWN_STATUS",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+
+      const expectedRejectionCodes = new Set([
+        "USER_BANNED_PERMANENTLY",
+        "USER_BANNED_TEMPORARILY",
+        "SESSION_NOT_FOUND",
+        "TOKEN_VERSION_MISMATCH",
+      ]);
+
+      if (
+        error instanceof ServerError &&
+        expectedRejectionCodes.has(error.getCode())
+      ) {
+        console.warn(logPayload);
+      } else {
+        console.error(logPayload);
+      }
+
+      // NOTE: This flow is fail-closed. The refresh token has already been
+      // consumed atomically before downstream validation. If this stage fails
+      // (for example because of transient database/KV issues), the user must
+      // re-authenticate to obtain a new token pair.
+      throw error;
+    }
+  }
+
+  private async createAccessToken(
+    userId: string,
+    userDisplayName: string,
+    userRoles: string[],
+  ): Promise<string> {
+    const jwtKey = await this.jwtService.getKey();
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const expSeconds = nowSeconds + ACCESS_TOKEN_EXPIRATION_SECONDS;
+
+    return await create(
+      { alg: "HS512", typ: "JWT" },
+      { sub: userId, name: userDisplayName, roles: userRoles, iat: nowSeconds, exp: expSeconds },
+      jwtKey,
+    );
+  }
+
+  private async createAndStoreRefreshToken(userId: string): Promise<string> {
+    const refreshToken = encodeBase64(
+      crypto.getRandomValues(new Uint8Array(64)).buffer,
+    );
+    const refreshTokenHash = await AuthenticationService.hashToken(refreshToken);
+    const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
+    const tokenVersion = await this.kvService.getRefreshTokenVersion(userId);
+
+    // NOTE: There is a TOCTOU window between reading tokenVersion and writing
+    // the refresh token entry. If invalidation runs in between, this token can
+    // be immediately stale. This is intentionally fail-closed (safe) but may
+    // feel confusing to users. Avoiding it would require an atomic,
+    // cross-key transactional approach.
+    await this.kvService.setRefreshToken(refreshTokenHash, {
+      userId,
+      expiresAt,
+      tokenVersion,
+    });
+
+    return refreshToken;
+  }
+
+  private static async hashToken(token: string): Promise<string> {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(token),
+    );
+
+    return Array.from(new Uint8Array(digest))
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
   }
 
   private async getAuthenticationOptionsOrThrow(
@@ -306,10 +436,22 @@ export class AuthenticationService {
   private async getUserOrThrowError(
     credential: UserCredentialEntity,
   ): Promise<UserEntity> {
-    const userId = credential.userId;
+    return await this.getUserByIdOrThrow(credential.userId);
+  }
 
+  private async getUserByIdOrThrow(userId: string): Promise<UserEntity> {
+    const users = await this.fetchUsersById(userId);
+
+    if (users.length === 0) {
+      throw new ServerError("USER_NOT_FOUND", "User not found", 400);
+    }
+
+    return users[0];
+  }
+
+  private async fetchUsersById(userId: string): Promise<UserEntity[]> {
     try {
-      const users = await this.databaseService.executeWithUserContext(
+      return await this.databaseService.executeWithUserContext(
         userId,
         (tx) => {
           return tx
@@ -319,12 +461,6 @@ export class AuthenticationService {
             .limit(1);
         },
       );
-
-      if (users.length === 0) {
-        throw new ServerError("USER_NOT_FOUND", "User not found", 400);
-      }
-
-      return users[0];
     } catch (error) {
       if (error instanceof ServerError) throw error;
       console.error("Failed to query user:", error);
@@ -371,6 +507,38 @@ export class AuthenticationService {
     }
   }
 
+  private async ensureUserHasActiveSession(userId: string): Promise<void> {
+    try {
+      const activeSessions = await this.databaseService.executeWithUserContext(
+        userId,
+        (tx) => {
+          return tx
+            .select({ userId: userSessionsTable.userId })
+            .from(userSessionsTable)
+            .where(
+              and(
+                eq(userSessionsTable.userId, userId),
+                sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
+              ),
+            )
+            .limit(1);
+        },
+      );
+
+      if (activeSessions.length === 0) {
+        throw new ServerError("SESSION_NOT_FOUND", "Session not found", 401);
+      }
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to query active user session:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to validate active session",
+        500,
+      );
+    }
+  }
+
   private async ensureUserHasNoActiveSession(user: UserEntity): Promise<void> {
     try {
       const existingSessions =
@@ -381,7 +549,7 @@ export class AuthenticationService {
             .where(
               and(
                 eq(userSessionsTable.userId, user.id),
-                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '${SESSION_LIFETIME_SECONDS} seconds'`,
+                sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
               ),
             )
             .limit(1);

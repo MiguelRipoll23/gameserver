@@ -247,6 +247,7 @@ export class WebSocketService implements WebSocketServer {
       await this.deleteSessionByUserId(userId, userName);
       await this.deleteMatchByUserId(userId, userName);
       await this.deleteUserKeyValueData(userId, userName);
+      await this.invalidateUserRefreshTokens(userId, userName);
       await this.notifyUsersCount();
     } catch (error) {
       console.error(`Error during disconnection for user ${userName}:`, error);
@@ -296,6 +297,14 @@ export class WebSocketService implements WebSocketServer {
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
     }
+  }
+
+  private async invalidateUserRefreshTokens(
+    userId: string,
+    userName: string
+  ): Promise<void> {
+    await this.kvService.invalidateRefreshTokensByUserId(userId);
+    console.log(`Invalidated refresh tokens for user ${userName}`);
   }
 
   private addWebSocketUser(user: WebSocketUser): void {

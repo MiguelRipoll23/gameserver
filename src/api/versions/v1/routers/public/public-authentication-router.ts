@@ -5,6 +5,8 @@ import { getConnInfo } from "hono/deno";
 import {
   GetAuthenticationOptionsRequestSchema,
   GetAuthenticationOptionsResponseSchema,
+  RefreshTokenRequestSchema,
+  RefreshTokenResponseSchema,
   VerifyAuthenticationRequestSchema,
   VerifyAuthenticationResponseSchema,
 } from "../../schemas/authentication-schemas.ts";
@@ -27,6 +29,7 @@ export class PublicAuthenticationRouter {
   private setRoutes(): void {
     this.registerGetAuthenticationOptionsRoute();
     this.registerVerifyAuthenticationResponseRoute();
+    this.registerRefreshTokenRoute();
   }
 
   private registerGetAuthenticationOptionsRoute(): void {
@@ -99,6 +102,7 @@ export class PublicAuthenticationRouter {
           },
           ...ServerResponse.BadRequest,
           ...ServerResponse.Forbidden,
+          ...ServerResponse.Conflict,
         },
       }),
       async (c) => {
@@ -114,6 +118,46 @@ export class PublicAuthenticationRouter {
 
         return c.json(response, 200);
       }
+    );
+  }
+
+  private registerRefreshTokenRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "post",
+        path: "/refresh",
+        summary: "Refresh access token",
+        description: "Rotates a refresh token and returns a new access token pair",
+        tags: ["User authentication"],
+        request: {
+          body: {
+            content: {
+              "application/json": {
+                schema: RefreshTokenRequestSchema,
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "Responds with data",
+            content: {
+              "application/json": {
+                schema: RefreshTokenResponseSchema,
+              },
+            },
+          },
+          ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
+          ...ServerResponse.Forbidden,
+        },
+      }),
+      async (c) => {
+        const validated = c.req.valid("json");
+        const response = await this.authenticationService.refreshTokens(validated);
+
+        return c.json(response, 200);
+      },
     );
   }
 }

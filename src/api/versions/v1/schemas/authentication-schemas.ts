@@ -56,10 +56,22 @@ export type VerifyAuthenticationRequest = z.infer<
   typeof VerifyAuthenticationRequestSchema
 >;
 
-export const VerifyAuthenticationResponseSchema = z.object({
-  authenticationToken: z
+export const RefreshTokenRequestSchema = z.object({
+  refreshToken: z
     .string()
-    .describe("The JWT to authenticate with the server"),
+    .min(1)
+    .describe("Long-lived refresh token used to issue a new access token"),
+});
+
+export type RefreshTokenRequest = z.infer<typeof RefreshTokenRequestSchema>;
+
+export const VerifyAuthenticationResponseSchema = z.object({
+  accessToken: z
+    .string()
+    .describe("Short-lived JWT used to authenticate requests"),
+  refreshToken: z
+    .string()
+    .describe("Long-lived opaque token used to rotate and issue new access tokens"),
   userId: z
     .string()
     .length(36)
@@ -94,3 +106,14 @@ export const VerifyAuthenticationResponseSchema = z.object({
 export type AuthenticationResponse = z.infer<
   typeof VerifyAuthenticationResponseSchema
 >;
+
+export const RefreshTokenResponseSchema = z.object({
+  accessToken: z
+    .string()
+    .describe("New short-lived JWT issued after refresh token validation"),
+  refreshToken: z
+    .string()
+    .describe("New refresh token that replaces the previous one"),
+});
+
+export type RefreshTokenResponse = z.infer<typeof RefreshTokenResponseSchema>;
