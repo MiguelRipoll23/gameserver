@@ -162,21 +162,63 @@ export class AuthenticationService {
     refreshRequest: RefreshTokenRequest,
   ): Promise<RefreshTokenResponse> {
     const { refreshToken } = refreshRequest;
-    const refreshTokenHash = await this.hashToken(refreshToken);
+    const refreshTokenHash = await AuthenticationService.hashToken(refreshToken);
     const tokenData = await this.kvService.consumeRefreshToken(refreshTokenHash);
 
     if (tokenData === null || tokenData.expiresAt <= Date.now()) {
       throw new ServerError("INVALID_REFRESH_TOKEN", "Invalid refresh token", 401);
     }
 
-    const user = await this.getUserByIdOrThrow(tokenData.userId);
-    await this.ensureUserNotBanned(user);
-    const userRoles = await this.getUserRoles(user.id);
+    console.info(
+      JSON.stringify({
+        event: "refresh_token_consumed",
+        refreshTokenHash,
+        userId: tokenData.userId,
+        tokenVersion: tokenData.tokenVersion,
+      }),
+    );
 
-    return {
-      accessToken: await this.createAccessToken(user.id, user.displayName, userRoles),
-      refreshToken: await this.createAndStoreRefreshToken(user.id),
-    };
+    const currentTokenVersion = await this.kvService.getRefreshTokenVersion(
+      tokenData.userId,
+    );
+
+    if (tokenData.tokenVersion !== currentTokenVersion) {
+      throw new ServerError("INVALID_REFRESH_TOKEN", "Invalid refresh token", 401);
+    }
+
+    try {
+      const user = await this.getUserByIdOrThrow(tokenData.userId);
+      await this.ensureUserNotBanned(user);
+      await this.ensureUserHasActiveSession(user.id);
+      const userRoles = await this.getUserRoles(user.id);
+
+      return {
+        accessToken: await this.createAccessToken(
+          user.id,
+          user.displayName,
+          userRoles,
+        ),
+        refreshToken: await this.createAndStoreRefreshToken(user.id),
+      };
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          event: "refresh_token_validation_failed",
+          refreshTokenHash,
+          userId: tokenData.userId,
+          errorCode: error instanceof ServerError ? error.code : "UNKNOWN_ERROR",
+          errorStatus:
+            error instanceof ServerError ? error.statusCode : "UNKNOWN_STATUS",
+          errorMessage: error instanceof Error ? error.message : String(error),
+        }),
+      );
+
+      // NOTE: This flow is fail-closed. The refresh token has already been
+      // consumed atomically before downstream validation. If this stage fails
+      // (for example because of transient database/KV issues), the user must
+      // re-authenticate to obtain a new token pair.
+      throw error;
+    }
   }
 
   private async createAccessToken(
@@ -199,18 +241,20 @@ export class AuthenticationService {
     const refreshToken = encodeBase64(
       crypto.getRandomValues(new Uint8Array(64)).buffer,
     );
-    const refreshTokenHash = await this.hashToken(refreshToken);
+    const refreshTokenHash = await AuthenticationService.hashToken(refreshToken);
     const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
+    const tokenVersion = await this.kvService.getRefreshTokenVersion(userId);
 
     await this.kvService.setRefreshToken(refreshTokenHash, {
       userId,
       expiresAt,
+      tokenVersion,
     });
 
     return refreshToken;
   }
 
-  private async hashToken(token: string): Promise<string> {
+  private static async hashToken(token: string): Promise<string> {
     const digest = await crypto.subtle.digest(
       "SHA-256",
       new TextEncoder().encode(token),
@@ -437,6 +481,38 @@ export class AuthenticationService {
 
     if (sessionResult.status === "rejected") {
       throw sessionResult.reason;
+    }
+  }
+
+  private async ensureUserHasActiveSession(userId: string): Promise<void> {
+    try {
+      const activeSessions = await this.databaseService.executeWithUserContext(
+        userId,
+        (tx) => {
+          return tx
+            .select({ userId: userSessionsTable.userId })
+            .from(userSessionsTable)
+            .where(
+              and(
+                eq(userSessionsTable.userId, userId),
+                sql`${userSessionsTable.updatedAt} >= NOW() - INTERVAL '${SESSION_LIFETIME_SECONDS} seconds'`,
+              ),
+            )
+            .limit(1);
+        },
+      );
+
+      if (activeSessions.length === 0) {
+        throw new ServerError("SESSION_NOT_FOUND", "Session not found", 401);
+      }
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to query active user session:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to validate active session",
+        500,
+      );
     }
   }
 

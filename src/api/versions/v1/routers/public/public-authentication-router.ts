@@ -59,7 +59,6 @@ export class PublicAuthenticationRouter {
             },
           },
           ...ServerResponse.BadRequest,
-          ...ServerResponse.Unauthorized,
           ...ServerResponse.Forbidden,
         },
       }),
@@ -102,8 +101,8 @@ export class PublicAuthenticationRouter {
             },
           },
           ...ServerResponse.BadRequest,
-          ...ServerResponse.Unauthorized,
           ...ServerResponse.Forbidden,
+          ...ServerResponse.Conflict,
         },
       }),
       async (c) => {

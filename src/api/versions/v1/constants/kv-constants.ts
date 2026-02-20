@@ -6,6 +6,7 @@ export const KV_CONFIGURATION = "configuration";
 export const KV_USER_KEYS = "user_keys";
 export const KV_BANNED_USERS = "banned_users";
 export const KV_REFRESH_TOKENS = "refresh_tokens";
+export const KV_REFRESH_TOKEN_VERSIONS = "refresh_token_versions";
 
 // Access token lifetime (seconds)
 export const ACCESS_TOKEN_EXPIRATION_SECONDS = 30 * 60; // 30 minutes

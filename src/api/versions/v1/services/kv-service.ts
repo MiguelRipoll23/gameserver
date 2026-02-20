@@ -6,6 +6,7 @@ import {
   KV_CONFIGURATION,
   KV_OPTIONS_EXPIRATION_TIME,
   KV_REFRESH_TOKENS,
+  KV_REFRESH_TOKEN_VERSIONS,
   KV_REGISTRATION_OPTIONS,
   KV_SIGNATURE_KEYS,
   KV_USER_KEYS,
@@ -171,6 +172,19 @@ export class KVService {
       userId,
     ]);
     return entry.value === true;
+  }
+
+
+  public async getRefreshTokenVersion(userId: string): Promise<number> {
+    const entry = await this.getKv().get<number>([KV_REFRESH_TOKEN_VERSIONS, userId]);
+
+    return entry.value ?? 0;
+  }
+
+  public async invalidateRefreshTokensByUserId(userId: string): Promise<void> {
+    const currentVersion = await this.getRefreshTokenVersion(userId);
+
+    await this.getKv().set([KV_REFRESH_TOKEN_VERSIONS, userId], currentVersion + 1);
   }
 
   public async setRefreshToken(
