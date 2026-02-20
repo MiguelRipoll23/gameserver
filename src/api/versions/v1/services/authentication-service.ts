@@ -178,15 +178,19 @@ export class AuthenticationService {
       }),
     );
 
-    const currentTokenVersion = await this.kvService.getRefreshTokenVersion(
-      tokenData.userId,
-    );
-
-    if (tokenData.tokenVersion !== currentTokenVersion) {
-      throw new ServerError("INVALID_REFRESH_TOKEN", "Invalid refresh token", 401);
-    }
-
     try {
+      const currentTokenVersion = await this.kvService.getRefreshTokenVersion(
+        tokenData.userId,
+      );
+
+      if (tokenData.tokenVersion !== currentTokenVersion) {
+        throw new ServerError(
+          "TOKEN_VERSION_MISMATCH",
+          "Invalid refresh token",
+          401,
+        );
+      }
+
       const user = await this.getUserByIdOrThrow(tokenData.userId);
       await this.ensureUserNotBanned(user);
       await this.ensureUserHasActiveSession(user.id);
@@ -205,9 +209,9 @@ export class AuthenticationService {
         event: "refresh_token_validation_failed",
         refreshTokenHash,
         userId: tokenData.userId,
-        errorCode: error instanceof ServerError ? error.code : "UNKNOWN_ERROR",
+        errorCode: error instanceof ServerError ? error.getCode() : "UNKNOWN_ERROR",
         errorStatus:
-          error instanceof ServerError ? error.statusCode : "UNKNOWN_STATUS",
+          error instanceof ServerError ? error.getStatusCode() : "UNKNOWN_STATUS",
         errorMessage: error instanceof Error ? error.message : String(error),
       });
 
@@ -215,11 +219,12 @@ export class AuthenticationService {
         "USER_BANNED_PERMANENTLY",
         "USER_BANNED_TEMPORARILY",
         "SESSION_NOT_FOUND",
+        "TOKEN_VERSION_MISMATCH",
       ]);
 
       if (
         error instanceof ServerError &&
-        expectedRejectionCodes.has(error.code)
+        expectedRejectionCodes.has(error.getCode())
       ) {
         console.warn(logPayload);
       } else {
