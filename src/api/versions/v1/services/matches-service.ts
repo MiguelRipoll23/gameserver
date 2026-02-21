@@ -146,7 +146,7 @@ export class MatchesService {
     };
   }
 
-  public async delete(userId: string, throwIfNotFound = true): Promise<void> {
+  public async delete(userId: string): Promise<void> {
     const db = this.databaseService.get();
 
     const deleted = await db
@@ -154,7 +154,7 @@ export class MatchesService {
       .where(eq(matchesTable.hostUserId, userId))
       .returning();
 
-    if (deleted.length === 0 && throwIfNotFound) {
+    if (deleted.length === 0) {
       throw new ServerError(
         "MATCH_NOT_FOUND",
         `Match with host user id ${userId} does not exist`,
@@ -163,6 +163,19 @@ export class MatchesService {
     }
 
     console.log(`Deleted match for user ${userId}`);
+  }
+
+  public async deleteIfExists(userId: string, userName: string): Promise<void> {
+    const db = this.databaseService.get();
+
+    const affectedRows = await db
+      .delete(matchesTable)
+      .where(eq(matchesTable.hostUserId, userId))
+      .returning();
+
+    if (affectedRows.length > 0) {
+      console.log(`Deleted match for user ${userName}`);
+    }
   }
 
   /**

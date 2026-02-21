@@ -114,7 +114,7 @@ export class AuthenticatedMatchesRouter {
       }),
       async (c) => {
         const userId = c.get("userId");
-        await this.matchesService.delete(userId, true);
+        await this.matchesService.delete(userId);
 
         return c.body(null, 204);
       },
