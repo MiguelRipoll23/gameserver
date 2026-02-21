@@ -145,6 +145,8 @@ export class KVService {
   public async deleteUserTemporaryData(
     userId: string,
   ): Promise<Deno.KvCommitResult | Deno.KvCommitError> {
+    await this.invalidateRefreshTokensByUserId(userId);
+
     return await this.getKv().atomic().delete([KV_USER_KEYS, userId]).commit();
   }
 
@@ -174,9 +176,11 @@ export class KVService {
     return entry.value === true;
   }
 
-
   public async getRefreshTokenVersion(userId: string): Promise<number> {
-    const entry = await this.getKv().get<number>([KV_REFRESH_TOKEN_VERSIONS, userId]);
+    const entry = await this.getKv().get<number>([
+      KV_REFRESH_TOKEN_VERSIONS,
+      userId,
+    ]);
 
     return entry.value ?? 0;
   }
@@ -188,7 +192,11 @@ export class KVService {
     while (true) {
       const entry = await kv.get<number>(key);
       const nextVersion = (entry.value ?? 0) + 1;
-      const result = await kv.atomic().check(entry).set(key, nextVersion).commit();
+      const result = await kv
+        .atomic()
+        .check(entry)
+        .set(key, nextVersion)
+        .commit();
 
       if (result.ok) {
         return;

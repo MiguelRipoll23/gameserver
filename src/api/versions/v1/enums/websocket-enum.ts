@@ -1,8 +1,9 @@
 export enum WebSocketType {
-  Notification = 0,
-  PlayerIdentity = 1,
-  Tunnel = 2,
-  OnlinePlayers = 3,
-  ChatMessage = 4,
-  UserBan = 5,
+  Authentication = 0,
+  Notification = 1,
+  PlayerIdentity = 2,
+  Tunnel = 3,
+  OnlinePlayers = 4,
+  ChatMessage = 5,
+  UserBan = 6,
 }

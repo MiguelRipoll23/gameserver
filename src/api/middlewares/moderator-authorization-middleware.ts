@@ -5,8 +5,8 @@ import { ServerError } from "../versions/v1/models/server-error.ts";
 @injectable()
 export class ModeratorAuthorizationMiddleware {
   public create() {
-    return createMiddleware(async (c, next) => {
-      const roles = c.get("userRoles");
+    return createMiddleware(async (context, next) => {
+      const roles = context.get("userRoles");
       this.hasManagerOrModeratorRole(roles);
       await next();
     });
