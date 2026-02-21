@@ -14,9 +14,9 @@ export class WebSocketUser {
   private claims: Record<string, unknown> | null = null;
 
   constructor(publicIp: string) {
-    this.id = "unauthenticated";
-    this.networkId = "unauthenticated";
-    this.name = "unauthenticated";
+    this.id = "unknown";
+    this.networkId = "unknown";
+    this.name = "unknown";
     this.publicIp = publicIp;
     this.token = AuthenticationUtils.generateToken();
     this.connectedTimestamp = Date.now();

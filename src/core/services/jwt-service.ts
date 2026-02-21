@@ -2,35 +2,24 @@ import { sign, verify } from "hono/jwt";
 import { injectable } from "@needle-di/core";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
-import { JWTPayload } from "../../../../../../AppData/Local/deno/npm/registry.npmjs.org/hono/4.12.0/dist/types/utils/jwt/types.d.ts";
-import { SignatureAlgorithm } from "../../../../../../AppData/Local/deno/npm/registry.npmjs.org/hono/4.12.0/dist/types/utils/jwt/jwa.d.ts";
 
 @injectable()
 export class JWTService {
-  private static SIGNATURE_ALGORITHM: SignatureAlgorithm = "HS256";
   private secret: string;
 
   constructor() {
     this.secret = this.setSecret();
   }
 
-  public getSecret(): string {
-    return this.secret;
-  }
-
-  public getSignatureAlgorithm(): SignatureAlgorithm {
-    return JWTService.SIGNATURE_ALGORITHM;
-  }
-
   public async sign(payload: Record<string, unknown>): Promise<string> {
-    return await sign(payload, this.secret, JWTService.SIGNATURE_ALGORITHM);
+    return await sign(payload, this.secret, "HS256");
   }
 
-  public async verify(jwt: string): Promise<JWTPayload> {
+  public async verify(jwt: string): Promise<Record<string, unknown>> {
     let payload = null;
 
     try {
-      payload = await verify(jwt, this.secret, JWTService.SIGNATURE_ALGORITHM);
+      payload = await verify(jwt, this.secret, "HS256");
     } catch (error) {
       console.error(error);
     }
@@ -46,8 +35,8 @@ export class JWTService {
     const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
 
     if (secret === undefined) {
-      console.warn("⚠️ JWT_SECRET not set — using in-memory key");
-      return "in-memory-secret";
+      console.warn("⚠️ JWT_SECRET not set — using random in-memory secret");
+      return crypto.randomUUID();
     }
 
     return secret;

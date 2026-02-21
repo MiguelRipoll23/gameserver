@@ -150,12 +150,7 @@ export class WebSocketService implements WebSocketServer {
 
     if (user) {
       console.log(`Kicking user ${user.getName()} (ID: ${userId}) due to ban`);
-      const webSocket = user.getWebSocket();
-
-      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-        webSocket.close(1000, "User has been banned");
-      }
-
+      this.closeConnection(user, 1000, "User has been banned");
       // The handleDisconnection will be called automatically when the WebSocket closes
     } else {
       console.info(
@@ -190,53 +185,28 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private async handleConnection(webSocketUser: WebSocketUser): Promise<void> {
-    const userId = webSocketUser.getId();
+  private handleConnection(webSocketUser: WebSocketUser): void {
+    console.debug(
+      "New WebSocket connection from peer with IP address " +
+        webSocketUser.getPublicIp(),
+    );
+  }
 
-    if (await this.kvService.isUserBanned(userId)) {
-      console.log(
-        `Banned user ${webSocketUser.getName()} attempted to connect to server`,
-      );
-      const webSocket = webSocketUser.getWebSocket();
+  private closeConnection(
+    user: WebSocketUser,
+    code: number,
+    reason: string,
+  ): void {
+    const webSocket = user.getWebSocket();
 
-      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-        webSocket.close(1008, "User has been banned");
-      }
-
+    if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
       return;
     }
 
-    const userToken = webSocketUser.getToken();
-    const publicIp = webSocketUser.getPublicIp();
-
-    // Store session in database using upsert (insert or update if user_id exists)
-    const db = this.databaseService.get();
-
-    try {
-      await db
-        .insert(userSessionsTable)
-        .values({
-          userId: userId,
-          token: userToken,
-          publicIp: publicIp,
-        })
-        .onConflictDoUpdate({
-          target: userSessionsTable.userId,
-          set: {
-            token: userToken,
-            publicIp: publicIp,
-            updatedAt: new Date(),
-          },
-        });
-    } catch (error) {
-      console.error(
-        `Failed to create/update session for user ${webSocketUser.getName()}:`,
-        error,
-      );
-    }
-
-    this.addWebSocketUser(webSocketUser);
-    await this.notifyUsersCount();
+    webSocket.close(code, reason);
+    console.log(
+      `Closed connection for user ${user.getName()} with code ${code}: ${reason}`,
+    );
   }
 
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
@@ -320,17 +290,8 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private removeWebSocketUser(user: WebSocketUser): void {
-    // Only remove mappings that refer to this specific instance to avoid
-    // accidentally removing a newly-mapped user with the same id/token.
-    const currentById = this.usersById.get(user.getId());
-    if (currentById === user) {
-      this.usersById.delete(user.getId());
-    }
-
-    const currentByToken = this.usersByToken.get(user.getToken());
-    if (currentByToken === user) {
-      this.usersByToken.delete(user.getToken());
-    }
+    this.usersById.delete(user.getId());
+    this.usersByToken.delete(user.getToken());
   }
 
   public getUserById(id: string): WebSocketUser | undefined {
@@ -364,16 +325,59 @@ export class WebSocketService implements WebSocketServer {
     commandId: WebSocketType,
   ): boolean {
     if (!user.isAuthenticated() && commandId !== WebSocketType.Authentication) {
-      const webSocket = user.getWebSocket();
-
-      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-        webSocket.close(1008, "Unauthenticated: authentication required");
-      }
-
+      this.closeConnection(user, 1008, "Authentication required");
       return true;
     }
 
     return false;
+  }
+
+  private async handleAuthentication(
+    webSocketUser: WebSocketUser,
+  ): Promise<void> {
+    const userId = webSocketUser.getId();
+
+    if (await this.kvService.isUserBanned(userId)) {
+      console.log(
+        `Banned user ${webSocketUser.getName()} attempted to connect to server`,
+      );
+      this.closeConnection(webSocketUser, 1008, "User has been banned");
+      return;
+    }
+
+    const userToken = webSocketUser.getToken();
+    const userPublicIp = webSocketUser.getPublicIp();
+
+    // Store session in database using upsert (insert or update if user_id exists)
+    const db = this.databaseService.get();
+
+    try {
+      await db
+        .insert(userSessionsTable)
+        .values({
+          userId: userId,
+          token: userToken,
+          publicIp: userPublicIp,
+        })
+        .onConflictDoUpdate({
+          target: userSessionsTable.userId,
+          set: {
+            token: userToken,
+            publicIp: userPublicIp,
+            updatedAt: new Date(),
+          },
+        });
+    } catch (error) {
+      console.error(
+        `Failed to create/update session for user ${webSocketUser.getName()}:`,
+        error,
+      );
+
+      throw error;
+    }
+
+    this.addWebSocketUser(webSocketUser);
+    await this.notifyUsersCount();
   }
 
   public sendMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -521,7 +525,7 @@ export class WebSocketService implements WebSocketServer {
         return;
       }
 
-      this.deliverUserBanNotificationToHost(hostUserId, bannedUserId);
+      this.sendUserBanNotificationToHost(hostUserId, bannedUserId);
     } catch (error) {
       console.error(
         `Error sending UserBan notification for user ${bannedUserId}:`,
@@ -564,7 +568,7 @@ export class WebSocketService implements WebSocketServer {
    * Delivers the UserBan notification to the match host.
    * If the host is connected locally, sends directly; otherwise broadcasts to other server instances.
    */
-  private deliverUserBanNotificationToHost(
+  private sendUserBanNotificationToHost(
     hostUserId: string,
     bannedUserId: string,
   ): void {
@@ -632,72 +636,27 @@ export class WebSocketService implements WebSocketServer {
   }
 
   @CommandHandler(WebSocketType.Authentication)
-  private async handleAuthentication(
+  private async handleAuthenticationMessage(
     originUser: WebSocketUser,
     binaryReader: BinaryReader,
   ): Promise<void> {
     try {
       const token = binaryReader.variableLengthString();
-
       const payload = await this.jwtService.verify(token);
-
-      type JwtClaims = Record<string, unknown> & {
-        sub?: unknown;
-        name?: unknown;
-      };
-
-      const claims = payload as JwtClaims;
-
-      // Validate required `sub` claim
-      if (typeof claims.sub !== "string" || claims.sub.trim() === "") {
-        console.warn(
-          "Authentication rejected: JWT missing or invalid 'sub' claim",
-        );
-        const ws = originUser.getWebSocket();
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.close(1008, "Authentication failed: missing subject");
-        }
-        return;
-      }
-
-      const subject = claims.sub as string;
 
       // Prevent repeated authentication attempts
       if (originUser.isAuthenticated()) {
-        if (originUser.getId() === subject) {
-          console.info("Duplicate authentication received; ignoring");
-          return;
-        }
-
-        console.warn(
-          "Authenticated user attempted to re-authenticate with a different subject; closing connection",
-        );
-        const ws = originUser.getWebSocket();
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.close(1008, "Re-authentication not allowed");
-        }
+        console.info("Duplicate authentication received; ignoring");
         return;
       }
 
-      // Remap usersById to avoid leaking the previous temporary id
-      const previousId = originUser.getId();
-      if (this.usersById.has(previousId)) {
-        this.usersById.delete(previousId);
-      }
-
       // Apply identity from JWT
-      originUser.setId(subject);
-      originUser.setName(
-        typeof claims.name === "string" ? claims.name : originUser.getName(),
-      );
-      originUser.setClaims(claims as Record<string, unknown>);
+      originUser.setId(payload.sub as string);
+      originUser.setName(payload.name as string);
+      originUser.setClaims(payload as Record<string, unknown>);
       originUser.setAuthenticated(true);
 
-      // Re-insert under the authenticated id (usersByToken remains valid)
-      this.usersById.set(originUser.getId(), originUser);
-
-      // Continue connection lifecycle (session creation, maps)
-      await this.handleConnection(originUser);
+      await this.handleAuthentication(originUser);
 
       // Send ACK for successful authentication
       const authenticationPayload = BinaryWriter.build()
@@ -708,11 +667,7 @@ export class WebSocketService implements WebSocketServer {
       this.sendMessage(originUser, authenticationPayload);
     } catch (error) {
       console.error("Authentication failed:", error);
-      const webSocket = originUser.getWebSocket();
-
-      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-        webSocket.close(1008, "Authentication failed");
-      }
+      this.closeConnection(originUser, 1008, "Authentication failed");
     }
   }
 
