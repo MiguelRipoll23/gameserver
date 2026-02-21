@@ -16,7 +16,7 @@ export class JWTService {
   }
 
   public async verify(jwt: string): Promise<Record<string, unknown>> {
-    let payload = null;
+    let payload: Record<string, unknown> | null = null;
 
     try {
       payload = await verify(jwt, this.secret, "HS256");

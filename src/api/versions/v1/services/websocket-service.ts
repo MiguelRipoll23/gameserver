@@ -30,6 +30,7 @@ import {
   SEND_USER_BAN_NOTIFICATION_BROADCAST_CHANNEL,
 } from "../constants/broadcast-channel-constants.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
+import { MatchesService } from "./matches-service.ts";
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
@@ -41,11 +42,12 @@ export class WebSocketService implements WebSocketServer {
   private usersByToken: Map<string, WebSocketUser>;
 
   constructor(
+    private jwtService = inject(JWTService),
     private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
+    private matchesService = inject(MatchesService),
     private chatService = inject(ChatService),
     private dispatcher = inject(WebSocketDispatcherService),
-    private jwtService = inject(JWTService),
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
@@ -223,9 +225,8 @@ export class WebSocketService implements WebSocketServer {
 
     try {
       await this.deleteSessionByUserId(userId, userName);
-      await this.deleteMatchByUserId(userId, userName);
+      await this.matchesService.delete(userId);
       await this.deleteUserKeyValueData(userId, userName);
-      await this.invalidateUserRefreshTokens(userId, userName);
       await this.notifyUsersCount();
     } catch (error) {
       console.error(`Error during disconnection for user ${userName}:`, error);
@@ -249,21 +250,6 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private async deleteMatchByUserId(
-    userId: string,
-    userName: string,
-  ): Promise<void> {
-    const db = this.databaseService.get();
-    const deletedMatches = await db
-      .delete(matchesTable)
-      .where(eq(matchesTable.hostUserId, userId))
-      .returning({ id: matchesTable.id });
-
-    if (deletedMatches.length > 0) {
-      console.log(`Deleted match hosted by user ${userName}`);
-    }
-  }
-
   private async deleteUserKeyValueData(
     userId: string,
     userName: string,
@@ -275,14 +261,6 @@ export class WebSocketService implements WebSocketServer {
     } else {
       console.error(`Failed to delete temporary data for user ${userName}`);
     }
-  }
-
-  private async invalidateUserRefreshTokens(
-    userId: string,
-    userName: string,
-  ): Promise<void> {
-    await this.kvService.invalidateRefreshTokensByUserId(userId);
-    console.log(`Invalidated refresh tokens for user ${userName}`);
   }
 
   private addWebSocketUser(user: WebSocketUser): void {
