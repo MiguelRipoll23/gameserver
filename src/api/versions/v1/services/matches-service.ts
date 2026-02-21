@@ -146,7 +146,7 @@ export class MatchesService {
     };
   }
 
-  public async delete(userId: string, throwIfNotFound: boolean): Promise<void> {
+  public async delete(userId: string, throwIfNotFound = true): Promise<void> {
     const db = this.databaseService.get();
 
     const deleted = await db
