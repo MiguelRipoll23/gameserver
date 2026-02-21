@@ -5,14 +5,25 @@ import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 
 @injectable()
 export class JWTService {
+  private static EXPIRATION_SECONDS = 1800;
   private secret: string;
 
   constructor() {
     this.secret = this.resolveSecret();
   }
 
-  public async sign(payload: Record<string, unknown>): Promise<string> {
-    return await sign(payload, this.secret, "HS256");
+  public async sign(
+    payload: Record<string, unknown>,
+    expiresInSeconds = JWTService.EXPIRATION_SECONDS,
+  ): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
+    const finalPayload: Record<string, unknown> = {
+      iat: now,
+      exp: now + expiresInSeconds,
+      ...payload, // caller-supplied exp/iat wins if present
+    };
+
+    return await sign(finalPayload, this.secret, "HS256");
   }
 
   public async verify(jwt: string): Promise<Record<string, unknown>> {
@@ -35,13 +46,7 @@ export class JWTService {
     const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
 
     if (secret === undefined) {
-      console.warn("⚠️ JWT_SECRET not set — using random in-memory secret");
-      return (
-        crypto.randomUUID() +
-        crypto.randomUUID() +
-        crypto.randomUUID() +
-        crypto.randomUUID()
-      );
+      throw new Error("JWT secret is not defined in environment variables");
     }
 
     return secret;

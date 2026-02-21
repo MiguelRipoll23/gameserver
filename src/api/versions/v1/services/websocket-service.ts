@@ -152,7 +152,7 @@ export class WebSocketService implements WebSocketServer {
 
     if (user) {
       console.log(`Kicking user ${user.getName()} (ID: ${userId}) due to ban`);
-      this.closeConnection(user, 1000, "User has been banned");
+      this.closeConnection(user, 1008, "User has been banned");
       // The handleDisconnection will be called automatically when the WebSocket closes
     } else {
       console.info(
