@@ -3,7 +3,7 @@ import { inject, injectable } from "@needle-di/core";
 import { PublicRegistrationRouter } from "./public/public-registration-router.ts";
 import { PublicVersionRouter } from "./public/public-version-router.ts";
 import { PublicAuthenticationRouter } from "./public/public-authentication-router.ts";
-import { AuthenticatedWebSocketRouter } from "./authenticated/authenticated-websocket-router.ts";
+import { AuthenticatedWebSocketRouter } from "./public/public-websocket-router.ts";
 
 @injectable()
 export class V1PublicRouter {

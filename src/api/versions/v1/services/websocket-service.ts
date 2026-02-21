@@ -310,13 +310,27 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private addWebSocketUser(user: WebSocketUser): void {
+    const existing = this.usersById.get(user.getId());
+    if (existing && existing !== user) {
+      this.usersByToken.delete(existing.getToken());
+    }
+
     this.usersById.set(user.getId(), user);
     this.usersByToken.set(user.getToken(), user);
   }
 
   private removeWebSocketUser(user: WebSocketUser): void {
-    this.usersById.delete(user.getId());
-    this.usersByToken.delete(user.getToken());
+    // Only remove mappings that refer to this specific instance to avoid
+    // accidentally removing a newly-mapped user with the same id/token.
+    const currentById = this.usersById.get(user.getId());
+    if (currentById === user) {
+      this.usersById.delete(user.getId());
+    }
+
+    const currentByToken = this.usersByToken.get(user.getToken());
+    if (currentByToken === user) {
+      this.usersByToken.delete(user.getToken());
+    }
   }
 
   public getUserById(id: string): WebSocketUser | undefined {
@@ -627,11 +641,60 @@ export class WebSocketService implements WebSocketServer {
 
       const payload = await this.jwtService.verify(token);
 
-      // Populate user identity from JWT and mark authenticated
-      originUser.setId(payload.sub as string);
-      originUser.setName((payload.name as string) ?? originUser.getName());
-      originUser.setClaims(payload as Record<string, unknown>);
+      type JwtClaims = Record<string, unknown> & {
+        sub?: unknown;
+        name?: unknown;
+      };
+
+      const claims = payload as JwtClaims;
+
+      // Validate required `sub` claim
+      if (typeof claims.sub !== "string" || claims.sub.trim() === "") {
+        console.warn(
+          "Authentication rejected: JWT missing or invalid 'sub' claim",
+        );
+        const ws = originUser.getWebSocket();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.close(1008, "Authentication failed: missing subject");
+        }
+        return;
+      }
+
+      const subject = claims.sub as string;
+
+      // Prevent repeated authentication attempts
+      if (originUser.isAuthenticated()) {
+        if (originUser.getId() === subject) {
+          console.info("Duplicate authentication received; ignoring");
+          return;
+        }
+
+        console.warn(
+          "Authenticated user attempted to re-authenticate with a different subject; closing connection",
+        );
+        const ws = originUser.getWebSocket();
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.close(1008, "Re-authentication not allowed");
+        }
+        return;
+      }
+
+      // Remap usersById to avoid leaking the previous temporary id
+      const previousId = originUser.getId();
+      if (this.usersById.has(previousId)) {
+        this.usersById.delete(previousId);
+      }
+
+      // Apply identity from JWT
+      originUser.setId(subject);
+      originUser.setName(
+        typeof claims.name === "string" ? claims.name : originUser.getName(),
+      );
+      originUser.setClaims(claims as Record<string, unknown>);
       originUser.setAuthenticated(true);
+
+      // Re-insert under the authenticated id (usersByToken remains valid)
+      this.usersById.set(originUser.getId(), originUser);
 
       // Continue connection lifecycle (session creation, maps)
       await this.handleConnection(originUser);

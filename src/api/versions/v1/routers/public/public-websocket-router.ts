@@ -41,15 +41,11 @@ export class AuthenticatedWebSocketRouter {
         },
       }),
       // @ts-expect-error: using helper
-      upgradeWebSocket((c) => {
-        const id = c.get("userId");
-        const name = c.get("userName");
-
+      upgradeWebSocket((context: Context) => {
         // Get client IP address
-        const info = getConnInfo(c);
+        const info = getConnInfo(context);
         const publicIp = info.remote.address || "unknown";
-
-        const user = new WebSocketUser(id, name, publicIp);
+        const user = new WebSocketUser(publicIp);
 
         return {
           onOpen: (event, webSocketContext) => {

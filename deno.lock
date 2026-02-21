@@ -3,9 +3,7 @@
   "specifiers": {
     "jsr:@needle-di/core@^1.1.1": "1.1.1",
     "jsr:@simplewebauthn/server@^13.2.2": "13.2.2",
-    "jsr:@std/encoding@0.221": "0.221.0",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
-    "jsr:@wok/djwt@^3.0.2": "3.0.2",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
     "npm:@hono/zod-openapi@^1.2.2": "1.2.2_hono@4.12.0_zod@4.3.6",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
@@ -41,17 +39,8 @@
         "npm:@peculiar/x509"
       ]
     },
-    "@std/encoding@0.221.0": {
-      "integrity": "d1dd76ef0dc5d14088411e6dc1dede53bf8308c95d1537df1214c97137208e45"
-    },
     "@std/encoding@1.0.10": {
       "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
-    },
-    "@wok/djwt@3.0.2": {
-      "integrity": "e1c8afe6e321941edda40d91b089e93738469b994d53f41f82e0e7fcd7dde259",
-      "dependencies": [
-        "jsr:@std/encoding@0.221"
-      ]
     }
   },
   "npm": {
@@ -762,7 +751,6 @@
       "jsr:@needle-di/core@^1.1.1",
       "jsr:@simplewebauthn/server@^13.2.2",
       "jsr:@std/encoding@^1.0.10",
-      "jsr:@wok/djwt@^3.0.2",
       "npm:@hono/zod-openapi@^1.2.2",
       "npm:@scalar/hono-api-reference@~0.9.44",
       "npm:@types/pg@^8.16.0",

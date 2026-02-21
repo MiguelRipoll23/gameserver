@@ -13,10 +13,10 @@ export class WebSocketUser {
   private authenticated: boolean = false;
   private claims: Record<string, unknown> | null = null;
 
-  constructor(id: string, name: string, publicIp: string) {
-    this.id = id;
-    this.networkId = id.replaceAll("-", "");
-    this.name = name;
+  constructor(publicIp: string) {
+    this.id = "unauthenticated";
+    this.networkId = "unauthenticated";
+    this.name = "unauthenticated";
     this.publicIp = publicIp;
     this.token = AuthenticationUtils.generateToken();
     this.connectedTimestamp = Date.now();
@@ -24,6 +24,11 @@ export class WebSocketUser {
 
   public getId(): string {
     return this.id;
+  }
+
+  public setId(id: string): void {
+    this.id = id;
+    this.networkId = id.replaceAll("-", "");
   }
 
   public getNetworkId(): string {
@@ -44,6 +49,10 @@ export class WebSocketUser {
 
   public getName(): string {
     return this.name;
+  }
+
+  public setName(name: string): void {
+    this.name = name;
   }
 
   public getPublicIp(): string {
@@ -76,15 +85,6 @@ export class WebSocketUser {
 
   public getClaims(): Record<string, unknown> | null {
     return this.claims;
-  }
-
-  public setId(id: string): void {
-    this.id = id;
-    this.networkId = id.replaceAll("-", "");
-  }
-
-  public setName(name: string): void {
-    this.name = name;
   }
 
   public setToken(token: string): void {

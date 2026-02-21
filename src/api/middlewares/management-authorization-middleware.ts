@@ -5,8 +5,8 @@ import { ServerError } from "../versions/v1/models/server-error.ts";
 @injectable()
 export class ManagementAuthorizationMiddleware {
   public create() {
-    return createMiddleware(async (c, next) => {
-      const roles = c.get("userRoles");
+    return createMiddleware(async (context, next) => {
+      const roles = context.get("userRoles");
       this.hasManagerRole(roles);
       await next();
     });
@@ -14,11 +14,7 @@ export class ManagementAuthorizationMiddleware {
 
   private hasManagerRole(roles: string[] | undefined): void {
     if (!roles?.includes("manager")) {
-      throw new ServerError(
-        "NO_MANAGER_ROLE",
-        "Missing manager role",
-        403,
-      );
+      throw new ServerError("NO_MANAGER_ROLE", "Missing manager role", 403);
     }
   }
 }
