@@ -292,7 +292,7 @@ export class WebSocketService implements WebSocketServer {
 
     if (commandId == WebSocketType.Authentication) {
       console.debug(
-        `%cReceived authentication message from user ${user.getName()}`,
+        `%cReceived authentication message from ${user.getPublicIp()}`,
         "color: green;",
       );
     } else {
