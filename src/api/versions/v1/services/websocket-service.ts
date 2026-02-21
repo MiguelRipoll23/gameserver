@@ -189,7 +189,7 @@ export class WebSocketService implements WebSocketServer {
 
   private handleConnection(webSocketUser: WebSocketUser): void {
     console.debug(
-      `New WebSocket connection from ${webSocketUser.getPublicIp()} (token: ${webSocketUser.getToken()})`,
+      `Unauthenticated WebSocket connection from ${webSocketUser.getPublicIp()}`,
     );
   }
 
@@ -213,7 +213,7 @@ export class WebSocketService implements WebSocketServer {
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
     if (!user.isAuthenticated()) {
       console.debug(
-        `Unauthenticated WebSocket connection disconnected (${user.getPublicIp()})`,
+        `Unauthenticated WebSocket connection disconnection from ${user.getPublicIp()}`,
       );
       return;
     }
@@ -225,8 +225,8 @@ export class WebSocketService implements WebSocketServer {
 
     try {
       await this.deleteSessionByUserId(userId, userName);
-      await this.matchesService.delete(userId);
       await this.deleteUserKeyValueData(userId, userName);
+      await this.matchesService.deleteIfExists(userId, userName);
       await this.notifyUsersCount();
     } catch (error) {
       console.error(`Error during disconnection for user ${userName}:`, error);
