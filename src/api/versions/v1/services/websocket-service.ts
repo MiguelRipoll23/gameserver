@@ -290,7 +290,12 @@ export class WebSocketService implements WebSocketServer {
     const binaryReader = BinaryReader.fromArrayBuffer(arrayBuffer);
     const commandId = binaryReader.unsignedInt8();
 
-    if (commandId != WebSocketType.Authentication) {
+    if (commandId == WebSocketType.Authentication) {
+      console.debug(
+        `%cReceived authentication message from user ${user.getName()}`,
+        "color: green;",
+      );
+    } else {
       console.debug(
         `%cReceived message from user ${user.getName()}:\n` +
           binaryReader.preview(),
