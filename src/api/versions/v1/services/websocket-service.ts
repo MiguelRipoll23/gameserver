@@ -225,7 +225,7 @@ export class WebSocketService implements WebSocketServer {
 
     try {
       await this.deleteSessionByUserId(userId, userName);
-      await this.matchesService.delete(userId);
+      await this.matchesService.delete(userId, false);
       await this.deleteUserKeyValueData(userId, userName);
       await this.notifyUsersCount();
     } catch (error) {
