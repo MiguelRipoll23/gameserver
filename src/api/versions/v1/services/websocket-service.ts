@@ -187,8 +187,7 @@ export class WebSocketService implements WebSocketServer {
 
   private handleConnection(webSocketUser: WebSocketUser): void {
     console.debug(
-      "New WebSocket connection from peer with IP address " +
-        webSocketUser.getPublicIp(),
+      `New WebSocket connection from ${webSocketUser.getPublicIp()} (token: ${webSocketUser.getToken()})`,
     );
   }
 
@@ -210,6 +209,13 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
+    if (!user.isAuthenticated()) {
+      console.debug(
+        `Unauthenticated WebSocket connection disconnected (${user.getPublicIp()})`,
+      );
+      return;
+    }
+
     const userId = user.getId();
     const userName = user.getName();
 
@@ -640,15 +646,16 @@ export class WebSocketService implements WebSocketServer {
     originUser: WebSocketUser,
     binaryReader: BinaryReader,
   ): Promise<void> {
-    try {
-      const token = binaryReader.variableLengthString();
-      const payload = await this.jwtService.verify(token);
+    // Prevent repeated authentication attempts
+    if (originUser.isAuthenticated()) {
+      console.info("Duplicate authentication received; ignoring");
+      return;
+    }
 
-      // Prevent repeated authentication attempts
-      if (originUser.isAuthenticated()) {
-        console.info("Duplicate authentication received; ignoring");
-        return;
-      }
+    const token = binaryReader.variableLengthString();
+
+    try {
+      const payload = await this.jwtService.verify(token);
 
       // Apply identity from JWT
       originUser.setId(payload.sub as string);
@@ -657,18 +664,18 @@ export class WebSocketService implements WebSocketServer {
       originUser.setAuthenticated(true);
 
       await this.handleAuthentication(originUser);
-
-      // Send ACK for successful authentication
-      const authenticationPayload = BinaryWriter.build()
-        .unsignedInt8(WebSocketType.Authentication)
-        .unsignedInt8(1) // success flag
-        .toArrayBuffer();
-
-      this.sendMessage(originUser, authenticationPayload);
     } catch (error) {
       console.error("Authentication failed:", error);
       this.closeConnection(originUser, 1008, "Authentication failed");
     }
+
+    // Send ACK for successful authentication
+    const authenticationPayload = BinaryWriter.build()
+      .unsignedInt8(WebSocketType.Authentication)
+      .unsignedInt8(1) // success flag
+      .toArrayBuffer();
+
+    this.sendMessage(originUser, authenticationPayload);
   }
 
   @CommandHandler(WebSocketType.PlayerIdentity)

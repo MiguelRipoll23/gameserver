@@ -8,7 +8,7 @@ export class JWTService {
   private secret: string;
 
   constructor() {
-    this.secret = this.setSecret();
+    this.secret = this.resolveSecret();
   }
 
   public async sign(payload: Record<string, unknown>): Promise<string> {
@@ -31,12 +31,17 @@ export class JWTService {
     return payload;
   }
 
-  private setSecret(): string {
+  private resolveSecret(): string {
     const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
 
     if (secret === undefined) {
       console.warn("⚠️ JWT_SECRET not set — using random in-memory secret");
-      return crypto.randomUUID();
+      return (
+        crypto.randomUUID() +
+        crypto.randomUUID() +
+        crypto.randomUUID() +
+        crypto.randomUUID()
+      );
     }
 
     return secret;
