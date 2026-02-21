@@ -1,55 +1,36 @@
-import { Payload, verify } from "@wok/djwt";
+import { sign, verify } from "hono/jwt";
 import { injectable } from "@needle-di/core";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 
 @injectable()
 export class JWTService {
-  private key: CryptoKey | null = null;
+  private static EXPIRATION_SECONDS = 1800;
+  private secret: string;
 
-  public async getKey(): Promise<CryptoKey> {
-    if (this.key !== null) {
-      return this.key;
-    }
-
-    const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
-
-    if (secret === undefined) {
-      // Fallback to an in-memory key when no secret is configured.
-      console.warn("⚠️ JWT_SECRET not set — using in-memory key");
-      this.key = await crypto.subtle.generateKey(
-        {
-          name: "HMAC",
-          hash: "SHA-512",
-        },
-        true,
-        ["sign", "verify"],
-      );
-    } else {
-      const secretBytes = new TextEncoder().encode(secret);
-
-      this.key = await crypto.subtle.importKey(
-        "raw",
-        secretBytes,
-        {
-          name: "HMAC",
-          hash: "SHA-512",
-        },
-        true,
-        ["sign", "verify"],
-      );
-    }
-
-    return this.key;
+  constructor() {
+    this.secret = this.resolveSecret();
   }
 
-  public async verify(jwt: string): Promise<Payload> {
-    const jwtKey = await this.getKey();
+  public async sign(
+    payload: Record<string, unknown>,
+    expiresInSeconds = JWTService.EXPIRATION_SECONDS,
+  ): Promise<string> {
+    const now = Math.floor(Date.now() / 1000);
+    const finalPayload: Record<string, unknown> = {
+      iat: now,
+      exp: now + expiresInSeconds,
+      ...payload, // caller-supplied exp/iat wins if present
+    };
 
-    let payload = null;
+    return await sign(finalPayload, this.secret, "HS256");
+  }
+
+  public async verify(jwt: string): Promise<Record<string, unknown>> {
+    let payload: Record<string, unknown> | null = null;
 
     try {
-      payload = await verify(jwt, jwtKey);
+      payload = await verify(jwt, this.secret, "HS256");
     } catch (error) {
       console.error(error);
     }
@@ -59,5 +40,15 @@ export class JWTService {
     }
 
     return payload;
+  }
+
+  private resolveSecret(): string {
+    const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
+
+    if (secret === undefined) {
+      throw new Error("JWT secret is not defined in environment variables");
+    }
+
+    return secret;
   }
 }

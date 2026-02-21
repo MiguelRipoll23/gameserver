@@ -8,15 +8,15 @@ export class AuthenticationMiddleware {
   constructor(private jwtService = inject(JWTService)) {}
 
   public create() {
-    return createMiddleware(async (c, next) => {
-      const authorization = c.req.header("Authorization") ?? null;
-      const accessToken = c.req.query("access_token") ?? null;
+    return createMiddleware(async (context, next) => {
+      const authorization = context.req.header("Authorization") ?? null;
+      const accessToken = context.req.query("access_token") ?? null;
       const jwt = this.getTokenFromContext(authorization, accessToken);
       const payload = await this.jwtService.verify(jwt);
 
-      c.set("userId", payload.sub);
-      c.set("userName", payload.name);
-      c.set("userRoles", payload.roles ?? []);
+      context.set("userId", payload.sub);
+      context.set("userName", payload.name);
+      context.set("userRoles", payload.roles ?? []);
 
       await next();
     });

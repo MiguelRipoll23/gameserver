@@ -1,6 +1,5 @@
 import { encodeBase64 } from "hono/utils/encode";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { create } from "@wok/djwt";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { inject, injectable } from "@needle-di/core";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
@@ -162,11 +161,17 @@ export class AuthenticationService {
     refreshRequest: RefreshTokenRequest,
   ): Promise<RefreshTokenResponse> {
     const { refreshToken } = refreshRequest;
-    const refreshTokenHash = await AuthenticationService.hashToken(refreshToken);
-    const tokenData = await this.kvService.consumeRefreshToken(refreshTokenHash);
+    const refreshTokenHash =
+      await AuthenticationService.hashToken(refreshToken);
+    const tokenData =
+      await this.kvService.consumeRefreshToken(refreshTokenHash);
 
     if (tokenData === null || tokenData.expiresAt <= Date.now()) {
-      throw new ServerError("INVALID_REFRESH_TOKEN", "Invalid refresh token", 401);
+      throw new ServerError(
+        "INVALID_REFRESH_TOKEN",
+        "Invalid refresh token",
+        401,
+      );
     }
 
     console.info(
@@ -209,9 +214,12 @@ export class AuthenticationService {
         event: "refresh_token_validation_failed",
         refreshTokenHash,
         userId: tokenData.userId,
-        errorCode: error instanceof ServerError ? error.getCode() : "UNKNOWN_ERROR",
+        errorCode:
+          error instanceof ServerError ? error.getCode() : "UNKNOWN_ERROR",
         errorStatus:
-          error instanceof ServerError ? error.getStatusCode() : "UNKNOWN_STATUS",
+          error instanceof ServerError
+            ? error.getStatusCode()
+            : "UNKNOWN_STATUS",
         errorMessage: error instanceof Error ? error.message : String(error),
       });
 
@@ -244,22 +252,24 @@ export class AuthenticationService {
     userDisplayName: string,
     userRoles: string[],
   ): Promise<string> {
-    const jwtKey = await this.jwtService.getKey();
     const nowSeconds = Math.floor(Date.now() / 1000);
     const expSeconds = nowSeconds + ACCESS_TOKEN_EXPIRATION_SECONDS;
 
-    return await create(
-      { alg: "HS512", typ: "JWT" },
-      { sub: userId, name: userDisplayName, roles: userRoles, iat: nowSeconds, exp: expSeconds },
-      jwtKey,
-    );
+    return await this.jwtService.sign({
+      sub: userId,
+      name: userDisplayName,
+      roles: userRoles,
+      iat: nowSeconds,
+      exp: expSeconds,
+    });
   }
 
   private async createAndStoreRefreshToken(userId: string): Promise<string> {
     const refreshToken = encodeBase64(
       crypto.getRandomValues(new Uint8Array(64)).buffer,
     );
-    const refreshTokenHash = await AuthenticationService.hashToken(refreshToken);
+    const refreshTokenHash =
+      await AuthenticationService.hashToken(refreshToken);
     const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
     const tokenVersion = await this.kvService.getRefreshTokenVersion(userId);
 
@@ -451,16 +461,13 @@ export class AuthenticationService {
 
   private async fetchUsersById(userId: string): Promise<UserEntity[]> {
     try {
-      return await this.databaseService.executeWithUserContext(
-        userId,
-        (tx) => {
-          return tx
-            .select()
-            .from(usersTable)
-            .where(eq(usersTable.id, userId))
-            .limit(1);
-        },
-      );
+      return await this.databaseService.executeWithUserContext(userId, (tx) => {
+        return tx
+          .select()
+          .from(usersTable)
+          .where(eq(usersTable.id, userId))
+          .limit(1);
+      });
     } catch (error) {
       if (error instanceof ServerError) throw error;
       console.error("Failed to query user:", error);
