@@ -21,7 +21,7 @@ export class MatchesService {
 
   public async advertise(
     userId: string,
-    body: AdvertiseMatchRequest
+    body: AdvertiseMatchRequest,
   ): Promise<void> {
     const db = this.databaseService.get();
     await this.validateUserSession(db, userId);
@@ -79,7 +79,7 @@ export class MatchesService {
       throw new ServerError(
         "MATCH_CREATION_FAILED",
         "Match creation failed",
-        500
+        500,
       );
     }
   }
@@ -105,8 +105,8 @@ export class MatchesService {
       // Ensure the match contains all requested attributes with matching values
       conditions.push(
         sql`${matchesTable.attributes} @> ${JSON.stringify(
-          body.attributes
-        )}::jsonb`
+          body.attributes,
+        )}::jsonb`,
       );
     }
 
@@ -126,7 +126,7 @@ export class MatchesService {
       .from(matchesTable)
       .innerJoin(
         userSessionsTable,
-        eq(matchesTable.hostUserId, userSessionsTable.userId)
+        eq(matchesTable.hostUserId, userSessionsTable.userId),
       )
       .where(and(...conditions))
       .orderBy(matchesTable.id)
@@ -158,11 +158,24 @@ export class MatchesService {
       throw new ServerError(
         "MATCH_NOT_FOUND",
         `Match with host user id ${userId} does not exist`,
-        404
+        404,
       );
     }
 
     console.log(`Deleted match for user ${userId}`);
+  }
+
+  public async deleteIfExists(userId: string, userName: string): Promise<void> {
+    const db = this.databaseService.get();
+
+    const affectedRows = await db
+      .delete(matchesTable)
+      .where(eq(matchesTable.hostUserId, userId))
+      .returning();
+
+    if (affectedRows.length > 0) {
+      console.log(`Deleted match for user ${userName}`);
+    }
   }
 
   /**
@@ -170,7 +183,7 @@ export class MatchesService {
    */
   private async validateUserSession(
     db: NodePgDatabase,
-    userId: string
+    userId: string,
   ): Promise<void> {
     const session = await db
       .select({ token: userSessionsTable.token })
@@ -183,7 +196,7 @@ export class MatchesService {
       throw new ServerError(
         "NO_SESSION_FOUND",
         "You must be logged in to advertise a match",
-        400
+        400,
       );
     }
   }
@@ -197,7 +210,7 @@ export class MatchesService {
       throw new ServerError(
         "DUPLICATE_USERS_IN_LIST",
         "The same player cannot be added multiple times",
-        400
+        400,
       );
     }
   }
@@ -207,13 +220,13 @@ export class MatchesService {
    */
   private validateHostNotInUsersList(
     hostUserId: string,
-    usersList: string[]
+    usersList: string[],
   ): void {
     if (usersList.includes(hostUserId)) {
       throw new ServerError(
         "HOST_IN_USERS_LIST",
         "You cannot add yourself to the match as a player",
-        400
+        400,
       );
     }
   }
@@ -223,7 +236,7 @@ export class MatchesService {
    */
   private async validateUsersExist(
     db: NodePgDatabase,
-    usersList: string[]
+    usersList: string[],
   ): Promise<void> {
     if (usersList.length === 0) return;
     const existingUsers = await db
@@ -236,7 +249,7 @@ export class MatchesService {
       throw new ServerError(
         "INVALID_USERS_LIST",
         "The provided players list is invalid",
-        400
+        400,
       );
     }
   }
@@ -246,14 +259,14 @@ export class MatchesService {
    */
   private validateSlotConfiguration(
     usersList: string[],
-    totalSlots: number
+    totalSlots: number,
   ): void {
     const usedSlots = usersList.length + 1;
     if (usedSlots > totalSlots) {
       throw new ServerError(
         "INVALID_SLOT_CONFIGURATION",
         "The match does not have enough slots for all players",
-        400
+        400,
       );
     }
   }
@@ -267,7 +280,7 @@ export class MatchesService {
   private async populateMatchUsers(
     tx: NodePgDatabase,
     matchId: number,
-    usersList: string[]
+    usersList: string[],
   ): Promise<void> {
     // First, delete existing match users for this match to ensure clean state
     await tx
