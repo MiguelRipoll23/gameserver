@@ -15,6 +15,7 @@ import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
+import { JWTService } from "../../../../core/services/jwt-service.ts";
 import {
   matchesTable,
   matchUsersTable,
@@ -43,21 +44,22 @@ export class WebSocketService implements WebSocketServer {
     private kvService = inject(KVService),
     private databaseService = inject(DatabaseService),
     private chatService = inject(ChatService),
-    private dispatcher = inject(WebSocketDispatcherService)
+    private dispatcher = inject(WebSocketDispatcherService),
+    private jwtService = inject(JWTService),
   ) {
     this.usersById = new Map();
     this.usersByToken = new Map();
     this.notifyOnlineUsersCountBroadcastChannel = new BroadcastChannel(
-      NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL
+      NOTIFY_ONLINE_USERS_COUNT_BROADCAST_CHANNEL,
     );
     this.sendTunnelMessageBroadcastChannel = new BroadcastChannel(
-      SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL
+      SEND_TUNNEL_MESSAGE_BROADCAST_CHANNEL,
     );
     this.kickUserBroadcastChannel = new BroadcastChannel(
-      KICK_USER_BROADCAST_CHANNEL
+      KICK_USER_BROADCAST_CHANNEL,
     );
     this.sendUserBanNotificationBroadcastChannel = new BroadcastChannel(
-      SEND_USER_BAN_NOTIFICATION_BROADCAST_CHANNEL
+      SEND_USER_BAN_NOTIFICATION_BROADCAST_CHANNEL,
     );
     this.addEventListeners();
     this.addBroadcastChannelListeners();
@@ -70,14 +72,14 @@ export class WebSocketService implements WebSocketServer {
 
   public async handleCloseEvent(
     _event: CloseEvent,
-    user: WebSocketUser
+    user: WebSocketUser,
   ): Promise<void> {
     await this.handleDisconnection(user);
   }
 
   public handleMessageEvent(
     event: MessageEvent<WSMessageReceive>,
-    user: WebSocketUser
+    user: WebSocketUser,
   ): void {
     if (!(event.data instanceof ArrayBuffer)) return;
 
@@ -157,20 +159,20 @@ export class WebSocketService implements WebSocketServer {
       // The handleDisconnection will be called automatically when the WebSocket closes
     } else {
       console.info(
-        `User with ID ${userId} not found in current server instance`
+        `User with ID ${userId} not found in current server instance`,
       );
     }
   }
 
   private handleUserBanNotificationBroadcastChannelMessage(
-    event: MessageEvent
+    event: MessageEvent,
   ): void {
     const { hostUserId, bannedUserNetworkId } = event.data;
     const hostUser = this.usersById.get(hostUserId);
 
     if (!hostUser) {
       console.info(
-        `Match host ${hostUserId} is not connected to this server instance`
+        `Match host ${hostUserId} is not connected to this server instance`,
       );
       return;
     }
@@ -178,12 +180,12 @@ export class WebSocketService implements WebSocketServer {
     try {
       this.sendUserBanNotificationPayload(hostUser, bannedUserNetworkId);
       console.log(
-        `Sent UserBan notification to host ${hostUserId} for banned user (networkId: ${bannedUserNetworkId})`
+        `Sent UserBan notification to host ${hostUserId} for banned user (networkId: ${bannedUserNetworkId})`,
       );
     } catch (error) {
       console.error(
         `Error sending UserBan notification to host ${hostUserId}:`,
-        error
+        error,
       );
     }
   }
@@ -193,7 +195,7 @@ export class WebSocketService implements WebSocketServer {
 
     if (await this.kvService.isUserBanned(userId)) {
       console.log(
-        `Banned user ${webSocketUser.getName()} attempted to connect to server`
+        `Banned user ${webSocketUser.getName()} attempted to connect to server`,
       );
       const webSocket = webSocketUser.getWebSocket();
 
@@ -229,7 +231,7 @@ export class WebSocketService implements WebSocketServer {
     } catch (error) {
       console.error(
         `Failed to create/update session for user ${webSocketUser.getName()}:`,
-        error
+        error,
       );
     }
 
@@ -258,7 +260,7 @@ export class WebSocketService implements WebSocketServer {
 
   private async deleteSessionByUserId(
     userId: string,
-    userName: string
+    userName: string,
   ): Promise<void> {
     const db = this.databaseService.get();
     const deletedSessions = await db
@@ -273,7 +275,7 @@ export class WebSocketService implements WebSocketServer {
 
   private async deleteMatchByUserId(
     userId: string,
-    userName: string
+    userName: string,
   ): Promise<void> {
     const db = this.databaseService.get();
     const deletedMatches = await db
@@ -288,7 +290,7 @@ export class WebSocketService implements WebSocketServer {
 
   private async deleteUserKeyValueData(
     userId: string,
-    userName: string
+    userName: string,
   ): Promise<void> {
     const result = await this.kvService.deleteUserTemporaryData(userId);
 
@@ -301,7 +303,7 @@ export class WebSocketService implements WebSocketServer {
 
   private async invalidateUserRefreshTokens(
     userId: string,
-    userName: string
+    userName: string,
   ): Promise<void> {
     await this.kvService.invalidateRefreshTokensByUserId(userId);
     console.log(`Invalidated refresh tokens for user ${userName}`);
@@ -331,12 +333,33 @@ export class WebSocketService implements WebSocketServer {
     console.debug(
       `%cReceived message from user ${user.getName()}:\n` +
         binaryReader.preview(),
-      "color: green;"
+      "color: green;",
     );
 
     const commandId = binaryReader.unsignedInt8();
 
+    if (this.rejectWhenUnauthenticated(user, commandId)) {
+      return;
+    }
+
     this.dispatcher.dispatchCommand(user, commandId, binaryReader);
+  }
+
+  private rejectWhenUnauthenticated(
+    user: WebSocketUser,
+    commandId: WebSocketType,
+  ): boolean {
+    if (!user.isAuthenticated() && commandId !== WebSocketType.Authentication) {
+      const webSocket = user.getWebSocket();
+
+      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+        webSocket.close(1008, "Unauthenticated: authentication required");
+      }
+
+      return true;
+    }
+
+    return false;
   }
 
   public sendMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -352,7 +375,7 @@ export class WebSocketService implements WebSocketServer {
       console.debug(
         `%cSent message to user ${user.getName()}:\n` +
           BinaryWriter.preview(arrayBuffer),
-        "color: purple"
+        "color: purple",
       );
     } catch (error) {
       console.error("Failed to send message to user", user.getName(), error);
@@ -361,7 +384,7 @@ export class WebSocketService implements WebSocketServer {
 
   private sendMessageToOtherUser(
     destinationToken: string,
-    payload: ArrayBuffer
+    payload: ArrayBuffer,
   ): void {
     const destinationUser = this.usersByToken.get(destinationToken);
 
@@ -370,7 +393,7 @@ export class WebSocketService implements WebSocketServer {
     } else {
       console.log(
         `Token not found locally, broadcasting message...`,
-        destinationToken
+        destinationToken,
       );
       this.sendTunnelMessageBroadcastChannel.postMessage({
         destinationToken,
@@ -381,7 +404,7 @@ export class WebSocketService implements WebSocketServer {
 
   private sendNotificationToUsers(
     channelId: NotificationChannelType,
-    text: string
+    text: string,
   ): void {
     for (const user of this.usersByToken.values()) {
       const textBytes = new TextEncoder().encode(text);
@@ -398,7 +421,7 @@ export class WebSocketService implements WebSocketServer {
   private sendNotificationToUser(
     channelId: NotificationChannelType,
     userId: string,
-    text: string
+    text: string,
   ): void {
     const user = this.usersById.get(userId);
 
@@ -413,13 +436,13 @@ export class WebSocketService implements WebSocketServer {
 
       this.sendMessage(user, payload);
       console.log(
-        `Sent notification to user ${user.getName()} (ID: ${userId})`
+        `Sent notification to user ${user.getName()} (ID: ${userId})`,
       );
     } else {
       // User not found locally - they might be connected to another server instance
       // For now, just log this. In a distributed setup, you'd broadcast to other instances
       console.log(
-        `User with ID ${userId} not found in current server instance`
+        `User with ID ${userId} not found in current server instance`,
       );
     }
   }
@@ -460,7 +483,7 @@ export class WebSocketService implements WebSocketServer {
     } else {
       // User not found locally, broadcast to other server instances
       console.log(
-        `User with ID ${userId} not found locally, broadcasting kick message to other servers`
+        `User with ID ${userId} not found locally, broadcasting kick message to other servers`,
       );
 
       this.kickUserBroadcastChannel.postMessage({ userId });
@@ -475,7 +498,7 @@ export class WebSocketService implements WebSocketServer {
    * This method is called immediately after a user is banned/kicked.
    */
   private async sendUserBanNotificationToMatchHost(
-    bannedUserId: string
+    bannedUserId: string,
   ): Promise<void> {
     try {
       const hostUserId = await this.findMatchHostForBannedUser(bannedUserId);
@@ -488,7 +511,7 @@ export class WebSocketService implements WebSocketServer {
     } catch (error) {
       console.error(
         `Error sending UserBan notification for user ${bannedUserId}:`,
-        error
+        error,
       );
     }
   }
@@ -498,7 +521,7 @@ export class WebSocketService implements WebSocketServer {
    * Returns null if the user is not in any match.
    */
   private async findMatchHostForBannedUser(
-    bannedUserId: string
+    bannedUserId: string,
   ): Promise<string | null> {
     const db = this.databaseService.get();
 
@@ -515,7 +538,7 @@ export class WebSocketService implements WebSocketServer {
 
     if (result.length === 0) {
       console.info(
-        `Banned user ${bannedUserId} is not a participant in any match`
+        `Banned user ${bannedUserId} is not a participant in any match`,
       );
       return null;
     }
@@ -529,7 +552,7 @@ export class WebSocketService implements WebSocketServer {
    */
   private deliverUserBanNotificationToHost(
     hostUserId: string,
-    bannedUserId: string
+    bannedUserId: string,
   ): void {
     const hostUser = this.usersById.get(hostUserId);
     const bannedUserNetworkId = bannedUserId.replace(/-/g, "");
@@ -539,7 +562,7 @@ export class WebSocketService implements WebSocketServer {
       this.broadcastUserBanNotification(
         hostUserId,
         bannedUserNetworkId,
-        bannedUserId
+        bannedUserId,
       );
       return;
     }
@@ -547,7 +570,7 @@ export class WebSocketService implements WebSocketServer {
     // Host is connected locally, send directly
     this.sendUserBanNotificationPayload(hostUser, bannedUserNetworkId);
     console.log(
-      `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`
+      `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`,
     );
   }
 
@@ -557,10 +580,10 @@ export class WebSocketService implements WebSocketServer {
   private broadcastUserBanNotification(
     hostUserId: string,
     bannedUserNetworkId: string,
-    bannedUserId: string
+    bannedUserId: string,
   ): void {
     console.info(
-      `Match host ${hostUserId} is not connected to this server instance, broadcasting to other servers`
+      `Match host ${hostUserId} is not connected to this server instance, broadcasting to other servers`,
     );
 
     try {
@@ -569,12 +592,12 @@ export class WebSocketService implements WebSocketServer {
         bannedUserNetworkId,
       });
       console.log(
-        `Broadcasted UserBan notification for host ${hostUserId} and banned user ${bannedUserId}`
+        `Broadcasted UserBan notification for host ${hostUserId} and banned user ${bannedUserId}`,
       );
     } catch (error) {
       console.error(
         `Failed to broadcast UserBan notification for host ${hostUserId}:`,
-        error
+        error,
       );
     }
   }
@@ -584,7 +607,7 @@ export class WebSocketService implements WebSocketServer {
    */
   private sendUserBanNotificationPayload(
     user: WebSocketUser,
-    bannedUserNetworkId: string
+    bannedUserNetworkId: string,
   ): void {
     const userBanPayload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.UserBan)
@@ -594,10 +617,46 @@ export class WebSocketService implements WebSocketServer {
     this.sendMessage(user, userBanPayload);
   }
 
+  @CommandHandler(WebSocketType.Authentication)
+  private async handleAuthentication(
+    originUser: WebSocketUser,
+    binaryReader: BinaryReader,
+  ): Promise<void> {
+    try {
+      const token = binaryReader.variableLengthString();
+
+      const payload = await this.jwtService.verify(token);
+
+      // Populate user identity from JWT and mark authenticated
+      originUser.setId(payload.sub as string);
+      originUser.setName((payload.name as string) ?? originUser.getName());
+      originUser.setClaims(payload as Record<string, unknown>);
+      originUser.setAuthenticated(true);
+
+      // Continue connection lifecycle (session creation, maps)
+      await this.handleConnection(originUser);
+
+      // Send ACK for successful authentication
+      const authenticationPayload = BinaryWriter.build()
+        .unsignedInt8(WebSocketType.Authentication)
+        .unsignedInt8(1) // success flag
+        .toArrayBuffer();
+
+      this.sendMessage(originUser, authenticationPayload);
+    } catch (error) {
+      console.error("Authentication failed:", error);
+      const webSocket = originUser.getWebSocket();
+
+      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
+        webSocket.close(1008, "Authentication failed");
+      }
+    }
+  }
+
   @CommandHandler(WebSocketType.PlayerIdentity)
   private handlePlayerIdentityMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const destinationToken = encodeBase64(destinationTokenBytes);
@@ -617,7 +676,7 @@ export class WebSocketService implements WebSocketServer {
   @CommandHandler(WebSocketType.Tunnel)
   private handleTunnelMessage(
     originUser: WebSocketUser,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
@@ -630,14 +689,14 @@ export class WebSocketService implements WebSocketServer {
 
     this.sendMessageToOtherUser(
       encodeBase64(destinationTokenBytes),
-      tunnelPayload
+      tunnelPayload,
     );
   }
 
   @CommandHandler(WebSocketType.ChatMessage)
   private async handleChatMessage(
     user: WebSocketUser,
-    binaryReader: BinaryReader
+    binaryReader: BinaryReader,
   ): Promise<void> {
     await this.chatService.sendSignedChatMessage(this, user, binaryReader);
   }

@@ -22,7 +22,7 @@ export class V1AuthenticatedRouter {
     private statsRouter = inject(AuthenticatedStatsRouter),
     private matchesRouter = inject(AuthenticatedMatchesRouter),
     private userScoresRouter = inject(AuthenticatedUserScoresRouter),
-    private userModerationRouter = inject(AuthenticatedUserModerationRouter)
+    private userModerationRouter = inject(AuthenticatedUserModerationRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();
@@ -43,7 +43,6 @@ export class V1AuthenticatedRouter {
 
   private setRoutes(): void {
     this.app.route("/game-configuration", this.configurationRouter.getRouter());
-    this.app.route("/websocket", this.webSocketRouter.getRouter());
     this.app.route("/server-messages", this.serverMessagesRouter.getRouter());
     this.app.route("/server-stats", this.statsRouter.getRouter());
     this.app.route("/matches", this.matchesRouter.getRouter());

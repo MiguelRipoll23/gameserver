@@ -66,7 +66,7 @@ export class AuthenticatedWebSocketRouter {
             webSocketService.handleCloseEvent(event, user);
           },
         };
-      })
+      }),
     );
   }
 }
