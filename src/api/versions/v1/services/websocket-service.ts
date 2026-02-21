@@ -288,16 +288,25 @@ export class WebSocketService implements WebSocketServer {
 
   private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
     const binaryReader = BinaryReader.fromArrayBuffer(arrayBuffer);
-
-    console.debug(
-      `%cReceived message from user ${user.getName()}:\n` +
-        binaryReader.preview(),
-      "color: green;",
-    );
-
     const commandId = binaryReader.unsignedInt8();
 
+    if (commandId == WebSocketType.Authentication) {
+      console.debug(
+        `%cReceived authentication message from user ${user.getName()}`,
+        "color: green;",
+      );
+    } else {
+      console.debug(
+        `%cReceived message from user ${user.getName()}:\n` +
+          binaryReader.preview(),
+        "color: green;",
+      );
+    }
+
     if (this.rejectWhenUnauthenticated(user, commandId)) {
+      console.warn(
+        `Rejected command ${WebSocketType[commandId]} from unauthenticated user ${user.getPublicIp()}`,
+      );
       return;
     }
 
