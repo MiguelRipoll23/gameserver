@@ -184,7 +184,6 @@ export class MatchesService {
     const db = this.databaseService.get();
     const result = await db
       .select({
-        matchId: matchesTable.id,
         hostUserId: matchesTable.hostUserId,
       })
       .from(matchUsersTable)

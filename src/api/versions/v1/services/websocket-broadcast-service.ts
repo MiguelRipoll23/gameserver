@@ -28,73 +28,48 @@ export class WebSocketBroadcastService {
     );
   }
 
-  onTunnelMessage(cb: (event: MessageEvent) => void): void {
-    this.sendTunnelMessageBroadcastChannel.onmessage = (e) =>
-      cb(e as MessageEvent);
+  public onTunnelMessage(cb: (event: MessageEvent) => void): void {
+    this.sendTunnelMessageBroadcastChannel.onmessage = cb;
   }
 
-  onOnlineUsersCount(cb: (event: MessageEvent) => void): void {
-    this.notifyOnlineUsersCountBroadcastChannel.onmessage = (e) =>
-      cb(e as MessageEvent);
+  public onOnlineUsersCount(cb: (event: MessageEvent) => void): void {
+    this.notifyOnlineUsersCountBroadcastChannel.onmessage = cb;
   }
 
-  onKickUser(cb: (event: MessageEvent) => void): void {
-    this.kickUserBroadcastChannel.onmessage = (e) => cb(e as MessageEvent);
+  public onKickUser(cb: (event: MessageEvent) => void): void {
+    this.kickUserBroadcastChannel.onmessage = cb;
   }
 
-  onUserBanNotification(cb: (event: MessageEvent) => void): void {
-    this.sendUserBanNotificationBroadcastChannel.onmessage = (e) =>
-      cb(e as MessageEvent);
+  public onUserBanNotification(cb: (event: MessageEvent) => void): void {
+    this.sendUserBanNotificationBroadcastChannel.onmessage = cb;
   }
 
-  postTunnelMessage(destinationToken: string, payload: ArrayBuffer): void {
-    try {
-      this.sendTunnelMessageBroadcastChannel.postMessage({
-        destinationToken,
-        payload,
-      });
-    } catch (error) {
-      console.error(
-        "Failed to post tunnel message to broadcast channel",
-        error,
-      );
-    }
+  public postTunnelMessage(
+    destinationToken: string,
+    payload: ArrayBuffer,
+  ): void {
+    this.sendTunnelMessageBroadcastChannel.postMessage({
+      destinationToken,
+      payload,
+    });
   }
 
-  postOnlineUsersCount(payload: ArrayBuffer): void {
-    try {
-      this.notifyOnlineUsersCountBroadcastChannel.postMessage({ payload });
-    } catch (error) {
-      console.error(
-        "Failed to post online users count to broadcast channel",
-        error,
-      );
-    }
+  public postOnlineUsersCount(payload: ArrayBuffer): void {
+    this.notifyOnlineUsersCountBroadcastChannel.postMessage({ payload });
   }
 
-  postKick(userId: string): void {
-    try {
-      this.kickUserBroadcastChannel.postMessage({ userId });
-    } catch (error) {
-      console.error("Failed to post kick to broadcast channel", error);
-    }
+  public postKick(userId: string): void {
+    this.kickUserBroadcastChannel.postMessage({ userId });
   }
 
-  postUserBanNotification(
+  public postUserBanNotification(
     hostUserId: string,
     bannedUserNetworkId: string,
   ): void {
-    try {
-      this.sendUserBanNotificationBroadcastChannel.postMessage({
-        hostUserId,
-        bannedUserNetworkId,
-      });
-    } catch (error) {
-      console.error(
-        "Failed to post user-ban notification to broadcast channel",
-        error,
-      );
-    }
+    this.sendUserBanNotificationBroadcastChannel.postMessage({
+      hostUserId,
+      bannedUserNetworkId,
+    });
   }
 }
 

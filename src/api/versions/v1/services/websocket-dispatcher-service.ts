@@ -16,16 +16,19 @@ export class WebSocketDispatcherService {
     );
 
     for (const { commandId, methodName } of commandHandlers) {
-      const method = (instance as any)[methodName];
+      const inst = instance as Record<string, unknown>;
+      const maybe = inst[methodName];
 
-      if (typeof method !== "function") {
+      if (typeof maybe !== "function") {
         console.error(
           `Method "${methodName}" not found or is not a function on the instance.`,
         );
         continue;
       }
 
-      const boundMethod = method.bind(instance as any);
+      const boundMethod = (maybe as CommandHandlerFunction).bind(
+        instance as object,
+      ) as CommandHandlerFunction;
       this.bindCommandHandler(commandId, boundMethod);
     }
   }
