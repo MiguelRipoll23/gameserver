@@ -370,10 +370,6 @@ export class WebSocketService implements WebSocketServer {
     await this.findHostAndSendUserKickedNotification(userId);
   }
 
-  /**
-   * Sends a user kicked notification to the host of a match where the banned user is a participant.
-   * This method is called immediately after a user is banned/kicked.
-   */
   private async findHostAndSendUserKickedNotification(
     bannedUserId: string,
   ): Promise<void> {
@@ -400,10 +396,6 @@ export class WebSocketService implements WebSocketServer {
     this.sendUserKickedNotificationToHost(hostUserId, bannedUserId);
   }
 
-  /**
-   * Delivers the user kicked notification to the match host.
-   * If the host is connected locally, sends directly; otherwise broadcasts to other server instances.
-   */
   private sendUserKickedNotificationToHost(
     hostUserId: string,
     bannedUserId: string,
@@ -423,9 +415,6 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  /**
-   * Sends the user kicked payload to a specific user.
-   */
   private sendUserKickedPayload(
     user: WebSocketUser,
     bannedUserNetworkId: string,
