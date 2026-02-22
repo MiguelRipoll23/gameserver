@@ -44,7 +44,7 @@ export class JWTService {
     return payload;
   }
 
-  public getAuthMiddleware(): MiddlewareHandler {
+  public getJWTMiddleware(): MiddlewareHandler {
     return jwt({
       secret: this.secret,
       alg: "HS256",

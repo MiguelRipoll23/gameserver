@@ -10,29 +10,36 @@ export class AuthenticationMiddleware {
 
   public create(): MiddlewareHandler[] {
     return [
-      this.jwtService.getAuthMiddleware(),
+      this.jwtService.getJWTMiddleware(),
       createMiddleware(async (context, next) => {
         const payload = context.get("jwtPayload");
 
-        if (typeof payload?.sub !== "string" || payload.sub.length === 0) {
+        if (typeof payload !== "object" || payload === null) {
+          throw new ServerError("INVALID_TOKEN", "Invalid payload", 401);
+        }
+
+        if (typeof payload.sub !== "string" || payload.sub.length === 0) {
           throw new ServerError("INVALID_TOKEN", "Missing subject claim", 401);
         }
 
-        if (typeof payload?.name !== "string" || payload.name.length === 0) {
+        if (typeof payload.name !== "string" || payload.name.length === 0) {
           throw new ServerError("INVALID_TOKEN", "Missing name claim", 401);
         }
 
         context.set("userId", payload.sub);
         context.set("userName", payload.name);
-        context.set(
-          "userRoles",
-          Array.isArray(payload.roles)
-            ? payload.roles.filter((role): role is string => typeof role === "string")
-            : [],
-        );
+        context.set("userRoles", this.normalizeRoles(payload.roles));
 
         await next();
       }),
     ];
+  }
+
+  private normalizeRoles(roles: unknown): string[] {
+    if (!Array.isArray(roles)) {
+      return [];
+    }
+
+    return roles.filter((role): role is string => typeof role === "string");
   }
 }
