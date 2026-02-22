@@ -42,6 +42,10 @@ export class JWTService {
     return payload;
   }
 
+  public getSecret(): string {
+    return this.secret;
+  }
+
   private resolveSecret(): string {
     const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
 
