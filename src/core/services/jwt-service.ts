@@ -1,4 +1,6 @@
 import { sign, verify } from "hono/jwt";
+import { jwt } from "hono/jwt";
+import type { MiddlewareHandler } from "hono";
 import { injectable } from "@needle-di/core";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
@@ -40,6 +42,13 @@ export class JWTService {
     }
 
     return payload;
+  }
+
+  public getJWTMiddleware(): MiddlewareHandler {
+    return jwt({
+      secret: this.secret,
+      alg: "HS256",
+    });
   }
 
   private resolveSecret(): string {
