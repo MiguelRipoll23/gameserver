@@ -3,13 +3,13 @@
     "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.2.2",
     "@needle-di/core": "jsr:@needle-di/core@^1.1.1",
     "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.9.44",
-    "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.2.2",
+    "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.2.3",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@types/pg": "npm:@types/pg@^8.16.0",
     "drizzle-kit": "npm:drizzle-kit@^0.31.9",
     "drizzle-orm": "npm:drizzle-orm@^0.45.1",
     "pg": "npm:pg@^8.18.0",
-    "hono": "npm:hono@^4.12.0",
+    "hono": "npm:hono@^4.12.1",
     "zod": "npm:zod@^4.3.6"
   },
   "permissions": {
