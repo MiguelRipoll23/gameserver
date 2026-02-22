@@ -36,7 +36,7 @@ export class V1AuthenticatedRouter {
   }
 
   private setAuthenticationMiddleware(): void {
-    this.app.use("*", this.authenticationMiddleware.create());
+    this.app.use("*", ...this.authenticationMiddleware.create());
   }
 
   private setRoutes(): void {
