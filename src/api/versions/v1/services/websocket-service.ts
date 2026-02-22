@@ -83,7 +83,7 @@ export class WebSocketService implements WebSocketServer {
     addEventListener(SEND_USER_NOTIFICATION_EVENT, (event): void => {
       // deno-lint-ignore no-explicit-any
       const { userId, channelId, message } = (event as CustomEvent<any>).detail;
-      this.sendNotificationToUser(userId, channelId, message, false);
+      this.sendNotificationToUser(userId, channelId, message, true);
     });
 
     addEventListener(KICK_USER_EVENT, (event): void => {
@@ -125,7 +125,7 @@ export class WebSocketService implements WebSocketServer {
 
   private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
     const { destinationToken: destinationToken, payload } = event.data;
-    const user = this.userRegistry.getByToken(destinationToken) ?? null;
+    const user = this.userRegistry.getByToken(destinationToken);
 
     if (!user) {
       return;
@@ -155,7 +155,7 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
-    this.kickUser(userId, false);
+    void this.kickUser(userId, false);
   }
 
   private handleUserKickedNotificationBroadcastChannelMessage(
@@ -168,7 +168,10 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
-    this.sendUserKickedNotificationToHost(hostUserId, bannedUserNetworkId);
+    this.sendUserKickedNotificationToHostWithNetworkId(
+      hostUserId,
+      bannedUserNetworkId,
+    );
   }
 
   private closeConnection(
@@ -425,8 +428,19 @@ export class WebSocketService implements WebSocketServer {
     hostUserId: string,
     bannedUserId: string,
   ): void {
-    const hostUser = this.userRegistry.getById(hostUserId);
     const bannedUserNetworkId = bannedUserId.replace(/-/g, "");
+
+    this.sendUserKickedNotificationToHostWithNetworkId(
+      hostUserId,
+      bannedUserNetworkId,
+    );
+  }
+
+  private sendUserKickedNotificationToHostWithNetworkId(
+    hostUserId: string,
+    bannedUserNetworkId: string,
+  ): void {
+    const hostUser = this.userRegistry.getById(hostUserId);
 
     if (!hostUser) {
       this.broadcastService.postUserKicked(hostUserId, bannedUserNetworkId);
@@ -437,7 +451,7 @@ export class WebSocketService implements WebSocketServer {
     this.sendMessage(hostUser, payload);
 
     console.log(
-      `Sent user kicked to host ${hostUserId} for banned user ${bannedUserId}`,
+      `Sent user kicked to host ${hostUserId} for banned user network id ${bannedUserNetworkId}`,
     );
   }
 
