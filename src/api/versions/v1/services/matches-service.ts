@@ -178,6 +178,27 @@ export class MatchesService {
     }
   }
 
+  public async getMatchHostIdByUserId(
+    matchUserId: string,
+  ): Promise<string | null> {
+    const db = this.databaseService.get();
+    const result = await db
+      .select({
+        hostUserId: matchesTable.hostUserId,
+      })
+      .from(matchUsersTable)
+      .innerJoin(matchesTable, eq(matchUsersTable.matchId, matchesTable.id))
+      .where(eq(matchUsersTable.userId, matchUserId))
+      .limit(1);
+
+    if (result.length === 0) {
+      console.info(`User ${matchUserId} is not a participant in any match`);
+      return null;
+    }
+
+    return result[0].hostUserId;
+  }
+
   /**
    * Validates that a user session exists for the given userId
    */

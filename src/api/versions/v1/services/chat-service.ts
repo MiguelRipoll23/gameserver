@@ -6,7 +6,7 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
-import { REFRESH_BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL } from "../constants/broadcast-channel-constants.ts";
+import { BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL } from "../constants/broadcast-channel-constants.ts";
 import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
 import { BlockedWordEntity } from "../../../../db/tables/blocked-words-table.ts";
 
@@ -20,10 +20,10 @@ export class ChatService {
 
   constructor(
     private readonly signatureService = inject(SignatureService),
-    private readonly textModerationService = inject(TextModerationService)
+    private readonly textModerationService = inject(TextModerationService),
   ) {
     this.refreshBlockedWordsCacheBroadcastChannel = new BroadcastChannel(
-      REFRESH_BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL
+      BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL,
     );
     this.addEventListeners();
     this.addBroadcastChannelListeners();
@@ -38,7 +38,7 @@ export class ChatService {
   private addBroadcastChannelListeners(): void {
     this.refreshBlockedWordsCacheBroadcastChannel.addEventListener(
       "message",
-      this.refreshBlockedWordsCache.bind(this)
+      this.refreshBlockedWordsCache.bind(this),
     );
   }
 
@@ -51,7 +51,7 @@ export class ChatService {
       this.blockedWords = this.validateBlockedWordsFromDatabase(blockedWords);
       this.cacheInitialized = true;
       console.log(
-        `Loaded ${this.blockedWords.length} blocked words into cache`
+        `Loaded ${this.blockedWords.length} blocked words into cache`,
       );
     } catch (error) {
       console.error("Failed to load censored words from database:", error);
@@ -85,7 +85,7 @@ export class ChatService {
   public async sendSignedChatMessage(
     webSocketServer: WebSocketServer,
     user: WebSocketUser,
-    reader: BinaryReader
+    reader: BinaryReader,
   ): Promise<void> {
     // Ensure cache is initialized before processing message
     await this.ensureCacheInitialized();
@@ -95,7 +95,7 @@ export class ChatService {
     if (!this.isValidMessage(unfilteredMessageText, user)) return;
 
     console.log(
-      `Received chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`
+      `Received chat message to sign from user ${user.getName()} with text: ${unfilteredMessageText}`,
     );
 
     const userId = user.getNetworkId();
@@ -132,7 +132,7 @@ export class ChatService {
   private isNotEmpty(message: string, user: WebSocketUser): boolean {
     if (!message) {
       console.warn(
-        `Rejected chat message from ${user.getName()} because it is empty`
+        `Rejected chat message from ${user.getName()} because it is empty`,
       );
       return false;
     }
@@ -144,7 +144,7 @@ export class ChatService {
       console.warn(
         `Rejected chat message from ${user.getName()} because it exceeds the limit of ${
           ChatService.MAX_CHAT_MESSAGE_LENGTH
-        } characters`
+        } characters`,
       );
       return false;
     }
@@ -186,7 +186,7 @@ export class ChatService {
   }
 
   private validateBlockedWordsFromDatabase(
-    blockedWords: BlockedWordEntity[]
+    blockedWords: BlockedWordEntity[],
   ): string[] {
     const validWords: string[] = [];
     let invalidCount = 0;
@@ -201,7 +201,7 @@ export class ChatService {
         console.warn(
           `Invalid blocked word found in database: "${blockedWord.word}" (ID: ${blockedWord.id}). ` +
             `Word does not meet validation criteria and will be skipped. ` +
-            `Consider removing this word from the database or updating it to meet validation requirements.`
+            `Consider removing this word from the database or updating it to meet validation requirements.`,
         );
       }
     }
@@ -209,7 +209,7 @@ export class ChatService {
     if (invalidCount > 0) {
       console.warn(
         `Total of ${invalidCount} invalid blocked words were skipped during cache refresh. ` +
-          `These words exist in the database but do not meet validation criteria.`
+          `These words exist in the database but do not meet validation criteria.`,
       );
     }
 
@@ -237,14 +237,13 @@ export class ChatService {
   }
 
   private async getSignedPayload(
-    signaturePayload: ArrayBuffer
+    signaturePayload: ArrayBuffer,
   ): Promise<ArrayBuffer | null> {
     let signedPayload: ArrayBuffer | null = null;
 
     try {
-      signedPayload = await this.signatureService.signArrayBuffer(
-        signaturePayload
-      );
+      signedPayload =
+        await this.signatureService.signArrayBuffer(signaturePayload);
     } catch (error) {
       console.error(error);
     }
@@ -254,7 +253,7 @@ export class ChatService {
 
   private toAsciiLowerCase(text: string): string {
     return text.replace(/[A-Z]/g, (char) =>
-      String.fromCharCode(char.charCodeAt(0) + 32)
+      String.fromCharCode(char.charCodeAt(0) + 32),
     );
   }
 }
