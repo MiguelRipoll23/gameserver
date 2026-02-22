@@ -370,7 +370,6 @@ export class WebSocketService implements WebSocketServer {
     }
 
     this.addWebSocketUser(webSocketUser);
-    await this.notifyUsersCount();
   }
 
   public sendMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -663,6 +662,16 @@ export class WebSocketService implements WebSocketServer {
       .toArrayBuffer();
 
     this.sendMessage(originUser, authenticationPayload);
+
+    // Notify all users about the updated online count after authentication
+    try {
+      await this.notifyUsersCount();
+    } catch (error) {
+      console.error(
+        "Failed to notify users count after authentication:",
+        error,
+      );
+    }
   }
 
   @CommandHandler(WebSocketType.PlayerIdentity)
