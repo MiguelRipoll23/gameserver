@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { jwt } from "hono/jwt";
+import type { MiddlewareHandler } from "hono";
 import { inject, injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
 import { JWTService } from "../../core/services/jwt-service.ts";
@@ -8,11 +8,9 @@ import { JWTService } from "../../core/services/jwt-service.ts";
 export class AuthenticationMiddleware {
   constructor(private jwtService = inject(JWTService)) {}
 
-  public create() {
+  public create(): MiddlewareHandler[] {
     return [
-      jwt({
-        secret: this.jwtService.getSecret(),
-      }),
+      this.jwtService.getAuthMiddleware(),
       createMiddleware(async (context, next) => {
         const payload = context.get("jwtPayload");
 
