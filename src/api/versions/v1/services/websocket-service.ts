@@ -272,9 +272,8 @@ export class WebSocketService implements WebSocketServer {
     const userName = webSocketUser.getName();
 
     if (await this.kvService.isUserBanned(userId)) {
-      console.log(`Banned user ${userName} attempted to connect to server`);
       this.closeConnection(webSocketUser, 1008, "User has been banned");
-      throw new Error(`User ${userName} trying to connect is banned`);
+      throw new Error(`Banned user ${userName} attempted to connect to server`);
     }
 
     const userToken = webSocketUser.getToken();
