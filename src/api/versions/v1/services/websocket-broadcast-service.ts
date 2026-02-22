@@ -11,7 +11,7 @@ export class WebSocketBroadcastService {
   private notifyOnlineUsersCountBroadcastChannel: BroadcastChannel;
   private sendTunnelMessageBroadcastChannel: BroadcastChannel;
   private kickUserBroadcastChannel: BroadcastChannel;
-  private sendUserBanNotificationBroadcastChannel: BroadcastChannel;
+  private userKickedNotificationBroadcastChannel: BroadcastChannel;
 
   constructor() {
     this.notifyOnlineUsersCountBroadcastChannel = new BroadcastChannel(
@@ -23,7 +23,7 @@ export class WebSocketBroadcastService {
     this.kickUserBroadcastChannel = new BroadcastChannel(
       KICK_USER_BROADCAST_CHANNEL,
     );
-    this.sendUserBanNotificationBroadcastChannel = new BroadcastChannel(
+    this.userKickedNotificationBroadcastChannel = new BroadcastChannel(
       SEND_USER_BAN_NOTIFICATION_BROADCAST_CHANNEL,
     );
   }
@@ -41,7 +41,7 @@ export class WebSocketBroadcastService {
   }
 
   public onUserBanNotification(cb: (event: MessageEvent) => void): void {
-    this.sendUserBanNotificationBroadcastChannel.onmessage = cb;
+    this.userKickedNotificationBroadcastChannel.onmessage = cb;
   }
 
   public postTunnelMessage(
@@ -52,24 +52,30 @@ export class WebSocketBroadcastService {
       destinationToken,
       payload,
     });
+
+    console.log(`Broadcasted tunnel message to token ${destinationToken}`);
   }
 
   public postOnlineUsersCount(payload: ArrayBuffer): void {
     this.notifyOnlineUsersCountBroadcastChannel.postMessage({ payload });
+
+    console.log(`Broadcasted online users count to other instances`);
   }
 
-  public postKick(userId: string): void {
+  public postKickUser(userId: string): void {
     this.kickUserBroadcastChannel.postMessage({ userId });
+    console.log(`Broadcasted kick for user ${userId}`);
   }
 
-  public postUserBanNotification(
-    hostUserId: string,
-    bannedUserNetworkId: string,
-  ): void {
-    this.sendUserBanNotificationBroadcastChannel.postMessage({
+  public postUserKicked(hostUserId: string, bannedUserNetworkId: string): void {
+    this.userKickedNotificationBroadcastChannel.postMessage({
       hostUserId,
       bannedUserNetworkId,
     });
+
+    console.log(
+      `Broadcasted user kicked for host ID ${hostUserId} and banned user network id ${bannedUserNetworkId}`,
+    );
   }
 }
 

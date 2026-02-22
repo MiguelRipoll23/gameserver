@@ -17,7 +17,7 @@ import {
   buildNotificationPayload,
   buildPlayerIdentityPayload,
   buildTunnelPayload,
-  buildUserBanPayload,
+  buildUserKickedPayload,
   buildOnlinePlayersPayload,
 } from "./websocket-payloads.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
@@ -133,15 +133,12 @@ export class WebSocketService implements WebSocketServer {
     const { userId } = event.data;
     const user = this.userRegistry.getById(userId);
 
-    if (user) {
-      console.log(`Kicking user ${user.getName()} (ID: ${userId}) due to ban`);
-      this.closeConnection(user, 1008, "User has been banned");
-      // The handleDisconnection will be called automatically when the WebSocket closes
-    } else {
-      console.info(
-        `User with ID ${userId} not found in current server instance`,
-      );
+    if (!user) {
+      return;
     }
+
+    console.log(`Kicking user ${user.getName()} (ID: ${userId}) due to ban`);
+    this.closeConnection(user, 1008, "User has been banned");
   }
 
   private handleUserBanNotificationBroadcastChannelMessage(
@@ -151,23 +148,13 @@ export class WebSocketService implements WebSocketServer {
     const hostUser = this.userRegistry.getById(hostUserId);
 
     if (!hostUser) {
-      console.info(
-        `Match host ${hostUserId} is not connected to this server instance`,
-      );
       return;
     }
 
-    try {
-      this.sendUserBanNotificationPayload(hostUser, bannedUserNetworkId);
-      console.log(
-        `Sent UserBan notification to host ${hostUserId} for banned user (networkId: ${bannedUserNetworkId})`,
-      );
-    } catch (error) {
-      console.error(
-        `Error sending UserBan notification to host ${hostUserId}:`,
-        error,
-      );
-    }
+    this.sendUserKickedPayload(hostUser, bannedUserNetworkId);
+    console.log(
+      `Sent user banned notification to host ${hostUserId} for banned user (networkId: ${bannedUserNetworkId})`,
+    );
   }
 
   private closeConnection(
@@ -223,14 +210,6 @@ export class WebSocketService implements WebSocketServer {
     } else {
       console.error(`Failed to delete key/value data for user ${userName}`);
     }
-  }
-
-  public getUserById(id: string): WebSocketUser | undefined {
-    return this.userRegistry.getById(id);
-  }
-
-  public getUserByToken(token: string): WebSocketUser | undefined {
-    return this.userRegistry.getByToken(token);
   }
 
   private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
@@ -323,15 +302,12 @@ export class WebSocketService implements WebSocketServer {
   ): void {
     const destinationUser = this.userRegistry.getByToken(destinationToken);
 
-    if (destinationUser) {
-      this.sendMessage(destinationUser, payload);
-    } else {
-      console.log(
-        `Token not found locally, broadcasting message...`,
-        destinationToken,
-      );
+    if (!destinationUser) {
       this.broadcastService.postTunnelMessage(destinationToken, payload);
+      return;
     }
+
+    this.sendMessage(destinationUser, payload);
   }
 
   private sendNotificationToUsers(
@@ -352,29 +328,28 @@ export class WebSocketService implements WebSocketServer {
   ): void {
     const user = this.userRegistry.getById(userId);
 
-    if (user) {
-      // User is connected to this server instance, send notification directly
-      const payload = buildNotificationPayload(channelId, text);
-
-      this.sendMessage(user, payload);
-      console.log(
-        `Sent notification to user ${user.getName()} (ID: ${userId})`,
-      );
-    } else {
-      // User not found locally - they might be connected to another server instance
-      // For now, just log this. In a distributed setup, you'd broadcast to other instances
+    if (!user) {
       console.log(
         `User with ID ${userId} not found in current server instance`,
       );
+
+      // TODO: use broadcast service to send the notification to other instances
+      return;
     }
+
+    const payload = buildNotificationPayload(channelId, text);
+    this.sendMessage(user, payload);
+    console.log(`Sent notification to user ${user.getName()} (ID: ${userId})`);
   }
 
   private async notifyUsersCount(): Promise<void> {
     const totalSessions = await this.sessionsService.getTotal();
     const onlinePlayersPayload = buildOnlinePlayersPayload(totalSessions);
 
+    // For other instances...
     this.broadcastService.postOnlineUsersCount(onlinePlayersPayload);
 
+    // For our users:
     for (const user of this.userRegistry.valuesByToken()) {
       this.sendMessage(user, onlinePlayersPayload);
     }
@@ -383,56 +358,53 @@ export class WebSocketService implements WebSocketServer {
   private async kickUser(userId: string): Promise<void> {
     const user = this.userRegistry.getById(userId);
 
-    if (user) {
-      // User is connected to this server instance, kick them directly
-      const webSocket = user.getWebSocket();
-
-      if (webSocket && webSocket.readyState === WebSocket.OPEN) {
-        webSocket.close(1000, "User has been banned");
-        console.log(`Kicked user ${user.getName()} due to ban`);
-      }
-    } else {
-      // User not found locally, broadcast to other server instances
-      console.log(
-        `User with ID ${userId} not found locally, broadcasting kick message to other servers`,
-      );
-
-      this.broadcastService.postKick(userId);
+    if (!user) {
+      this.broadcastService.postKickUser(userId);
+      return;
     }
 
-    // Send UserBan notification to match host if user is in a match
-    await this.sendUserBanNotificationToMatchHost(userId);
+    // User is connected to this server instance, kick them directly
+    this.closeConnection(user, 1008, "User has been banned");
+
+    // Send user kicked notification to match host if user is in a match
+    await this.findHostAndSendUserKickedNotification(userId);
   }
 
   /**
-   * Sends a UserBan notification to the host of a match where the banned user is a participant.
+   * Sends a user kicked notification to the host of a match where the banned user is a participant.
    * This method is called immediately after a user is banned/kicked.
    */
-  private async sendUserBanNotificationToMatchHost(
+  private async findHostAndSendUserKickedNotification(
     bannedUserId: string,
   ): Promise<void> {
+    let hostUserId: string | null = null;
+
     try {
-      const hostUserId =
+      hostUserId =
         await this.matchesService.getMatchHostIdByUserId(bannedUserId);
-
-      if (!hostUserId) {
-        return;
-      }
-
-      this.sendUserBanNotificationToHost(hostUserId, bannedUserId);
     } catch (error) {
       console.error(
-        `Error sending UserBan notification for user ${bannedUserId}:`,
+        `Error obtaining match host for banned user ${bannedUserId}:`,
         error,
       );
+      return;
     }
+
+    if (!hostUserId) {
+      console.info(
+        `Banned user ${bannedUserId} is not currently in a match, skipping user kicked notification`,
+      );
+      return;
+    }
+
+    this.sendUserKickedNotificationToHost(hostUserId, bannedUserId);
   }
 
   /**
-   * Delivers the UserBan notification to the match host.
+   * Delivers the user kicked notification to the match host.
    * If the host is connected locally, sends directly; otherwise broadcasts to other server instances.
    */
-  private sendUserBanNotificationToHost(
+  private sendUserKickedNotificationToHost(
     hostUserId: string,
     bannedUserId: string,
   ): void {
@@ -440,60 +412,27 @@ export class WebSocketService implements WebSocketServer {
     const bannedUserNetworkId = bannedUserId.replace(/-/g, "");
 
     if (!hostUser) {
-      // Host not found locally, broadcast to other server instances
-      this.broadcastUserBanNotification(
-        hostUserId,
-        bannedUserNetworkId,
-        bannedUserId,
-      );
+      this.broadcastService.postUserKicked(hostUserId, bannedUserNetworkId);
       return;
     }
 
     // Host is connected locally, send directly
-    this.sendUserBanNotificationPayload(hostUser, bannedUserNetworkId);
+    this.sendUserKickedPayload(hostUser, bannedUserNetworkId);
     console.log(
-      `Sent UserBan notification to host ${hostUserId} for banned user ${bannedUserId}`,
+      `Sent user kicked to host ${hostUserId} for banned user ${bannedUserId}`,
     );
   }
 
   /**
-   * Broadcasts the UserBan notification to other server instances.
+   * Sends the user kicked payload to a specific user.
    */
-  private broadcastUserBanNotification(
-    hostUserId: string,
-    bannedUserNetworkId: string,
-    bannedUserId: string,
-  ): void {
-    console.info(
-      `Match host ${hostUserId} is not connected to this server instance, broadcasting to other servers`,
-    );
-
-    try {
-      this.broadcastService.postUserBanNotification(
-        hostUserId,
-        bannedUserNetworkId,
-      );
-      console.log(
-        `Broadcasted UserBan notification for host ${hostUserId} and banned user ${bannedUserId}`,
-      );
-    } catch (error) {
-      console.error(
-        `Failed to broadcast UserBan notification for host ${hostUserId}:`,
-        error,
-      );
-    }
-  }
-
-  /**
-   * Sends the UserBan notification payload to a specific user.
-   */
-  private sendUserBanNotificationPayload(
+  private sendUserKickedPayload(
     user: WebSocketUser,
     bannedUserNetworkId: string,
   ): void {
-    const userBanPayload = buildUserBanPayload(bannedUserNetworkId);
+    const userKickedPayload = buildUserKickedPayload(bannedUserNetworkId);
 
-    this.sendMessage(user, userBanPayload);
+    this.sendMessage(user, userKickedPayload);
   }
 
   @CommandHandler(WebSocketType.Authentication)

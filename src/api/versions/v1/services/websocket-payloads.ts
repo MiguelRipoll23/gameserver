@@ -46,7 +46,9 @@ export function buildTunnelPayload(
     .toArrayBuffer();
 }
 
-export function buildUserBanPayload(bannedUserNetworkId: string): ArrayBuffer {
+export function buildUserKickedPayload(
+  bannedUserNetworkId: string,
+): ArrayBuffer {
   return BinaryWriter.build()
     .unsignedInt8(WebSocketType.UserBan)
     .fixedLengthString(bannedUserNetworkId, 32)
@@ -65,6 +67,6 @@ export default {
   buildAuthenticationAckPayload,
   buildPlayerIdentityPayload,
   buildTunnelPayload,
-  buildUserBanPayload,
+  buildUserBanPayload: buildUserKickedPayload,
   buildOnlinePlayersPayload,
 };
