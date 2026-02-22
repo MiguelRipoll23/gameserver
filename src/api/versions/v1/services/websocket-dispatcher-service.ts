@@ -9,23 +9,26 @@ import { injectable } from "@needle-di/core";
 export class WebSocketDispatcherService {
   private commandHandlers = new Map<WebSocketType, CommandHandlerFunction>();
 
-  public registerCommandHandlers(instance: any): void {
+  public registerCommandHandlers(instance: unknown): void {
+    const proto = Object.getPrototypeOf(instance as object);
     const commandHandlers = getCommandHandlers().filter(
-      (commandHandler) =>
-        commandHandler.target === Object.getPrototypeOf(instance),
+      (commandHandler) => commandHandler.target === proto,
     );
 
     for (const { commandId, methodName } of commandHandlers) {
-      const method = instance[methodName];
+      const inst = instance as Record<string, unknown>;
+      const maybe = inst[methodName];
 
-      if (typeof method !== "function") {
+      if (typeof maybe !== "function") {
         console.error(
           `Method "${methodName}" not found or is not a function on the instance.`,
         );
         continue;
       }
 
-      const boundMethod = instance[methodName].bind(instance);
+      const boundMethod = (maybe as CommandHandlerFunction).bind(
+        instance as object,
+      ) as CommandHandlerFunction;
       this.bindCommandHandler(commandId, boundMethod);
     }
   }

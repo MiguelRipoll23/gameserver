@@ -16,7 +16,7 @@ export class NotificationService {
       throw new ServerError(
         "EMPTY_NOTIFICATION_MESSAGE",
         "Notification message cannot be empty",
-        400
+        400,
       );
     }
 
@@ -25,7 +25,7 @@ export class NotificationService {
       throw new ServerError(
         "INVALID_CHANNEL_ID",
         "Invalid notification channel type",
-        400
+        400,
       );
     }
 
@@ -42,7 +42,7 @@ export class NotificationService {
   public notifyUser(
     channelId: NotificationChannelType,
     userId: string,
-    text: string
+    text: string,
   ): void {
     const message = text.trim();
 
@@ -51,7 +51,7 @@ export class NotificationService {
       throw new ServerError(
         "EMPTY_NOTIFICATION_MESSAGE",
         "Notification message cannot be empty",
-        400
+        400,
       );
     }
 
@@ -65,14 +65,14 @@ export class NotificationService {
       throw new ServerError(
         "INVALID_CHANNEL_ID",
         "Invalid notification channel type",
-        400
+        400,
       );
     }
 
     const customEvent = new CustomEvent(SEND_USER_NOTIFICATION_EVENT, {
       detail: {
-        channelId,
         userId: userId.trim(),
+        channelId,
         message,
       },
     });
