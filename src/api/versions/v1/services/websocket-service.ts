@@ -6,7 +6,6 @@ import {
 } from "../constants/event-constants.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
-import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ChatService } from "./chat-service.ts";
 import type { WebSocketServer } from "../interfaces/websocket-server-interface.ts";
 import { WSMessageReceive } from "hono/ws";
@@ -16,12 +15,6 @@ import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
-import {
-  matchesTable,
-  matchUsersTable,
-  userSessionsTable,
-} from "../../../../db/schema.ts";
-import { count, eq } from "drizzle-orm";
 import { KVService } from "./kv-service.ts";
 import {
   KICK_USER_BROADCAST_CHANNEL,
@@ -31,6 +24,7 @@ import {
 } from "../constants/broadcast-channel-constants.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 import { MatchesService } from "./matches-service.ts";
+import { SessionsService } from "./sessions-service.ts";
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
@@ -44,7 +38,7 @@ export class WebSocketService implements WebSocketServer {
   constructor(
     private jwtService = inject(JWTService),
     private kvService = inject(KVService),
-    private databaseService = inject(DatabaseService),
+    private sessionsService = inject(SessionsService),
     private matchesService = inject(MatchesService),
     private chatService = inject(ChatService),
     private dispatcher = inject(WebSocketDispatcherService),
@@ -224,7 +218,7 @@ export class WebSocketService implements WebSocketServer {
     console.log(`User ${userName} disconnected from server`);
 
     try {
-      await this.deleteSessionByUserId(userId, userName);
+      await this.sessionsService.deleteByUserId(userId, userName);
       await this.deleteUserKeyValueData(userId, userName);
       await this.matchesService.deleteIfExists(userId, userName);
       await this.notifyUsersCount();
@@ -235,21 +229,6 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private async deleteSessionByUserId(
-    userId: string,
-    userName: string,
-  ): Promise<void> {
-    const db = this.databaseService.get();
-    const deletedSessions = await db
-      .delete(userSessionsTable)
-      .where(eq(userSessionsTable.userId, userId))
-      .returning({ id: userSessionsTable.userId });
-
-    if (deletedSessions.length > 0) {
-      console.log(`Deleted session for user ${userName}`);
-    }
-  }
-
   private async deleteUserKeyValueData(
     userId: string,
     userName: string,
@@ -257,9 +236,9 @@ export class WebSocketService implements WebSocketServer {
     const result = await this.kvService.deleteUserTemporaryData(userId);
 
     if (result.ok) {
-      console.log(`Deleted temporary data for user ${userName}`);
+      console.log(`Deleted temporary key/value data for user ${userName}`);
     } else {
-      console.error(`Failed to delete temporary data for user ${userName}`);
+      console.error(`Failed to delete key/value data for user ${userName}`);
     }
   }
 
@@ -329,11 +308,10 @@ export class WebSocketService implements WebSocketServer {
     webSocketUser: WebSocketUser,
   ): Promise<void> {
     const userId = webSocketUser.getId();
+    const userName = webSocketUser.getName();
 
     if (await this.kvService.isUserBanned(userId)) {
-      console.log(
-        `Banned user ${webSocketUser.getName()} attempted to connect to server`,
-      );
+      console.log(`Banned user ${userName} attempted to connect to server`);
       this.closeConnection(webSocketUser, 1008, "User has been banned");
       return;
     }
@@ -341,33 +319,12 @@ export class WebSocketService implements WebSocketServer {
     const userToken = webSocketUser.getToken();
     const userPublicIp = webSocketUser.getPublicIp();
 
-    // Store session in database using upsert (insert or update if user_id exists)
-    const db = this.databaseService.get();
-
-    try {
-      await db
-        .insert(userSessionsTable)
-        .values({
-          userId: userId,
-          token: userToken,
-          publicIp: userPublicIp,
-        })
-        .onConflictDoUpdate({
-          target: userSessionsTable.userId,
-          set: {
-            token: userToken,
-            publicIp: userPublicIp,
-            updatedAt: new Date(),
-          },
-        });
-    } catch (error) {
-      console.error(
-        `Failed to create/update session for user ${webSocketUser.getName()}:`,
-        error,
-      );
-
-      throw error;
-    }
+    await this.sessionsService.create(
+      userId,
+      userName,
+      userToken,
+      userPublicIp,
+    );
 
     this.addWebSocketUser(webSocketUser);
   }
@@ -457,14 +414,8 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private async getTotalSessions(): Promise<number> {
-    const db = this.databaseService.get();
-    const result = await db.select({ count: count() }).from(userSessionsTable);
-    return result[0]?.count ?? 0;
-  }
-
   private async notifyUsersCount(): Promise<void> {
-    const totalSessions = await this.getTotalSessions();
+    const totalSessions = await this.sessionsService.getTotal();
     const onlinePlayersPayload = BinaryWriter.build()
       .unsignedInt8(WebSocketType.OnlinePlayers)
       .unsignedInt16(totalSessions)
@@ -511,7 +462,8 @@ export class WebSocketService implements WebSocketServer {
     bannedUserId: string,
   ): Promise<void> {
     try {
-      const hostUserId = await this.findMatchHostForBannedUser(bannedUserId);
+      const hostUserId =
+        await this.matchesService.getMatchHostIdByUserId(bannedUserId);
 
       if (!hostUserId) {
         return;
@@ -524,36 +476,6 @@ export class WebSocketService implements WebSocketServer {
         error,
       );
     }
-  }
-
-  /**
-   * Finds the host user ID of the match where the banned user is a participant.
-   * Returns null if the user is not in any match.
-   */
-  private async findMatchHostForBannedUser(
-    bannedUserId: string,
-  ): Promise<string | null> {
-    const db = this.databaseService.get();
-
-    // Find the match host using a single JOIN query for efficiency
-    const result = await db
-      .select({
-        matchId: matchesTable.id,
-        hostUserId: matchesTable.hostUserId,
-      })
-      .from(matchUsersTable)
-      .innerJoin(matchesTable, eq(matchUsersTable.matchId, matchesTable.id))
-      .where(eq(matchUsersTable.userId, bannedUserId))
-      .limit(1);
-
-    if (result.length === 0) {
-      console.info(
-        `Banned user ${bannedUserId} is not a participant in any match`,
-      );
-      return null;
-    }
-
-    return result[0].hostUserId;
   }
 
   /**
