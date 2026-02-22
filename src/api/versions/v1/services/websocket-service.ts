@@ -82,51 +82,69 @@ export class WebSocketService implements WebSocketServer {
 
     addEventListener(SEND_USER_NOTIFICATION_EVENT, (event): void => {
       // deno-lint-ignore no-explicit-any
-      const { channelId, userId, message } = (event as CustomEvent<any>).detail;
-      this.sendNotificationToUser(channelId, userId, message);
+      const { userId, channelId, message } = (event as CustomEvent<any>).detail;
+      this.sendNotificationToUser(userId, channelId, message, false);
     });
 
     addEventListener(KICK_USER_EVENT, (event): void => {
       // deno-lint-ignore no-explicit-any
       const { userId } = (event as CustomEvent<any>).detail;
-      void this.kickUser(userId);
+      void this.kickUser(userId, true);
     });
   }
 
   private registerBroadcastHandlers(): void {
-    this.broadcastService.onTunnelMessage(
-      this.handleTunnelBroadcastChannelMessage.bind(this),
-    );
     this.broadcastService.onOnlineUsersCount(
       this.handleOnlineUsersBroadcastChannelMessage.bind(this),
     );
+
+    this.broadcastService.onTunnelMessage(
+      this.handleTunnelBroadcastChannelMessage.bind(this),
+    );
+
+    this.broadcastService.onUserNotification(
+      this.handleUserNotificationBroadcastChannelMessage.bind(this),
+    );
+
     this.broadcastService.onKickUser(
       this.handleKickUserBroadcastChannelMessage.bind(this),
     );
+
     this.broadcastService.onUserBanNotification(
-      this.handleUserBanNotificationBroadcastChannelMessage.bind(this),
+      this.handleUserKickedNotificationBroadcastChannelMessage.bind(this),
     );
-  }
-
-  private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
-    const { destinationToken: destinationToken, payload } = event.data;
-    const destinationUser =
-      this.userRegistry.getByToken(destinationToken) ?? null;
-
-    if (destinationUser === null) {
-      console.info(`No user found for token ${destinationToken}`);
-      return;
-    }
-
-    this.sendMessage(destinationUser, payload);
   }
 
   private handleOnlineUsersBroadcastChannelMessage(event: MessageEvent): void {
     const { payload } = event.data;
 
-    for (const user of this.userRegistry.valuesById()) {
+    for (const user of this.userRegistry.valuesByToken()) {
       this.sendMessage(user, payload);
     }
+  }
+
+  private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
+    const { destinationToken: destinationToken, payload } = event.data;
+    const user = this.userRegistry.getByToken(destinationToken) ?? null;
+
+    if (!user) {
+      return;
+    }
+
+    this.sendMessage(user, payload);
+  }
+
+  private handleUserNotificationBroadcastChannelMessage(
+    event: MessageEvent,
+  ): void {
+    const { userId, channelId, message } = event.data;
+    const user = this.userRegistry.getById(userId);
+
+    if (!user) {
+      return;
+    }
+
+    this.sendNotificationToUser(userId, channelId, message, false);
   }
 
   private handleKickUserBroadcastChannelMessage(event: MessageEvent): void {
@@ -137,11 +155,10 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
-    console.log(`Kicking user ${user.getName()} (ID: ${userId}) due to ban`);
-    this.closeConnection(user, 1008, "User has been banned");
+    this.kickUser(userId, false);
   }
 
-  private handleUserBanNotificationBroadcastChannelMessage(
+  private handleUserKickedNotificationBroadcastChannelMessage(
     event: MessageEvent,
   ): void {
     const { hostUserId, bannedUserNetworkId } = event.data;
@@ -151,10 +168,7 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
-    this.sendUserKickedPayload(hostUser, bannedUserNetworkId);
-    console.log(
-      `Sent user banned notification to host ${hostUserId} for banned user (networkId: ${bannedUserNetworkId})`,
-    );
+    this.sendUserKickedNotificationToHost(hostUserId, bannedUserNetworkId);
   }
 
   private closeConnection(
@@ -191,7 +205,7 @@ export class WebSocketService implements WebSocketServer {
       await this.sessionsService.deleteByUserId(userId, userName);
       await this.deleteUserKeyValueData(userId, userName);
       await this.matchesService.deleteIfExists(userId, userName);
-      await this.notifyUsersCount();
+      await this.getAndSendOnlineUsersCount();
     } catch (error) {
       console.error(`Error during disconnection for user ${userName}:`, error);
     } finally {
@@ -260,7 +274,7 @@ export class WebSocketService implements WebSocketServer {
     if (await this.kvService.isUserBanned(userId)) {
       console.log(`Banned user ${userName} attempted to connect to server`);
       this.closeConnection(webSocketUser, 1008, "User has been banned");
-      return;
+      throw new Error(`User ${userName} trying to connect is banned`);
     }
 
     const userToken = webSocketUser.getToken();
@@ -296,7 +310,7 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private sendMessageToOtherUser(
+  private sendMessageToUserByToken(
     destinationToken: string,
     payload: ArrayBuffer,
   ): void {
@@ -310,6 +324,19 @@ export class WebSocketService implements WebSocketServer {
     this.sendMessage(destinationUser, payload);
   }
 
+  private async getAndSendOnlineUsersCount(): Promise<void> {
+    const totalSessions = await this.sessionsService.getTotal();
+    const onlinePlayersPayload = buildOnlinePlayersPayload(totalSessions);
+
+    // For other instances...
+    this.broadcastService.postOnlineUsersCount(onlinePlayersPayload);
+
+    // For our users...
+    for (const user of this.userRegistry.valuesByToken()) {
+      this.sendMessage(user, onlinePlayersPayload);
+    }
+  }
+
   private sendNotificationToUsers(
     channelId: NotificationChannelType,
     text: string,
@@ -319,47 +346,46 @@ export class WebSocketService implements WebSocketServer {
     for (const user of this.userRegistry.valuesByToken()) {
       this.sendMessage(user, payload);
     }
+
+    console.log(
+      `Sent notification to all users on channel ${NotificationChannelType[channelId]}`,
+    );
   }
 
   private sendNotificationToUser(
-    channelId: NotificationChannelType,
     userId: string,
+    channelId: NotificationChannelType,
     text: string,
+    mustBroadcast: boolean,
   ): void {
     const user = this.userRegistry.getById(userId);
+    const payload = buildNotificationPayload(channelId, text);
 
     if (!user) {
-      console.log(
-        `User with ID ${userId} not found in current server instance`,
-      );
+      if (mustBroadcast) {
+        this.broadcastService.postUserNotification(userId, channelId, text);
+      }
 
-      // TODO: use broadcast service to send the notification to other instances
       return;
     }
 
-    const payload = buildNotificationPayload(channelId, text);
     this.sendMessage(user, payload);
-    console.log(`Sent notification to user ${user.getName()} (ID: ${userId})`);
+    console.log(
+      `Sent notification to user ${user.getName()} on channel ${NotificationChannelType[channelId]}`,
+    );
   }
 
-  private async notifyUsersCount(): Promise<void> {
-    const totalSessions = await this.sessionsService.getTotal();
-    const onlinePlayersPayload = buildOnlinePlayersPayload(totalSessions);
-
-    // For other instances...
-    this.broadcastService.postOnlineUsersCount(onlinePlayersPayload);
-
-    // For our users:
-    for (const user of this.userRegistry.valuesByToken()) {
-      this.sendMessage(user, onlinePlayersPayload);
-    }
-  }
-
-  private async kickUser(userId: string): Promise<void> {
+  private async kickUser(
+    userId: string,
+    mustBroadcast: boolean,
+  ): Promise<void> {
     const user = this.userRegistry.getById(userId);
 
     if (!user) {
-      this.broadcastService.postKickUser(userId);
+      if (mustBroadcast) {
+        this.broadcastService.postKickUser(userId);
+      }
+
       return;
     }
 
@@ -408,20 +434,12 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
-    // Host is connected locally, send directly
-    this.sendUserKickedPayload(hostUser, bannedUserNetworkId);
+    const payload = buildUserKickedPayload(bannedUserNetworkId);
+    this.sendMessage(hostUser, payload);
+
     console.log(
       `Sent user kicked to host ${hostUserId} for banned user ${bannedUserId}`,
     );
-  }
-
-  private sendUserKickedPayload(
-    user: WebSocketUser,
-    bannedUserNetworkId: string,
-  ): void {
-    const userKickedPayload = buildUserKickedPayload(bannedUserNetworkId);
-
-    this.sendMessage(user, userKickedPayload);
   }
 
   @CommandHandler(WebSocketType.Authentication)
@@ -450,6 +468,7 @@ export class WebSocketService implements WebSocketServer {
     } catch (error) {
       console.error("Authentication failed:", error);
       this.closeConnection(originUser, 1008, "Authentication failed");
+      return;
     }
 
     // Send ACK for successful authentication
@@ -459,7 +478,7 @@ export class WebSocketService implements WebSocketServer {
 
     // Notify all users about the updated online count after authentication
     try {
-      await this.notifyUsersCount();
+      await this.getAndSendOnlineUsersCount();
     } catch (error) {
       console.error(
         "Failed to notify users count after authentication:",
@@ -483,7 +502,7 @@ export class WebSocketService implements WebSocketServer {
       originUser.getName(),
     );
 
-    this.sendMessageToOtherUser(destinationToken, playerIdentityPayload);
+    this.sendMessageToUserByToken(destinationToken, playerIdentityPayload);
   }
 
   @CommandHandler(WebSocketType.Tunnel)
@@ -498,7 +517,7 @@ export class WebSocketService implements WebSocketServer {
       dataBytes,
     );
 
-    this.sendMessageToOtherUser(
+    this.sendMessageToUserByToken(
       encodeBase64(destinationTokenBytes),
       tunnelPayload,
     );

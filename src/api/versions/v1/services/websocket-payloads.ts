@@ -50,15 +50,16 @@ export function buildUserKickedPayload(
   bannedUserNetworkId: string,
 ): ArrayBuffer {
   return BinaryWriter.build()
-    .unsignedInt8(WebSocketType.UserBan)
+    .unsignedInt8(WebSocketType.UserKicked)
     .fixedLengthString(bannedUserNetworkId, 32)
     .toArrayBuffer();
 }
 
 export function buildOnlinePlayersPayload(totalSessions: number): ArrayBuffer {
+  const clampedSessions = Math.max(0, Math.min(65535, totalSessions));
   return BinaryWriter.build()
     .unsignedInt8(WebSocketType.OnlinePlayers)
-    .unsignedInt16(totalSessions)
+    .unsignedInt16(clampedSessions)
     .toArrayBuffer();
 }
 
@@ -67,6 +68,6 @@ export default {
   buildAuthenticationAckPayload,
   buildPlayerIdentityPayload,
   buildTunnelPayload,
-  buildUserBanPayload: buildUserKickedPayload,
+  buildUserKickedPayload,
   buildOnlinePlayersPayload,
 };
