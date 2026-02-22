@@ -9,14 +9,14 @@ import { injectable } from "@needle-di/core";
 export class WebSocketDispatcherService {
   private commandHandlers = new Map<WebSocketType, CommandHandlerFunction>();
 
-  public registerCommandHandlers(instance: any): void {
+  public registerCommandHandlers(instance: unknown): void {
+    const proto = Object.getPrototypeOf(instance as object);
     const commandHandlers = getCommandHandlers().filter(
-      (commandHandler) =>
-        commandHandler.target === Object.getPrototypeOf(instance),
+      (commandHandler) => commandHandler.target === proto,
     );
 
     for (const { commandId, methodName } of commandHandlers) {
-      const method = instance[methodName];
+      const method = (instance as any)[methodName];
 
       if (typeof method !== "function") {
         console.error(
@@ -25,7 +25,7 @@ export class WebSocketDispatcherService {
         continue;
       }
 
-      const boundMethod = instance[methodName].bind(instance);
+      const boundMethod = method.bind(instance as any);
       this.bindCommandHandler(commandId, boundMethod);
     }
   }
