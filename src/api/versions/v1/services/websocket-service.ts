@@ -125,9 +125,7 @@ export class WebSocketService implements WebSocketServer {
     payload: ArrayBuffer,
   ): void {
     console.log(
-      `Received online users broadcast with payload. Sending to ${
-        Array.from(this.userRegistry.valuesByToken()).length
-      } local users.`,
+      `Received online users broadcast with payload.`,
     );
     for (const user of this.userRegistry.valuesByToken()) {
       this.sendMessage(user, payload);
@@ -162,7 +160,11 @@ export class WebSocketService implements WebSocketServer {
       );
       return;
     }
-    this.sendNotificationToUser(userId, channelId, message, false);
+    const payload = buildNotificationPayload(channelId, message);
+    this.sendMessage(user, payload);
+    console.log(
+      `Sent notification to user ${user.getName()} on channel ${NotificationChannelType[channelId]}`,
+    );
   }
 
   private handleKickUserBroadcastMessage(payloadMessage: {
