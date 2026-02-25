@@ -29,6 +29,7 @@ import { WebSocketUserRegistry } from "./websocket-user-registry.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 import { MatchesService } from "./matches-service.ts";
 import { SessionsService } from "./sessions-service.ts";
+import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
@@ -94,84 +95,130 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private registerBroadcastHandlers(): void {
-    this.broadcastService.onOnlineUsersCount(
-      this.handleOnlineUsersBroadcastChannelMessage.bind(this),
+    this.broadcastService.on(
+      BroadcastCommandType.OnlineUsersCount,
+      this.handleOnlineUsersBroadcastMessage.bind(this),
     );
 
-    this.broadcastService.onTunnelMessage(
-      this.handleTunnelBroadcastChannelMessage.bind(this),
+    this.broadcastService.on(
+      BroadcastCommandType.TunnelMessage,
+      this.handleTunnelBroadcastMessage.bind(this),
     );
 
-    this.broadcastService.onUserNotification(
-      this.handleUserNotificationBroadcastChannelMessage.bind(this),
+    this.broadcastService.on(
+      BroadcastCommandType.UserNotification,
+      this.handleUserNotificationBroadcastMessage.bind(this),
     );
 
-    this.broadcastService.onKickUser(
-      this.handleKickUserBroadcastChannelMessage.bind(this),
+    this.broadcastService.on(
+      BroadcastCommandType.KickUser,
+      this.handleKickUserBroadcastMessage.bind(this),
     );
 
-    this.broadcastService.onUserBanNotification(
-      this.handleUserKickedNotificationBroadcastChannelMessage.bind(this),
+    this.broadcastService.on(
+      BroadcastCommandType.UserKickedNotification,
+      this.handleUserKickedNotificationBroadcastMessage.bind(this),
     );
   }
 
-  private handleOnlineUsersBroadcastChannelMessage(event: MessageEvent): void {
-    const { payload } = event.data;
+  private handleOnlineUsersBroadcastMessage(
+    payloadMessage: { payload: ArrayBuffer },
+  ): void {
+    const { payload } = payloadMessage;
 
     for (const user of this.userRegistry.valuesByToken()) {
       this.sendMessage(user, payload);
     }
   }
 
-  private handleTunnelBroadcastChannelMessage(event: MessageEvent): void {
-    const { destinationToken: destinationToken, payload } = event.data;
-    const user = this.userRegistry.getByToken(destinationToken);
+  private handleTunnelBroadcastMessage(payloadMessage: {
+    destinationToken: string;
+    payload: ArrayBuffer;
+  }): void {
+    const { destinationToken, payload } = payloadMessage;
 
-    if (!user) {
-      return;
-    }
-
-    this.sendMessage(user, payload);
-  }
-
-  private handleUserNotificationBroadcastChannelMessage(
-    event: MessageEvent,
-  ): void {
-    const { userId, channelId, message } = event.data;
-    const user = this.userRegistry.getById(userId);
-
-    if (!user) {
-      return;
-    }
-
-    this.sendNotificationToUser(userId, channelId, message, false);
-  }
-
-  private handleKickUserBroadcastChannelMessage(event: MessageEvent): void {
-    const { userId } = event.data;
-    const user = this.userRegistry.getById(userId);
-
-    if (!user) {
-      return;
-    }
-
-    void this.kickUser(userId, false);
-  }
-
-  private handleUserKickedNotificationBroadcastChannelMessage(
-    event: MessageEvent,
-  ): void {
-    const { hostUserId, bannedUserNetworkId } = event.data;
-    const hostUser = this.userRegistry.getById(hostUserId);
-
-    if (!hostUser) {
-      return;
-    }
-
-    this.sendUserKickedNotificationToHostWithNetworkId(
-      hostUserId,
-      bannedUserNetworkId,
+    this.withUserByToken(
+      destinationToken,
+      BroadcastCommandType.TunnelMessage,
+      (user) => this.sendMessage(user, payload),
     );
+  }
+
+  private handleUserNotificationBroadcastMessage(
+    payloadMessage: {
+      userId: string;
+      channelId: NotificationChannelType;
+      message: string;
+    },
+  ): void {
+    const { userId, channelId, message } = payloadMessage;
+    this.withUserById(userId, BroadcastCommandType.UserNotification, () => {
+      this.sendNotificationToUser(userId, channelId, message, false);
+    });
+  }
+
+  private handleKickUserBroadcastMessage(payloadMessage: {
+    userId: string;
+  }): void {
+    const { userId } = payloadMessage;
+
+    this.withUserById(userId, BroadcastCommandType.KickUser, () => {
+      void this.kickUser(userId, false);
+    });
+  }
+
+  private handleUserKickedNotificationBroadcastMessage(
+    payloadMessage: {
+      hostUserId: string;
+      bannedUserNetworkId: string;
+    },
+  ): void {
+    const { hostUserId, bannedUserNetworkId } = payloadMessage;
+
+    this.withUserById(
+      hostUserId,
+      BroadcastCommandType.UserKickedNotification,
+      () => {
+        this.sendUserKickedNotificationToHostWithNetworkId(
+          hostUserId,
+          bannedUserNetworkId,
+        );
+      },
+    );
+  }
+
+  private withUserById(
+    userId: string,
+    command: BroadcastCommandType,
+    cb: (user: WebSocketUser) => void,
+  ): void {
+    const user = this.userRegistry.getById(userId);
+
+    if (!user) {
+      console.debug(
+        `Ignoring ${command} command for user ${userId} because user is not present on this instance`,
+      );
+      return;
+    }
+
+    cb(user);
+  }
+
+  private withUserByToken(
+    userToken: string,
+    command: BroadcastCommandType,
+    cb: (user: WebSocketUser) => void,
+  ): void {
+    const user = this.userRegistry.getByToken(userToken);
+
+    if (!user) {
+      console.debug(
+        `Ignoring ${command} command for token ${userToken} because user is not present on this instance`,
+      );
+      return;
+    }
+
+    cb(user);
   }
 
   private closeConnection(
@@ -319,7 +366,10 @@ export class WebSocketService implements WebSocketServer {
     const destinationUser = this.userRegistry.getByToken(destinationToken);
 
     if (!destinationUser) {
-      this.broadcastService.postTunnelMessage(destinationToken, payload);
+      this.broadcastService.dispatch(BroadcastCommandType.TunnelMessage, {
+        destinationToken,
+        payload,
+      });
       return;
     }
 
@@ -331,7 +381,9 @@ export class WebSocketService implements WebSocketServer {
     const onlinePlayersPayload = buildOnlinePlayersPayload(totalSessions);
 
     // For other instances...
-    this.broadcastService.postOnlineUsersCount(onlinePlayersPayload);
+    this.broadcastService.dispatch(BroadcastCommandType.OnlineUsersCount, {
+      payload: onlinePlayersPayload,
+    });
 
     // For our users...
     for (const user of this.userRegistry.valuesByToken()) {
@@ -365,7 +417,11 @@ export class WebSocketService implements WebSocketServer {
 
     if (!user) {
       if (mustBroadcast) {
-        this.broadcastService.postUserNotification(userId, channelId, text);
+        this.broadcastService.dispatch(BroadcastCommandType.UserNotification, {
+          userId,
+          channelId,
+          message: text,
+        });
       }
 
       return;
@@ -385,7 +441,9 @@ export class WebSocketService implements WebSocketServer {
 
     if (!user) {
       if (mustBroadcast) {
-        this.broadcastService.postKickUser(userId);
+        this.broadcastService.dispatch(BroadcastCommandType.KickUser, {
+          userId,
+        });
       }
 
       return;
@@ -443,7 +501,13 @@ export class WebSocketService implements WebSocketServer {
     const hostUser = this.userRegistry.getById(hostUserId);
 
     if (!hostUser) {
-      this.broadcastService.postUserKicked(hostUserId, bannedUserNetworkId);
+      this.broadcastService.dispatch(
+        BroadcastCommandType.UserKickedNotification,
+        {
+          hostUserId,
+          bannedUserNetworkId,
+        },
+      );
       return;
     }
 

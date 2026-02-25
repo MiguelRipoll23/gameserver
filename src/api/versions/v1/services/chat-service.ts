@@ -6,8 +6,9 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
-import { BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL } from "../constants/broadcast-channel-constants.ts";
 import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
+import { WebSocketBroadcastService } from "./websocket-broadcast-service.ts";
+import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { BlockedWordEntity } from "../../../../db/tables/blocked-words-table.ts";
 
 @injectable()
@@ -16,29 +17,32 @@ export class ChatService {
   private blockedWords: string[] = [];
   private cacheInitialized = false;
   private initializationPromise: Promise<void> | null = null;
-  private refreshBlockedWordsCacheBroadcastChannel: BroadcastChannel;
 
   constructor(
     private readonly signatureService = inject(SignatureService),
     private readonly textModerationService = inject(TextModerationService),
+    private readonly broadcastService = inject(WebSocketBroadcastService),
   ) {
-    this.refreshBlockedWordsCacheBroadcastChannel = new BroadcastChannel(
-      BLOCKED_WORDS_CACHE_BROADCAST_CHANNEL,
-    );
     this.addEventListeners();
     this.addBroadcastChannelListeners();
   }
 
   private addEventListeners(): void {
     addEventListener(REFRESH_BLOCKED_WORDS_CACHE, (): void => {
-      this.refreshBlockedWordsCacheBroadcastChannel.postMessage(null);
+      void this.refreshBlockedWordsCache();
+      this.broadcastService.dispatch(
+        BroadcastCommandType.RefreshBlockedWordsCache,
+        null,
+      );
     });
   }
 
   private addBroadcastChannelListeners(): void {
-    this.refreshBlockedWordsCacheBroadcastChannel.addEventListener(
-      "message",
-      this.refreshBlockedWordsCache.bind(this),
+    this.broadcastService.on(
+      BroadcastCommandType.RefreshBlockedWordsCache,
+      () => {
+        void this.refreshBlockedWordsCache();
+      },
     );
   }
 
