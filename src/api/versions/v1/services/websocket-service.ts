@@ -121,11 +121,15 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  private handleOnlineUsersBroadcastMessage(
-    payloadMessage: { payload: ArrayBuffer },
-  ): void {
+  private handleOnlineUsersBroadcastMessage(payloadMessage: {
+    payload: ArrayBuffer;
+  }): void {
     const { payload } = payloadMessage;
-
+    console.log(
+      `Received online users broadcast with payload. Sending to ${
+        Array.from(this.userRegistry.valuesByToken()).length
+      } local users.`,
+    );
     for (const user of this.userRegistry.valuesByToken()) {
       this.sendMessage(user, payload);
     }
@@ -136,89 +140,62 @@ export class WebSocketService implements WebSocketServer {
     payload: ArrayBuffer;
   }): void {
     const { destinationToken, payload } = payloadMessage;
-
-    this.withUserByToken(
-      destinationToken,
-      BroadcastCommandType.TunnelMessage,
-      (user) => this.sendMessage(user, payload),
-    );
+    const user = this.userRegistry.getByToken(destinationToken);
+    if (!user) {
+      console.debug(
+        `Ignoring TunnelMessage command for token ${destinationToken} because user is not present on this instance`,
+      );
+      return;
+    }
+    this.sendMessage(user, payload);
   }
 
-  private handleUserNotificationBroadcastMessage(
-    payloadMessage: {
-      userId: string;
-      channelId: NotificationChannelType;
-      message: string;
-    },
-  ): void {
+  private handleUserNotificationBroadcastMessage(payloadMessage: {
+    userId: string;
+    channelId: NotificationChannelType;
+    message: string;
+  }): void {
     const { userId, channelId, message } = payloadMessage;
-    this.withUserById(userId, BroadcastCommandType.UserNotification, () => {
-      this.sendNotificationToUser(userId, channelId, message, false);
-    });
+    const user = this.userRegistry.getById(userId);
+    if (!user) {
+      console.debug(
+        `Ignoring UserNotification command for user ${userId} because user is not present on this instance`,
+      );
+      return;
+    }
+    this.sendNotificationToUser(userId, channelId, message, false);
   }
 
   private handleKickUserBroadcastMessage(payloadMessage: {
     userId: string;
   }): void {
     const { userId } = payloadMessage;
-
-    this.withUserById(userId, BroadcastCommandType.KickUser, () => {
-      void this.kickUser(userId, false);
-    });
-  }
-
-  private handleUserKickedNotificationBroadcastMessage(
-    payloadMessage: {
-      hostUserId: string;
-      bannedUserNetworkId: string;
-    },
-  ): void {
-    const { hostUserId, bannedUserNetworkId } = payloadMessage;
-
-    this.withUserById(
-      hostUserId,
-      BroadcastCommandType.UserKickedNotification,
-      () => {
-        this.sendUserKickedNotificationToHostWithNetworkId(
-          hostUserId,
-          bannedUserNetworkId,
-        );
-      },
-    );
-  }
-
-  private withUserById(
-    userId: string,
-    command: BroadcastCommandType,
-    cb: (user: WebSocketUser) => void,
-  ): void {
     const user = this.userRegistry.getById(userId);
-
     if (!user) {
       console.debug(
-        `Ignoring ${command} command for user ${userId} because user is not present on this instance`,
+        `Ignoring KickUser command for user ${userId} because user is not present on this instance`,
       );
       return;
     }
-
-    cb(user);
+    void this.kickUser(userId, false);
   }
 
-  private withUserByToken(
-    userToken: string,
-    command: BroadcastCommandType,
-    cb: (user: WebSocketUser) => void,
-  ): void {
-    const user = this.userRegistry.getByToken(userToken);
-
+  private handleUserKickedNotificationBroadcastMessage(payloadMessage: {
+    hostUserId: string;
+    bannedUserNetworkId: string;
+  }): void {
+    const { hostUserId, bannedUserNetworkId } = payloadMessage;
+    const user = this.userRegistry.getById(hostUserId);
     if (!user) {
       console.debug(
-        `Ignoring ${command} command for token ${userToken} because user is not present on this instance`,
+        `Ignoring UserKickedNotification command for host user ${hostUserId} because user is not present on this instance`,
       );
       return;
     }
-
-    cb(user);
+    this.sendUserKickedNotificationToHostWithNetworkId(
+      hostUserId,
+      bannedUserNetworkId,
+    );
   }
 
   private closeConnection(
