@@ -133,7 +133,15 @@ export class WebSocketBroadcastService {
     payload: BroadcastCommandPayloadMap[T],
   ): void {
     for (const handler of this.handlers[command]) {
-      handler(payload);
+      try {
+        handler(payload);
+      } catch (err) {
+        if (this.logger && typeof this.logger.error === "function") {
+          this.logger.error(`Handler error for command ${command}:`, err);
+        } else {
+          console.error(`Handler error for command ${command}:`, err);
+        }
+      }
     }
   }
 
@@ -157,8 +165,8 @@ export class WebSocketBroadcastService {
       case BroadcastCommandType.UserNotification:
         return this.isObject(payload) &&
           typeof payload.userId === "string" &&
-          typeof payload.channelId === "number" &&
-          typeof payload.message === "string";
+          typeof payload.message === "string" &&
+          Object.values(NotificationChannelType).includes(payload.channelId);
       case BroadcastCommandType.KickUser:
         return this.isObject(payload) && typeof payload.userId === "string";
       case BroadcastCommandType.UserKickedNotification:
