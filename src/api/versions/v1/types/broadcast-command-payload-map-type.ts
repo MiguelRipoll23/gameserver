@@ -1,9 +1,7 @@
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 
 export type BroadcastCommandPayloadMap = {
-  OnlineUsersCount: {
-    payload: ArrayBuffer;
-  };
+  OnlineUsersCount: ArrayBuffer;
   TunnelMessage: {
     destinationToken: string;
     payload: ArrayBuffer;

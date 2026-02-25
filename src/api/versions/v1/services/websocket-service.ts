@@ -121,10 +121,9 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  private handleOnlineUsersBroadcastMessage(payloadMessage: {
-    payload: ArrayBuffer;
-  }): void {
-    const { payload } = payloadMessage;
+  private handleOnlineUsersBroadcastMessage(
+    payload: ArrayBuffer,
+  ): void {
     console.log(
       `Received online users broadcast with payload. Sending to ${
         Array.from(this.userRegistry.valuesByToken()).length
@@ -358,9 +357,7 @@ export class WebSocketService implements WebSocketServer {
     const onlinePlayersPayload = buildOnlinePlayersPayload(totalSessions);
 
     // For other instances...
-    this.broadcastService.dispatch(BroadcastCommandType.OnlineUsersCount, {
-      payload: onlinePlayersPayload,
-    });
+    this.broadcastService.dispatch(BroadcastCommandType.OnlineUsersCount, onlinePlayersPayload);
 
     // For our users...
     for (const user of this.userRegistry.valuesByToken()) {
