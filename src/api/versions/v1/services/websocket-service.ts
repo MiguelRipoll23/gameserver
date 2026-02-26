@@ -121,12 +121,7 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  private handleOnlineUsersBroadcastMessage(
-    payload: ArrayBuffer,
-  ): void {
-    console.log(
-      `Received online users broadcast with payload.`,
-    );
+  private handleOnlineUsersBroadcastMessage(payload: ArrayBuffer): void {
     for (const user of this.userRegistry.valuesByToken()) {
       this.sendMessage(user, payload);
     }
@@ -144,6 +139,7 @@ export class WebSocketService implements WebSocketServer {
       );
       return;
     }
+
     this.sendMessage(user, payload);
   }
 
@@ -160,6 +156,7 @@ export class WebSocketService implements WebSocketServer {
       );
       return;
     }
+
     const payload = buildNotificationPayload(channelId, message);
     this.sendMessage(user, payload);
     console.log(
@@ -172,13 +169,17 @@ export class WebSocketService implements WebSocketServer {
   }): void {
     const { userId } = payloadMessage;
     const user = this.userRegistry.getById(userId);
+
     if (!user) {
       console.debug(
         `Ignoring KickUser command for user ${userId} because user is not present on this instance`,
       );
       return;
     }
-    void this.kickUser(userId, false);
+
+    this.kickUser(userId, false).catch((error) => {
+      console.error(`Failed to kick user ${userId}:`, error);
+    });
   }
 
   private handleUserKickedNotificationBroadcastMessage(payloadMessage: {
@@ -187,12 +188,14 @@ export class WebSocketService implements WebSocketServer {
   }): void {
     const { hostUserId, bannedUserNetworkId } = payloadMessage;
     const user = this.userRegistry.getById(hostUserId);
+
     if (!user) {
       console.debug(
         `Ignoring UserKickedNotification command for host user ${hostUserId} because user is not present on this instance`,
       );
       return;
     }
+
     this.sendUserKickedNotificationToHostWithNetworkId(
       hostUserId,
       bannedUserNetworkId,
@@ -359,7 +362,10 @@ export class WebSocketService implements WebSocketServer {
     const onlinePlayersPayload = buildOnlinePlayersPayload(totalSessions);
 
     // For other instances...
-    this.broadcastService.dispatch(BroadcastCommandType.OnlineUsersCount, onlinePlayersPayload);
+    this.broadcastService.dispatch(
+      BroadcastCommandType.OnlineUsersCount,
+      onlinePlayersPayload,
+    );
 
     // For our users...
     for (const user of this.userRegistry.valuesByToken()) {
