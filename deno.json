@@ -8,7 +8,7 @@
     "@types/pg": "npm:@types/pg@^8.16.0",
     "drizzle-kit": "npm:drizzle-kit@^0.31.9",
     "drizzle-orm": "npm:drizzle-orm@^0.45.1",
-    "pg": "npm:pg@^8.18.0",
+    "pg": "npm:pg@^8.19.0",
     "hono": "npm:hono@^4.12.2",
     "zod": "npm:zod@^4.3.6"
   },
