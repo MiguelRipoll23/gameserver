@@ -41,7 +41,7 @@ Numeric values are encoded **little-endian**.
 
 ### Clarifications
 
-- `networkId`, `authorNetworkId`, and `bannedUserNetworkId` are all the user's UUID **without dashes** (ASCII/UTF-8 text), encoded as `fixedString[32]`.
+- `networkId`, `authorNetworkId`, and `bannedUserNetworkId` are all the user's UUID represented as a 32-character hexadecimal string (without dashes), encoded as `fixedString[32]`.
 
 ## Message type IDs
 
