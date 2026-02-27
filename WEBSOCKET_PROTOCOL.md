@@ -39,17 +39,21 @@ Numeric values are encoded **little-endian**.
   - `utf8Bytes: bytes[byteLength]`
   - `byteLength` is the number of UTF-8 encoded bytes, not character count.
 
+### Clarifications
+
+- `networkId`, `authorNetworkId`, and `bannedUserNetworkId` are all the user's UUID represented as a 32-character hexadecimal string (without dashes), encoded as `fixedString[32]`.
+
 ## Message type IDs
 
 | Type ID | Name |
 |---|---|
 | `0` | Authentication |
-| `1` | Notification |
+| `1` | OnlinePlayers |
 | `2` | PlayerIdentity |
 | `3` | Tunnel |
-| `4` | OnlinePlayers |
-| `5` | ChatMessage |
-| `6` | PlayerKicked |
+| `4` | ChatMessage |
+| `5` | PlayerKicked |
+| `6` | Notification |
 
 ---
 
@@ -89,13 +93,13 @@ Relay opaque binary data to another connected player.
 - `destinationToken: bytes[32]`
 - `payload: bytes[...]`
 
-### 5: ChatMessage
+### 4: ChatMessage
 
 Submit chat text to be filtered and signed by the server.
 
 **Structure**
 
-- `type: uint8 = 5`
+- `type: uint8 = 4`
 - `messageText: varString`
 
 **Constraints**
@@ -116,16 +120,12 @@ Submit chat text to be filtered and signed by the server.
 - `type: uint8 = 0`
 - `success: uint8` (`1` = success)
 
-### 1: Notification
+### 1: OnlinePlayers
 
 **Structure**
 
 - `type: uint8 = 1`
-- `channel: uint8`
-  - `0` = Global
-  - `1` = Menu
-  - `2` = Match
-- `text: bytes[...]` (UTF-8 notification text)
+- `totalOnline: uint16` (0..65535)
 
 ### 2: PlayerIdentity
 
@@ -144,33 +144,37 @@ Submit chat text to be filtered and signed by the server.
 - `originToken: bytes[32]`
 - `payload: bytes[...]`
 
-### 4: OnlinePlayers
-
-**Structure**
-
-- `type: uint8 = 4`
-- `totalOnline: uint16` (0..65535)
-
-### 5: ChatMessage (signed)
+### 4: ChatMessage (signed)
 
 Server returns signed chat payload.
 
 **Structure**
 
-- `type: uint8 = 5`
+- `type: uint8 = 4`
 - `authorNetworkId: fixedString[32]`
 - `filteredMessageText: varString`
 - `timestampSeconds: uint32` (Unix time, seconds)
 - `signature: bytes[...]` (ECDSA P-256 / SHA-256 signature, ASN.1 DER-encoded as returned by WebCrypto `subtle.sign`)
 
-### 6: PlayerKicked
+### 5: PlayerKicked
 
 Sent to match host when a participant is banned/kicked.
 
 **Structure**
 
-- `type: uint8 = 6`
+- `type: uint8 = 5`
 - `bannedUserNetworkId: fixedString[32]`
+
+### 6: Notification
+
+**Structure**
+
+- `type: uint8 = 6`
+- `channel: uint8`
+  - `0` = Global
+  - `1` = Menu
+  - `2` = Match
+- `text: bytes[...]` (UTF-8 notification text)
 
 ---
 
