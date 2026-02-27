@@ -17,7 +17,7 @@ import {
   buildNotificationPayload,
   buildPlayerIdentityPayload,
   buildTunnelPayload,
-  buildUserKickedPayload,
+  buildPlayerKickedPayload,
   buildOnlinePlayersPayload,
 } from "./websocket-payloads.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
@@ -511,7 +511,7 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
-    const payload = buildUserKickedPayload(bannedUserNetworkId);
+    const payload = buildPlayerKickedPayload(bannedUserNetworkId);
     this.sendMessage(hostUser, payload);
 
     console.log(
