@@ -132,15 +132,7 @@ export class WebSocketService implements WebSocketServer {
     payload: ArrayBuffer;
   }): void {
     const { destinationToken, payload } = payloadMessage;
-    const user = this.userRegistry.getByToken(destinationToken);
-    if (!user) {
-      console.debug(
-        `Ignoring TunnelMessage command for token ${destinationToken} because user is not present on this instance`,
-      );
-      return;
-    }
-
-    this.sendMessage(user, payload);
+    this.forwardMessageToUserByToken(destinationToken, payload, false);
   }
 
   private handleUserNotificationBroadcastMessage(payloadMessage: {
@@ -340,21 +332,36 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private sendMessageToUserByToken(
+  private forwardMessageToUserByToken(
     destinationToken: string,
     payload: ArrayBuffer,
+    mustBroadcast: boolean,
   ): void {
     const destinationUser = this.userRegistry.getByToken(destinationToken);
 
     if (!destinationUser) {
-      this.broadcastService.dispatch(BroadcastCommandType.TunnelMessage, {
-        destinationToken,
-        payload,
-      });
+      if (mustBroadcast) {
+        this.broadcastService.dispatch(BroadcastCommandType.TunnelMessage, {
+          destinationToken,
+          payload,
+        });
+      } else {
+        console.debug(
+          `Ignoring TunnelMessage command for token ${destinationToken} because user is not present on this instance`,
+        );
+      }
+
       return;
     }
 
     this.sendMessage(destinationUser, payload);
+  }
+
+  private sendMessageToUserByToken(
+    destinationToken: string,
+    payload: ArrayBuffer,
+  ): void {
+    this.forwardMessageToUserByToken(destinationToken, payload, true);
   }
 
   private async getAndSendOnlineUsersCount(): Promise<void> {
