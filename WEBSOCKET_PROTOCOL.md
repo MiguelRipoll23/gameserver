@@ -25,9 +25,9 @@ Numeric values are encoded **little-endian**.
 
 ### Primitive types
 
-- `uint8`: 1 byte unsigned integer.
-- `uint16`: 2 byte unsigned integer, little-endian.
-- `uint32`: 4 byte unsigned integer, little-endian.
+- `uint8`: 1-byte unsigned integer.
+- `uint16`: 2-byte unsigned integer, little-endian.
+- `uint32`: 4-byte unsigned integer, little-endian.
 - `bytes[N]`: exactly `N` raw bytes.
 - `bytes[...]`: all remaining bytes in the frame.
 - `fixedString[N]`:
@@ -49,7 +49,7 @@ Numeric values are encoded **little-endian**.
 | `3` | Tunnel |
 | `4` | OnlinePlayers |
 | `5` | ChatMessage |
-| `6` | UserKicked |
+| `6` | PlayerKicked |
 
 ---
 
@@ -75,9 +75,11 @@ Request identity data for another player.
 **Structure**
 
 - `type: uint8 = 2`
-- `destinationToken: bytes[32]` (raw 32-byte token, not base64 text)
+- `destinationToken: bytes[32]` (raw 32-byte opaque session token, not base64 text)
+  - The server generates a random 32-byte token for each WebSocket connection.
+  - In some APIs/logs this token may appear base64-encoded; on the wire here it is always raw bytes.
 
-### 3: Tunnel Message
+### 3: Tunnel
 
 Relay opaque binary data to another connected player.
 
@@ -100,7 +102,8 @@ Submit chat text to be filtered and signed by the server.
 
 - Message is trimmed server-side.
 - Must be non-empty.
-- Max length: 35 characters.
+- Max length: 35 UTF-16 code units (JavaScript `string.length`, server-side validation).
+- This is not a UTF-8 byte limit and not a Unicode code-point/grapheme-cluster limit.
 
 ---
 
@@ -133,7 +136,7 @@ Submit chat text to be filtered and signed by the server.
 - `networkId: fixedString[32]`
 - `name: fixedString[16]`
 
-### 3: Tunnel Message
+### 3: Tunnel
 
 **Structure**
 
@@ -158,9 +161,9 @@ Server returns signed chat payload.
 - `authorNetworkId: fixedString[32]`
 - `filteredMessageText: varString`
 - `timestampSeconds: uint32` (Unix time, seconds)
-- `signature: bytes[...]` (ECDSA P-256 / SHA-256 signature)
+- `signature: bytes[...]` (ECDSA P-256 / SHA-256 signature, ASN.1 DER-encoded as returned by WebCrypto `subtle.sign`)
 
-### 6: UserKicked
+### 6: PlayerKicked
 
 Sent to match host when a participant is banned/kicked.
 
