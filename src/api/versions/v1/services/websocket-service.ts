@@ -23,6 +23,13 @@ import { KVService } from "./kv-service.ts";
 import { EventsService } from "./events-service.ts";
 import { WebSocketUserRegistry } from "./websocket-user-registry.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
+import { OnlinePlayersPayload } from "../types/online-players-payload-type.ts";
+import { PlayerIdentityPayload } from "../types/player-identity-payload-type.ts";
+import { PlayerRelayPayload } from "../types/player-relay-payload-type.ts";
+import { NotificationPayload } from "../types/notification-payload-type.ts";
+import { PlayerNotificationPayload } from "../types/player-notification-payload-type.ts";
+import { KickPlayerPayload } from "../types/kick-player-payload-type.ts";
+import { PlayerKickedNotificationPayload } from "../types/player-kicked-notification-payload-type.ts";
 import { MatchesService } from "./matches-service.ts";
 import { SessionsService } from "./sessions-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
@@ -473,10 +480,10 @@ export class WebSocketService implements WebSocketServer {
   }
 
   @EventHandler(BroadcastCommandType.OnlinePlayers)
-  private handleOnlinePlayersEvent(payloadMessage: {
-    totalSessions: number;
-  }): boolean {
-    const { totalSessions } = payloadMessage;
+  private handleOnlinePlayersEvent(
+    eventPayload: OnlinePlayersPayload,
+  ): boolean {
+    const { totalSessions } = eventPayload;
     const payload = buildOnlinePlayersPayload(totalSessions);
 
     for (const user of this.userRegistry.valuesByToken()) {
@@ -487,16 +494,18 @@ export class WebSocketService implements WebSocketServer {
   }
 
   @EventHandler(BroadcastCommandType.PlayerIdentity)
-  private handlePlayerIdentityEvent(payloadMessage: {
-    destinationToken: string;
-    originToken: Uint8Array<ArrayBuffer>;
-    originNetworkId: string;
-    originName: string;
-  }): boolean {
+  private handlePlayerIdentityEvent(
+    eventPayload: PlayerIdentityPayload,
+  ): boolean {
     const { destinationToken, originToken, originNetworkId, originName } =
-      payloadMessage;
+      eventPayload;
+    // Ensure originToken is Uint8Array for buildPlayerIdentityPayload
+    const originTokenBytes =
+      originToken instanceof Uint8Array
+        ? originToken
+        : new Uint8Array(originToken);
     const payload = buildPlayerIdentityPayload(
-      originToken,
+      originTokenBytes,
       originNetworkId,
       originName,
     );
@@ -509,11 +518,8 @@ export class WebSocketService implements WebSocketServer {
   }
 
   @EventHandler(BroadcastCommandType.PlayerRelay)
-  private handlePlayerRelayEvent(payloadMessage: {
-    destinationToken: string;
-    payload: ArrayBuffer;
-  }): boolean {
-    const { destinationToken, payload } = payloadMessage;
+  private handlePlayerRelayEvent(eventPayload: PlayerRelayPayload): boolean {
+    const { destinationToken, payload } = eventPayload;
 
     return this.withUserByToken(
       destinationToken,
@@ -531,22 +537,17 @@ export class WebSocketService implements WebSocketServer {
   }
 
   @EventHandler(BroadcastCommandType.Notification)
-  private handleNotificationEvent(payloadMessage: {
-    channelId: NotificationChannelType;
-    message: string;
-  }): boolean {
-    const { channelId, message } = payloadMessage;
+  private handleNotificationEvent(eventPayload: NotificationPayload): boolean {
+    const { channelId, message } = eventPayload;
     this.sendNotificationToUsers(channelId, message);
     return true;
   }
 
   @EventHandler(BroadcastCommandType.PlayerNotification)
-  private handlePlayerNotificationEvent(payloadMessage: {
-    userId: string;
-    channelId: NotificationChannelType;
-    message: string;
-  }): boolean {
-    const { userId, channelId, message } = payloadMessage;
+  private handlePlayerNotificationEvent(
+    eventPayload: PlayerNotificationPayload,
+  ): boolean {
+    const { userId, channelId, message } = eventPayload;
 
     return this.withUserById(
       userId,
@@ -558,8 +559,8 @@ export class WebSocketService implements WebSocketServer {
   }
 
   @EventHandler(BroadcastCommandType.KickPlayer)
-  private handleKickPlayerEvent(payloadMessage: { userId: string }): boolean {
-    const { userId } = payloadMessage;
+  private handleKickPlayerEvent(eventPayload: KickPlayerPayload): boolean {
+    const { userId } = eventPayload;
 
     return this.withUserById(
       userId,
@@ -571,11 +572,10 @@ export class WebSocketService implements WebSocketServer {
   }
 
   @EventHandler(BroadcastCommandType.PlayerKickedNotification)
-  private handlePlayerKickedNotificationEvent(payloadMessage: {
-    hostUserId: string;
-    bannedUserNetworkId: string;
-  }): boolean {
-    const { hostUserId, bannedUserNetworkId } = payloadMessage;
+  private handlePlayerKickedNotificationEvent(
+    eventPayload: PlayerKickedNotificationPayload,
+  ): boolean {
+    const { hostUserId, bannedUserNetworkId } = eventPayload;
 
     return this.withUserById(
       hostUserId,
