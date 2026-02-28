@@ -4,7 +4,6 @@ import { EventDispatchMode } from "../constants/event-constants.ts";
 import { getEventHandlers } from "../decorators/event-handler.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { BroadcastEnvelopeSchema } from "../schemas/broadcast-envelope-schema.ts";
-import { BroadcastCommandPayloadMap } from "../types/broadcast-command-payload-map-type.ts";
 import { EventHandlerFunction } from "../types/event-handler-function-type.ts";
 import { z } from "zod";
 
@@ -18,10 +17,16 @@ export class EventsService {
     BroadcastCommandType,
     Set<EventHandlerFunction>
   >();
-  private readonly registeredHandlersByInstance = new WeakMap<object, Set<string>>();
+  private readonly registeredHandlersByInstance = new WeakMap<
+    object,
+    Set<string>
+  >();
 
   constructor() {
-    this.broadcastChannel.addEventListener("message", this.handleIncomingMessage);
+    this.broadcastChannel.addEventListener(
+      "message",
+      this.handleIncomingMessage,
+    );
   }
 
   public close(): void {
@@ -35,11 +40,12 @@ export class EventsService {
   public registerEventHandlers(instance: unknown): void {
     const instanceObject = instance as object;
     const proto = Object.getPrototypeOf(instanceObject);
-    const eventHandlers = getEventHandlers().filter((handler) =>
-      handler.target === proto
+    const eventHandlers = getEventHandlers().filter(
+      (handler) => handler.target === proto,
     );
 
-    let registeredHandlers = this.registeredHandlersByInstance.get(instanceObject);
+    let registeredHandlers =
+      this.registeredHandlersByInstance.get(instanceObject);
     if (!registeredHandlers) {
       registeredHandlers = new Set<string>();
       this.registeredHandlersByInstance.set(instanceObject, registeredHandlers);
@@ -70,9 +76,9 @@ export class EventsService {
     }
   }
 
-  public dispatch<T extends BroadcastCommandType>(
-    command: T,
-    payload: BroadcastCommandPayloadMap[T],
+  public dispatch(
+    command: BroadcastCommandType,
+    payload: unknown,
     mode: EventDispatchMode = EventDispatchMode.LocalOrBroadcast,
   ): void {
     const handledLocally = this.notifyHandlers(command, payload);
@@ -120,9 +126,9 @@ export class EventsService {
     this.notifyHandlers(message.command, message.payload as never);
   };
 
-  private notifyHandlers<T extends BroadcastCommandType>(
-    command: T,
-    payload: BroadcastCommandPayloadMap[T],
+  private notifyHandlers(
+    command: BroadcastCommandType,
+    payload: unknown,
   ): boolean {
     const handlersSet = this.handlers.get(command);
 
@@ -140,10 +146,10 @@ export class EventsService {
     return handled;
   }
 
-  private executeHandler<T extends BroadcastCommandType>(
+  private executeHandler(
     handler: EventHandlerFunction,
-    command: T,
-    payload: BroadcastCommandPayloadMap[T],
+    command: BroadcastCommandType,
+    payload: unknown,
   ): boolean {
     try {
       const result = handler(payload);
