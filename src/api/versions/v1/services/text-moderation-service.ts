@@ -16,7 +16,7 @@ import {
 } from "../schemas/text-moderation-schemas.ts";
 import { EventsService } from "./events-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
-import { EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST } from "../constants/event-constants.ts";
+import { EventDispatchMode } from "../constants/event-constants.ts";
 
 @injectable()
 export class TextModerationService {
@@ -245,7 +245,7 @@ export class TextModerationService {
     this.eventsService.dispatch(
       BroadcastCommandType.RefreshBlockedWordsCache,
       null,
-      EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST,
+      EventDispatchMode.LocalAndBroadcast,
     );
   }
 }

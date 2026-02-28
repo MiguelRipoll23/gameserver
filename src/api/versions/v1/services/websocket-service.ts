@@ -26,7 +26,7 @@ import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 import { MatchesService } from "./matches-service.ts";
 import { SessionsService } from "./sessions-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
-import { EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST } from "../constants/event-constants.ts";
+import { EventDispatchMode } from "../constants/event-constants.ts";
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
@@ -356,7 +356,7 @@ export class WebSocketService implements WebSocketServer {
       {
         payload: onlinePlayersPayload,
       },
-      EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST,
+      EventDispatchMode.LocalAndBroadcast,
     );
   }
 

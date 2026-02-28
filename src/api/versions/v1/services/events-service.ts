@@ -1,19 +1,12 @@
 import { injectable } from "@needle-di/core";
 import { SHARED_BROADCAST_CHANNEL } from "../constants/broadcast-channel-constants.ts";
-import {
-  EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST,
-  EVENT_DISPATCH_MODE_LOCAL_OR_BROADCAST,
-} from "../constants/event-constants.ts";
+import { EventDispatchMode } from "../constants/event-constants.ts";
 import { getEventHandlers } from "../decorators/event-handler.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { BroadcastEnvelopeSchema } from "../schemas/broadcast-envelope-schema.ts";
 import { BroadcastCommandPayloadMap } from "../types/broadcast-command-payload-map-type.ts";
 import { EventHandlerFunction } from "../types/event-handler-function-type.ts";
 import { z } from "zod";
-
-export type EventDispatchMode =
-  | typeof EVENT_DISPATCH_MODE_LOCAL_OR_BROADCAST
-  | typeof EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST;
 
 @injectable()
 export class EventsService {
@@ -65,11 +58,11 @@ export class EventsService {
   public dispatch<T extends BroadcastCommandType>(
     command: T,
     payload: BroadcastCommandPayloadMap[T],
-    mode: EventDispatchMode = EVENT_DISPATCH_MODE_LOCAL_OR_BROADCAST,
+    mode: EventDispatchMode = EventDispatchMode.LocalOrBroadcast,
   ): void {
     const handledLocally = this.notifyHandlers(command, payload);
 
-    if (mode === EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST || !handledLocally) {
+    if (mode === EventDispatchMode.LocalAndBroadcast || !handledLocally) {
       this.broadcastChannel.postMessage({
         command,
         payload,
