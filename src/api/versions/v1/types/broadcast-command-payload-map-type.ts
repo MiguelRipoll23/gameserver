@@ -1,20 +1,22 @@
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 
 export type BroadcastCommandPayloadMap = {
-  Notification: {
-    channelId: NotificationChannelType;
-    message: string;
-  };
   OnlinePlayers: {
-    payload: ArrayBuffer;
+    totalSessions: number;
   };
   PlayerIdentity: {
     destinationToken: string;
-    payload: ArrayBuffer;
+    originToken: Uint8Array<ArrayBuffer>;
+    originNetworkId: string;
+    originName: string;
   };
   PlayerRelay: {
     destinationToken: string;
     payload: ArrayBuffer;
+  };
+  Notification: {
+    channelId: NotificationChannelType;
+    message: string;
   };
   PlayerNotification: {
     userId: string;

@@ -40,7 +40,7 @@ export function buildTunnelPayload(
   dataBytes: Uint8Array,
 ): ArrayBuffer {
   return BinaryWriter.build()
-    .unsignedInt8(WebSocketType.Tunnel)
+    .unsignedInt8(WebSocketType.PlayerRelay)
     .bytes(originTokenBytes, 32)
     .bytes(dataBytes)
     .toArrayBuffer();
