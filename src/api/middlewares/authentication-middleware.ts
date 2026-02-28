@@ -3,6 +3,7 @@ import type { MiddlewareHandler } from "hono";
 import { inject, injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
 import { JWTService } from "../../core/services/jwt-service.ts";
+import type { JWTPayload } from "../versions/v1/types/jwt-payload-type.ts";
 
 @injectable()
 export class AuthenticationMiddleware {
@@ -12,7 +13,7 @@ export class AuthenticationMiddleware {
     return [
       this.jwtService.getJWTMiddleware(),
       createMiddleware(async (context, next) => {
-        const payload = context.get("jwtPayload");
+        const payload = context.get("jwtPayload") as JWTPayload;
 
         if (typeof payload !== "object" || payload === null) {
           throw new ServerError("INVALID_TOKEN", "Invalid payload", 401);
