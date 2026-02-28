@@ -123,7 +123,7 @@ export class EventsService {
       return;
     }
 
-    this.notifyHandlers(message.command, message.payload as never);
+    this.notifyHandlers(message.command, message.payload);
   };
 
   private notifyHandlers(
