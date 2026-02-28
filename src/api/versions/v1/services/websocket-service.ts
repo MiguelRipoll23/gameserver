@@ -95,6 +95,20 @@ export class WebSocketService implements WebSocketServer {
     return delivered;
   }
 
+  @EventHandler(BroadcastCommandType.PlayerIdentity)
+  private handlePlayerIdentityEvent(payloadMessage: {
+    destinationToken: string;
+    payload: ArrayBuffer;
+  }): boolean {
+    const { destinationToken, payload } = payloadMessage;
+
+    return this.withUserByToken(
+      destinationToken,
+      BroadcastCommandType.PlayerIdentity,
+      (user) => this.sendMessage(user, payload),
+    );
+  }
+
   @EventHandler(BroadcastCommandType.PlayerRelay)
   private handlePlayerRelayEvent(payloadMessage: {
     destinationToken: string;
@@ -329,7 +343,24 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private sendMessageToUserByToken(
+  private sendPlayerIdentityToToken(
+    destinationToken: string,
+    payload: ArrayBuffer,
+  ): void {
+    const destinationUser = this.userRegistry.getByToken(destinationToken);
+
+    if (!destinationUser) {
+      this.eventsService.dispatch(BroadcastCommandType.PlayerIdentity, {
+        destinationToken,
+        payload,
+      });
+      return;
+    }
+
+    this.sendMessage(destinationUser, payload);
+  }
+
+  private sendPlayerRelayToToken(
     destinationToken: string,
     payload: ArrayBuffer,
   ): void {
@@ -533,7 +564,7 @@ export class WebSocketService implements WebSocketServer {
       originUser.getName(),
     );
 
-    this.sendMessageToUserByToken(destinationToken, playerIdentityPayload);
+    this.sendPlayerIdentityToToken(destinationToken, playerIdentityPayload);
   }
 
   @CommandHandler(WebSocketType.Tunnel)
@@ -548,7 +579,7 @@ export class WebSocketService implements WebSocketServer {
       dataBytes,
     );
 
-    this.sendMessageToUserByToken(
+    this.sendPlayerRelayToToken(
       encodeBase64(destinationTokenBytes),
       tunnelPayload,
     );
