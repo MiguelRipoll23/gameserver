@@ -35,7 +35,8 @@ export function buildPlayerIdentityPayload(
     .toArrayBuffer();
 }
 
-export function buildTunnelPayload(
+// ...existing code...
+export function buildPlayerRelayPayload(
   originTokenBytes: Uint8Array,
   dataBytes: Uint8Array,
 ): ArrayBuffer {
@@ -67,7 +68,7 @@ export default {
   buildNotificationPayload,
   buildAuthenticationAckPayload,
   buildPlayerIdentityPayload,
-  buildTunnelPayload,
+  buildPlayerRelayPayload,
   buildPlayerKickedPayload,
   buildOnlinePlayersPayload,
 };

@@ -11,7 +11,7 @@ import {
   buildAuthenticationAckPayload,
   buildNotificationPayload,
   buildPlayerIdentityPayload,
-  buildTunnelPayload,
+  buildPlayerRelayPayload,
   buildPlayerKickedPayload,
   buildOnlinePlayersPayload,
 } from "./websocket-payloads.ts";
@@ -468,7 +468,7 @@ export class WebSocketService implements WebSocketServer {
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
-    const tunnelPayload = buildTunnelPayload(
+    const tunnelPayload = buildPlayerRelayPayload(
       decodeBase64(originUser.getToken()),
       dataBytes,
     );
