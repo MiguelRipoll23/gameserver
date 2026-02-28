@@ -445,7 +445,7 @@ export class WebSocketService implements WebSocketServer {
     const destinationTokenBytes = binaryReader.bytes(32);
     const destinationToken = encodeBase64(destinationTokenBytes);
 
-    const originToken = decodeBase64(originUser.getToken());
+    const originTokenBytes = decodeBase64(originUser.getToken());
     const originNetworkId = originUser.getNetworkId();
     const originName = originUser.getName();
 
@@ -453,7 +453,7 @@ export class WebSocketService implements WebSocketServer {
       BroadcastCommandType.PlayerIdentity,
       {
         destinationToken,
-        originToken,
+        originTokenBytes,
         originNetworkId,
         originName,
       },
