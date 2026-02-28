@@ -3,7 +3,10 @@ import { ServerError } from "../models/server-error.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 import { EventsService } from "./events-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
-import { EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST } from "../constants/event-constants.ts";
+import {
+  EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST,
+  EVENT_DISPATCH_MODE_LOCAL_OR_BROADCAST,
+} from "../constants/event-constants.ts";
 
 @injectable()
 export class NotificationService {
@@ -72,10 +75,14 @@ export class NotificationService {
       );
     }
 
-    this.eventsService.dispatch(BroadcastCommandType.PlayerNotification, {
-      userId: userId.trim(),
-      channelId,
-      message,
-    });
+    this.eventsService.dispatch(
+      BroadcastCommandType.PlayerNotification,
+      {
+        userId: userId.trim(),
+        channelId,
+        message,
+      },
+      EVENT_DISPATCH_MODE_LOCAL_OR_BROADCAST,
+    );
   }
 }

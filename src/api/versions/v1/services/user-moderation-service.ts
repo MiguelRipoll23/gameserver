@@ -19,6 +19,7 @@ import {
 import { and, desc, eq, gt } from "drizzle-orm";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { EventsService } from "./events-service.ts";
+import { EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST } from "../constants/event-constants.ts";
 import { KVService } from "./kv-service.ts";
 
 @injectable()
@@ -109,9 +110,13 @@ export class UserModerationService {
       );
     }
 
-    this.eventsService.dispatch(BroadcastCommandType.KickPlayer, {
-      userId,
-    });
+    this.eventsService.dispatch(
+      BroadcastCommandType.KickPlayer,
+      {
+        userId,
+      },
+      EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST,
+    );
   }
 
   public async unbanUser(userId: string): Promise<void> {

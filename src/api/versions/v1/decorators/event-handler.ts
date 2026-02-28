@@ -44,3 +44,8 @@ export function hasEventHandler(
       handler.command === command,
   );
 }
+
+
+export function clearEventHandlers(): void {
+  eventHandlers.length = 0;
+}

@@ -117,17 +117,21 @@ export class WebSocketService implements WebSocketServer {
   }): boolean {
     const { userId, channelId, message } = payloadMessage;
 
-    return this.withUserById(userId, BroadcastCommandType.PlayerNotification, () => {
-      this.sendNotificationToUser(userId, channelId, message);
-    });
+    return this.withUserById(
+      userId,
+      BroadcastCommandType.PlayerNotification,
+      (user) => {
+        this.sendNotificationToResolvedUser(user, channelId, message);
+      },
+    );
   }
 
   @EventHandler(BroadcastCommandType.KickPlayer)
   private handleKickPlayerEvent(payloadMessage: { userId: string }): boolean {
     const { userId } = payloadMessage;
 
-    return this.withUserById(userId, BroadcastCommandType.KickPlayer, () => {
-      void this.kickUser(userId);
+    return this.withUserById(userId, BroadcastCommandType.KickPlayer, (user) => {
+      void this.kickResolvedUser(user);
     });
   }
 
@@ -141,8 +145,9 @@ export class WebSocketService implements WebSocketServer {
     return this.withUserById(
       hostUserId,
       BroadcastCommandType.PlayerKickedNotification,
-      () => {
-        this.sendPlayerKickedNotificationToHostWithNetworkId(
+      (hostUser) => {
+        this.sendPlayerKickedNotificationToResolvedHost(
+          hostUser,
           hostUserId,
           bannedUserNetworkId,
         );
@@ -370,17 +375,12 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  private sendNotificationToUser(
-    userId: string,
+  private sendNotificationToResolvedUser(
+    user: WebSocketUser,
     channelId: NotificationChannelType,
     text: string,
   ): void {
-    const user = this.userRegistry.getById(userId);
     const payload = buildNotificationPayload(channelId, text);
-
-    if (!user) {
-      return;
-    }
 
     this.sendMessage(user, payload);
     console.log(
@@ -388,20 +388,14 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  private async kickUser(
-    userId: string,
+  private async kickResolvedUser(
+    user: WebSocketUser,
   ): Promise<void> {
-    const user = this.userRegistry.getById(userId);
-
-    if (!user) {
-      return;
-    }
-
     // User is connected to this server instance, kick them directly
     this.closeConnection(user, 1008, "User has been banned");
 
     // Send user kicked notification to match host if user is in a match
-    await this.findHostAndSendPlayerKickedNotification(userId);
+    await this.findHostAndSendPlayerKickedNotification(user.getId());
   }
 
   private async findHostAndSendPlayerKickedNotification(
@@ -459,6 +453,18 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
+    this.sendPlayerKickedNotificationToResolvedHost(
+      hostUser,
+      hostUserId,
+      bannedUserNetworkId,
+    );
+  }
+
+  private sendPlayerKickedNotificationToResolvedHost(
+    hostUser: WebSocketUser,
+    hostUserId: string,
+    bannedUserNetworkId: string,
+  ): void {
     const payload = buildPlayerKickedPayload(bannedUserNetworkId);
     this.sendMessage(hostUser, payload);
 

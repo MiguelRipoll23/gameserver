@@ -31,6 +31,10 @@ export class EventsService {
   }
 
   public close(): void {
+    this.broadcastChannel.removeEventListener(
+      "message",
+      this.handleIncomingMessage,
+    );
     this.broadcastChannel.close();
   }
 
