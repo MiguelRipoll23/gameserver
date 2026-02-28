@@ -449,6 +449,10 @@ export class WebSocketService implements WebSocketServer {
     const originNetworkId = originUser.getNetworkId();
     const originName = originUser.getName();
 
+    console.debug(
+      `Received PlayerIdentity from user ${originName} (${originNetworkId}) for token ${destinationToken}`,
+    );
+
     this.eventsService.dispatch(
       BroadcastCommandType.PlayerIdentity,
       {
@@ -457,7 +461,7 @@ export class WebSocketService implements WebSocketServer {
         originNetworkId,
         originName,
       },
-      EventDispatchMode.LocalAndBroadcast,
+      EventDispatchMode.LocalOrBroadcast,
     );
   }
 
@@ -499,6 +503,11 @@ export class WebSocketService implements WebSocketServer {
   ): boolean {
     const { destinationToken, originTokenBytes, originNetworkId, originName } =
       eventPayload;
+
+    console.debug(
+      `Handling PlayerIdentity for destination token ${destinationToken} from ${originName} (${originNetworkId})`,
+    );
+
     const payload = buildPlayerIdentityPayload(
       originTokenBytes,
       originNetworkId,
@@ -508,7 +517,12 @@ export class WebSocketService implements WebSocketServer {
     return this.withUserByToken(
       destinationToken,
       BroadcastCommandType.PlayerIdentity,
-      (user) => this.sendMessage(user, payload),
+      (user) => {
+        console.debug(
+          `Resolved PlayerIdentity destination token ${destinationToken} to user ${user.getName()}`,
+        );
+        this.sendMessage(user, payload);
+      },
     );
   }
 

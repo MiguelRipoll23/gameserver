@@ -83,6 +83,10 @@ export class EventsService {
   ): void {
     const handledLocally = this.notifyHandlers(command, payload);
 
+    console.debug(
+      `Dispatch result for command ${command} on instance ${this.instanceId}: handledLocally=${handledLocally}, mode=${mode}`,
+    );
+
     if (mode === EventDispatchMode.LocalAndBroadcast || !handledLocally) {
       this.broadcastChannel.postMessage({
         command,
@@ -122,6 +126,10 @@ export class EventsService {
     if (message.originInstanceId === this.instanceId) {
       return;
     }
+
+    console.debug(
+      `Received broadcasted command ${message.command} on instance ${this.instanceId} from instance ${message.originInstanceId}`,
+    );
 
     this.notifyHandlers(message.command, message.payload);
   };
