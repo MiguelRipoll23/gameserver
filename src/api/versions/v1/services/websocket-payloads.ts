@@ -35,12 +35,13 @@ export function buildPlayerIdentityPayload(
     .toArrayBuffer();
 }
 
-export function buildTunnelPayload(
+// ...existing code...
+export function buildPlayerRelayPayload(
   originTokenBytes: Uint8Array,
   dataBytes: Uint8Array,
 ): ArrayBuffer {
   return BinaryWriter.build()
-    .unsignedInt8(WebSocketType.Tunnel)
+    .unsignedInt8(WebSocketType.PlayerRelay)
     .bytes(originTokenBytes, 32)
     .bytes(dataBytes)
     .toArrayBuffer();
@@ -67,7 +68,7 @@ export default {
   buildNotificationPayload,
   buildAuthenticationAckPayload,
   buildPlayerIdentityPayload,
-  buildTunnelPayload,
+  buildPlayerRelayPayload,
   buildPlayerKickedPayload,
   buildOnlinePlayersPayload,
 };

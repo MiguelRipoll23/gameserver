@@ -11,7 +11,7 @@ import {
   buildAuthenticationAckPayload,
   buildNotificationPayload,
   buildPlayerIdentityPayload,
-  buildTunnelPayload,
+  buildPlayerRelayPayload,
   buildPlayerKickedPayload,
   buildOnlinePlayersPayload,
 } from "./websocket-payloads.ts";
@@ -23,6 +23,13 @@ import { KVService } from "./kv-service.ts";
 import { EventsService } from "./events-service.ts";
 import { WebSocketUserRegistry } from "./websocket-user-registry.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
+import { OnlinePlayersPayload } from "../types/online-players-payload-type.ts";
+import { PlayerIdentityPayload } from "../types/player-identity-payload-type.ts";
+import { PlayerRelayPayload } from "../types/player-relay-payload-type.ts";
+import { NotificationPayload } from "../types/notification-payload-type.ts";
+import { PlayerNotificationPayload } from "../types/player-notification-payload-type.ts";
+import { KickPlayerPayload } from "../types/kick-player-payload-type.ts";
+import { PlayerKickedNotificationPayload } from "../types/player-kicked-notification-payload-type.ts";
 import { MatchesService } from "./matches-service.ts";
 import { SessionsService } from "./sessions-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
@@ -70,103 +77,24 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  @EventHandler(BroadcastCommandType.Notification)
-  private handleNotificationEvent(payloadMessage: {
-    channelId: NotificationChannelType;
-    message: string;
-  }): boolean {
-    const { channelId, message } = payloadMessage;
-    this.sendNotificationToUsers(channelId, message);
-    return true;
-  }
+  public sendMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
+    const webSocket = user.getWebSocket();
 
-  @EventHandler(BroadcastCommandType.OnlinePlayers)
-  private handleOnlinePlayersEvent(payloadMessage: {
-    payload: ArrayBuffer;
-  }): boolean {
-    const { payload } = payloadMessage;
-    let delivered = false;
-
-    for (const user of this.userRegistry.valuesByToken()) {
-      delivered = true;
-      this.sendMessage(user, payload);
+    // Check if the WebSocket is null or closed
+    if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
+      return;
     }
 
-    return delivered;
-  }
-
-  @EventHandler(BroadcastCommandType.PlayerIdentity)
-  private handlePlayerIdentityEvent(payloadMessage: {
-    destinationToken: string;
-    payload: ArrayBuffer;
-  }): boolean {
-    const { destinationToken, payload } = payloadMessage;
-
-    return this.withUserByToken(
-      destinationToken,
-      BroadcastCommandType.PlayerIdentity,
-      (user) => this.sendMessage(user, payload),
-    );
-  }
-
-  @EventHandler(BroadcastCommandType.PlayerRelay)
-  private handlePlayerRelayEvent(payloadMessage: {
-    destinationToken: string;
-    payload: ArrayBuffer;
-  }): boolean {
-    const { destinationToken, payload } = payloadMessage;
-
-    return this.withUserByToken(
-      destinationToken,
-      BroadcastCommandType.PlayerRelay,
-      (user) => this.sendMessage(user, payload),
-    );
-  }
-
-  @EventHandler(BroadcastCommandType.PlayerNotification)
-  private handlePlayerNotificationEvent(payloadMessage: {
-    userId: string;
-    channelId: NotificationChannelType;
-    message: string;
-  }): boolean {
-    const { userId, channelId, message } = payloadMessage;
-
-    return this.withUserById(
-      userId,
-      BroadcastCommandType.PlayerNotification,
-      (user) => {
-        this.sendNotificationToResolvedUser(user, channelId, message);
-      },
-    );
-  }
-
-  @EventHandler(BroadcastCommandType.KickPlayer)
-  private handleKickPlayerEvent(payloadMessage: { userId: string }): boolean {
-    const { userId } = payloadMessage;
-
-    return this.withUserById(userId, BroadcastCommandType.KickPlayer, (user) => {
-      void this.kickResolvedUser(user);
-    });
-  }
-
-  @EventHandler(BroadcastCommandType.PlayerKickedNotification)
-  private handlePlayerKickedNotificationEvent(payloadMessage: {
-    hostUserId: string;
-    bannedUserNetworkId: string;
-  }): boolean {
-    const { hostUserId, bannedUserNetworkId } = payloadMessage;
-
-    return this.withUserById(
-      hostUserId,
-      BroadcastCommandType.PlayerKickedNotification,
-      (hostUser) => {
-        this.sendPlayerKickedNotificationToResolvedHost(
-          hostUser,
-          hostUserId,
-          bannedUserNetworkId,
-        );
-      },
-    );
+    try {
+      webSocket.send(arrayBuffer);
+      console.debug(
+        `%cSent message to user ${user.getName()}:\n` +
+          BinaryWriter.preview(arrayBuffer),
+        "color: purple",
+      );
+    } catch (error) {
+      console.error("Failed to send message to user", user.getName(), error);
+    }
   }
 
   private withUserById(
@@ -323,43 +251,6 @@ export class WebSocketService implements WebSocketServer {
     this.userRegistry.add(webSocketUser);
   }
 
-  public sendMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
-    const webSocket = user.getWebSocket();
-
-    // Check if the WebSocket is null or closed
-    if (!webSocket || webSocket.readyState !== WebSocket.OPEN) {
-      return;
-    }
-
-    try {
-      webSocket.send(arrayBuffer);
-      console.debug(
-        `%cSent message to user ${user.getName()}:\n` +
-          BinaryWriter.preview(arrayBuffer),
-        "color: purple",
-      );
-    } catch (error) {
-      console.error("Failed to send message to user", user.getName(), error);
-    }
-  }
-
-  private sendPlayerIdentityToToken(
-    destinationToken: string,
-    payload: ArrayBuffer,
-  ): void {
-    const destinationUser = this.userRegistry.getByToken(destinationToken);
-
-    if (!destinationUser) {
-      this.eventsService.dispatch(BroadcastCommandType.PlayerIdentity, {
-        destinationToken,
-        payload,
-      });
-      return;
-    }
-
-    this.sendMessage(destinationUser, payload);
-  }
-
   private sendPlayerRelayToToken(
     destinationToken: string,
     payload: ArrayBuffer,
@@ -379,13 +270,12 @@ export class WebSocketService implements WebSocketServer {
 
   private async getAndSendOnlinePlayers(): Promise<void> {
     const totalSessions = await this.sessionsService.getTotal();
-    const onlinePlayersPayload = buildOnlinePlayersPayload(totalSessions);
 
     // For other instances...
     this.eventsService.dispatch(
       BroadcastCommandType.OnlinePlayers,
       {
-        payload: onlinePlayersPayload,
+        totalSessions,
       },
       EventDispatchMode.LocalAndBroadcast,
     );
@@ -419,9 +309,7 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  private async kickResolvedUser(
-    user: WebSocketUser,
-  ): Promise<void> {
+  private async kickResolvedUser(user: WebSocketUser): Promise<void> {
     // User is connected to this server instance, kick them directly
     this.closeConnection(user, 1008, "User has been banned");
 
@@ -557,24 +445,30 @@ export class WebSocketService implements WebSocketServer {
     const destinationTokenBytes = binaryReader.bytes(32);
     const destinationToken = encodeBase64(destinationTokenBytes);
 
-    console.log("Received player identity message for", destinationToken);
-    const playerIdentityPayload = buildPlayerIdentityPayload(
-      decodeBase64(originUser.getToken()),
-      originUser.getNetworkId(),
-      originUser.getName(),
-    );
+    const originToken = decodeBase64(originUser.getToken());
+    const originNetworkId = originUser.getNetworkId();
+    const originName = originUser.getName();
 
-    this.sendPlayerIdentityToToken(destinationToken, playerIdentityPayload);
+    this.eventsService.dispatch(
+      BroadcastCommandType.PlayerIdentity,
+      {
+        destinationToken,
+        originToken,
+        originNetworkId,
+        originName,
+      },
+      EventDispatchMode.LocalAndBroadcast,
+    );
   }
 
-  @CommandHandler(WebSocketType.Tunnel)
+  @CommandHandler(WebSocketType.PlayerRelay)
   private handlePlayerRelay(
     originUser: WebSocketUser,
     binaryReader: BinaryReader,
   ): void {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
-    const tunnelPayload = buildTunnelPayload(
+    const tunnelPayload = buildPlayerRelayPayload(
       decodeBase64(originUser.getToken()),
       dataBytes,
     );
@@ -585,11 +479,109 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
+  @EventHandler(BroadcastCommandType.OnlinePlayers)
+  private handleOnlinePlayersEvent(
+    eventPayload: OnlinePlayersPayload,
+  ): boolean {
+    const { totalSessions } = eventPayload;
+    const payload = buildOnlinePlayersPayload(totalSessions);
+
+    for (const user of this.userRegistry.valuesByToken()) {
+      this.sendMessage(user, payload);
+    }
+
+    return true;
+  }
+
+  @EventHandler(BroadcastCommandType.PlayerIdentity)
+  private handlePlayerIdentityEvent(
+    eventPayload: PlayerIdentityPayload,
+  ): boolean {
+    const { destinationToken, originTokenBytes, originNetworkId, originName } =
+      eventPayload;
+    const payload = buildPlayerIdentityPayload(
+      originTokenBytes,
+      originNetworkId,
+      originName,
+    );
+
+    return this.withUserByToken(
+      destinationToken,
+      BroadcastCommandType.PlayerIdentity,
+      (user) => this.sendMessage(user, payload),
+    );
+  }
+
+  @EventHandler(BroadcastCommandType.PlayerRelay)
+  private handlePlayerRelayEvent(eventPayload: PlayerRelayPayload): boolean {
+    const { destinationToken, payload } = eventPayload;
+
+    return this.withUserByToken(
+      destinationToken,
+      BroadcastCommandType.PlayerRelay,
+      (user) => this.sendMessage(user, payload),
+    );
+  }
+
   @CommandHandler(WebSocketType.ChatMessage)
   private async handleChatMessage(
     user: WebSocketUser,
     binaryReader: BinaryReader,
   ): Promise<void> {
     await this.chatService.sendSignedChatMessage(this, user, binaryReader);
+  }
+
+  @EventHandler(BroadcastCommandType.Notification)
+  private handleNotificationEvent(eventPayload: NotificationPayload): boolean {
+    const { channelId, message } = eventPayload;
+    this.sendNotificationToUsers(channelId, message);
+    return true;
+  }
+
+  @EventHandler(BroadcastCommandType.PlayerNotification)
+  private handlePlayerNotificationEvent(
+    eventPayload: PlayerNotificationPayload,
+  ): boolean {
+    const { userId, channelId, message } = eventPayload;
+
+    return this.withUserById(
+      userId,
+      BroadcastCommandType.PlayerNotification,
+      (user) => {
+        this.sendNotificationToResolvedUser(user, channelId, message);
+      },
+    );
+  }
+
+  @EventHandler(BroadcastCommandType.KickPlayer)
+  private handleKickPlayerEvent(eventPayload: KickPlayerPayload): boolean {
+    const { userId } = eventPayload;
+
+    return this.withUserById(
+      userId,
+      BroadcastCommandType.KickPlayer,
+      (user) => {
+        void this.kickResolvedUser(user);
+      },
+    );
+  }
+
+  @EventHandler(BroadcastCommandType.PlayerKickedNotification)
+  private handlePlayerKickedNotificationEvent(
+    eventPayload: PlayerKickedNotificationPayload,
+  ): boolean {
+    const { hostUserId, bannedUserNetworkId } = eventPayload;
+
+    return this.withUserById(
+      hostUserId,
+      BroadcastCommandType.PlayerKickedNotification,
+      (hostUser) => {
+        this.sendPlayerKickedNotificationToResolvedHost(
+          hostUser,
+          hostUserId,
+          bannedUserNetworkId,
+        );
+      },
+    );
   }
 }
