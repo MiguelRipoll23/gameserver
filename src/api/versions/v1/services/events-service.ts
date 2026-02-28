@@ -18,6 +18,7 @@ export class EventsService {
     BroadcastCommandType,
     Set<EventHandlerFunction>
   >();
+  private readonly registeredHandlersByInstance = new WeakMap<object, Set<string>>();
 
   constructor() {
     this.broadcastChannel.addEventListener("message", this.handleIncomingMessage);
@@ -32,12 +33,25 @@ export class EventsService {
   }
 
   public registerEventHandlers(instance: unknown): void {
-    const proto = Object.getPrototypeOf(instance as object);
+    const instanceObject = instance as object;
+    const proto = Object.getPrototypeOf(instanceObject);
     const eventHandlers = getEventHandlers().filter((handler) =>
       handler.target === proto
     );
 
+    let registeredHandlers = this.registeredHandlersByInstance.get(instanceObject);
+    if (!registeredHandlers) {
+      registeredHandlers = new Set<string>();
+      this.registeredHandlersByInstance.set(instanceObject, registeredHandlers);
+    }
+
     for (const { command, methodName } of eventHandlers) {
+      const registrationKey = `${command}:${methodName}`;
+
+      if (registeredHandlers.has(registrationKey)) {
+        continue;
+      }
+
       const inst = instance as Record<string, unknown>;
       const maybe = inst[methodName];
 
@@ -49,9 +63,10 @@ export class EventsService {
       }
 
       const boundMethod = (maybe as EventHandlerFunction).bind(
-        instance as object,
+        instanceObject,
       ) as EventHandlerFunction;
       this.bindEventHandler(command, boundMethod);
+      registeredHandlers.add(registrationKey);
     }
   }
 
