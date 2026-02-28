@@ -8,6 +8,10 @@ export type BroadcastCommandPayloadMap = {
   OnlinePlayers: {
     payload: ArrayBuffer;
   };
+  PlayerIdentity: {
+    destinationToken: string;
+    payload: ArrayBuffer;
+  };
   PlayerRelay: {
     destinationToken: string;
     payload: ArrayBuffer;
