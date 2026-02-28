@@ -1,4 +1,2 @@
-export const SEND_NOTIFICATION_EVENT = "send_notification";
-export const SEND_USER_NOTIFICATION_EVENT = "send_user_notification";
-export const REFRESH_BLOCKED_WORDS_CACHE = "refresh_blocked_words_cache";
-export const KICK_USER_EVENT = "kick_user";
+export const EVENT_DISPATCH_MODE_LOCAL_OR_BROADCAST = "local-or-broadcast";
+export const EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST = "local-and-broadcast";

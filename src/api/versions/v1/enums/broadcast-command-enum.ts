@@ -1,8 +1,9 @@
 export enum BroadcastCommandType {
-  OnlineUsersCount = "OnlineUsersCount",
-  TunnelMessage = "TunnelMessage",
-  UserNotification = "UserNotification",
-  KickUser = "KickUser",
-  UserKickedNotification = "UserKickedNotification",
+  Notification = "Notification",
+  OnlinePlayers = "OnlinePlayers",
+  PlayerRelay = "PlayerRelay",
+  PlayerNotification = "PlayerNotification",
+  KickPlayer = "KickPlayer",
+  PlayerKickedNotification = "PlayerKickedNotification",
   RefreshBlockedWordsCache = "RefreshBlockedWordsCache",
 }

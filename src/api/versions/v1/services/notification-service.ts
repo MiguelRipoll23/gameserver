@@ -1,13 +1,16 @@
-import { injectable } from "@needle-di/core";
-import {
-  SEND_NOTIFICATION_EVENT,
-  SEND_USER_NOTIFICATION_EVENT,
-} from "../constants/event-constants.ts";
+import { inject, injectable } from "@needle-di/core";
 import { ServerError } from "../models/server-error.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
+import { EventsService } from "./events-service.ts";
+import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
+import { EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST } from "../constants/event-constants.ts";
 
 @injectable()
 export class NotificationService {
+  constructor(
+    private readonly eventsService = inject(EventsService),
+  ) {}
+
   public notify(channelId: NotificationChannelType, text: string): void {
     const message = text.trim();
 
@@ -29,14 +32,14 @@ export class NotificationService {
       );
     }
 
-    const customEvent = new CustomEvent(SEND_NOTIFICATION_EVENT, {
-      detail: {
+    this.eventsService.dispatch(
+      BroadcastCommandType.Notification,
+      {
         channelId,
         message,
       },
-    });
-
-    dispatchEvent(customEvent);
+      EVENT_DISPATCH_MODE_LOCAL_AND_BROADCAST,
+    );
   }
 
   public notifyUser(
@@ -69,14 +72,10 @@ export class NotificationService {
       );
     }
 
-    const customEvent = new CustomEvent(SEND_USER_NOTIFICATION_EVENT, {
-      detail: {
-        userId: userId.trim(),
-        channelId,
-        message,
-      },
+    this.eventsService.dispatch(BroadcastCommandType.PlayerNotification, {
+      userId: userId.trim(),
+      channelId,
+      message,
     });
-
-    dispatchEvent(customEvent);
   }
 }
