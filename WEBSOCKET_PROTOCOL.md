@@ -50,7 +50,7 @@ Numeric values are encoded **little-endian**.
 | `0` | Authentication |
 | `1` | OnlinePlayers |
 | `2` | PlayerIdentity |
-| `3` | Tunnel |
+| `3` | PlayerRelay |
 | `4` | ChatMessage |
 | `5` | PlayerKicked |
 | `6` | Notification |
@@ -59,7 +59,7 @@ Numeric values are encoded **little-endian**.
 
 ## Client -> Server messages
 
-### 0: Authentication (required first)
+### Authentication (required first)
 
 **Structure**
 
@@ -72,7 +72,7 @@ Numeric values are encoded **little-endian**.
 - On invalid token, server closes with code `1008` and reason `Authentication failed`.
 - Re-sending auth after success is ignored.
 
-### 2: PlayerIdentity
+### PlayerIdentity
 
 Request identity data for another player.
 
@@ -83,7 +83,7 @@ Request identity data for another player.
   - The server generates a random 32-byte token for each WebSocket connection.
   - In some APIs/logs this token may appear base64-encoded; on the wire here it is always raw bytes.
 
-### 3: Tunnel
+### PlayerRelay
 
 Relay opaque binary data to another connected player.
 
@@ -93,7 +93,7 @@ Relay opaque binary data to another connected player.
 - `destinationToken: bytes[32]`
 - `payload: bytes[...]`
 
-### 4: ChatMessage
+### ChatMessage
 
 Submit chat text to be filtered and signed by the server.
 
@@ -113,21 +113,21 @@ Submit chat text to be filtered and signed by the server.
 
 ## Server -> Client messages
 
-### 0: Authentication (ack)
+### Authentication (ack)
 
 **Structure**
 
 - `type: uint8 = 0`
 - `success: uint8` (`1` = success)
 
-### 1: OnlinePlayers
+### OnlinePlayers
 
 **Structure**
 
 - `type: uint8 = 1`
 - `totalOnline: uint16` (0..65535)
 
-### 2: PlayerIdentity
+### PlayerIdentity
 
 **Structure**
 
@@ -136,7 +136,7 @@ Submit chat text to be filtered and signed by the server.
 - `networkId: fixedString[32]`
 - `name: fixedString[16]`
 
-### 3: Tunnel
+### PlayerRelay
 
 **Structure**
 
@@ -144,7 +144,7 @@ Submit chat text to be filtered and signed by the server.
 - `originToken: bytes[32]`
 - `payload: bytes[...]`
 
-### 4: ChatMessage (signed)
+### ChatMessage (signed)
 
 Server returns signed chat payload.
 
@@ -156,7 +156,7 @@ Server returns signed chat payload.
 - `timestampSeconds: uint32` (Unix time, seconds)
 - `signature: bytes[...]` (ECDSA P-256 / SHA-256 signature, ASN.1 DER-encoded as returned by WebCrypto `subtle.sign`)
 
-### 5: PlayerKicked
+### PlayerKicked
 
 Sent to match host when a participant is banned/kicked.
 
@@ -165,7 +165,7 @@ Sent to match host when a participant is banned/kicked.
 - `type: uint8 = 5`
 - `bannedUserNetworkId: fixedString[32]`
 
-### 6: Notification
+### Notification
 
 **Structure**
 
@@ -184,5 +184,5 @@ Sent to match host when a participant is banned/kicked.
 - Always send `Authentication` as first frame.
 - Keep a byte reader with little-endian integer decoding.
 - Dispatch parsing by the first `type` byte.
-- Treat `Tunnel` payload as opaque bytes.
+- Treat `PlayerRelay` payload as opaque bytes.
 - Preserve exact byte formatting for tokens (`32` raw bytes in protocol messages).
