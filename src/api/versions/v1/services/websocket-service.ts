@@ -497,13 +497,8 @@ export class WebSocketService implements WebSocketServer {
   private handlePlayerIdentityEvent(
     eventPayload: PlayerIdentityPayload,
   ): boolean {
-    const { destinationToken, originToken, originNetworkId, originName } =
+    const { destinationToken, originTokenBytes, originNetworkId, originName } =
       eventPayload;
-    // Ensure originToken is Uint8Array for buildPlayerIdentityPayload
-    const originTokenBytes =
-      originToken instanceof Uint8Array
-        ? originToken
-        : new Uint8Array(originToken);
     const payload = buildPlayerIdentityPayload(
       originTokenBytes,
       originNetworkId,
