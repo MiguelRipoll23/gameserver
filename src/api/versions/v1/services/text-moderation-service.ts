@@ -14,11 +14,16 @@ import {
   UpdateWordRequest,
   GetBlockedWordsResponse,
 } from "../schemas/text-moderation-schemas.ts";
-import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
+import { EventsService } from "./events-service.ts";
+import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
+import { EventDispatchMode } from "../constants/event-constants.ts";
 
 @injectable()
 export class TextModerationService {
-  constructor(private databaseService = inject(DatabaseService)) {}
+  constructor(
+    private databaseService = inject(DatabaseService),
+    private eventsService = inject(EventsService),
+  ) {}
 
   public async blockWord(body: BlockWordRequest): Promise<void> {
     const { word, notes } = body;
@@ -237,12 +242,10 @@ export class TextModerationService {
   }
 
   private dispatchRefreshCacheEvent(): void {
-    const customEvent = new CustomEvent(REFRESH_BLOCKED_WORDS_CACHE, {
-      detail: {
-        message: null,
-      },
-    });
-
-    dispatchEvent(customEvent);
+    this.eventsService.dispatch(
+      BroadcastCommandType.RefreshBlockedWordsCache,
+      null,
+      EventDispatchMode.LocalAndBroadcast,
+    );
   }
 }

@@ -6,8 +6,8 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
-import { REFRESH_BLOCKED_WORDS_CACHE } from "../constants/event-constants.ts";
-import { WebSocketBroadcastService } from "./websocket-broadcast-service.ts";
+import { EventHandler } from "../decorators/event-handler.ts";
+import { EventsService } from "./events-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { BlockedWordEntity } from "../../../../db/tables/blocked-words-table.ts";
 
@@ -21,29 +21,15 @@ export class ChatService {
   constructor(
     private readonly signatureService = inject(SignatureService),
     private readonly textModerationService = inject(TextModerationService),
-    private readonly broadcastService = inject(WebSocketBroadcastService),
+    private readonly eventsService = inject(EventsService),
   ) {
-    this.addEventListeners();
-    this.addBroadcastChannelListeners();
+    this.eventsService.registerEventHandlers(this);
   }
 
-  private addEventListeners(): void {
-    addEventListener(REFRESH_BLOCKED_WORDS_CACHE, (): void => {
-      void this.refreshBlockedWordsCache();
-      this.broadcastService.dispatch(
-        BroadcastCommandType.RefreshBlockedWordsCache,
-        null,
-      );
-    });
-  }
-
-  private addBroadcastChannelListeners(): void {
-    this.broadcastService.on(
-      BroadcastCommandType.RefreshBlockedWordsCache,
-      () => {
-        void this.refreshBlockedWordsCache();
-      },
-    );
+  @EventHandler(BroadcastCommandType.RefreshBlockedWordsCache)
+  private handleRefreshBlockedWordsCache(): boolean {
+    void this.refreshBlockedWordsCache();
+    return true;
   }
 
   private async refreshBlockedWordsCache(): Promise<void> {

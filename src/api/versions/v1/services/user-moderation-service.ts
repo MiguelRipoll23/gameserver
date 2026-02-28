@@ -17,14 +17,17 @@ import {
   usersTable,
 } from "../../../../db/schema.ts";
 import { and, desc, eq, gt } from "drizzle-orm";
-import { KICK_USER_EVENT } from "../constants/event-constants.ts";
+import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
+import { EventsService } from "./events-service.ts";
+import { EventDispatchMode } from "../constants/event-constants.ts";
 import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class UserModerationService {
   constructor(
     private databaseService = inject(DatabaseService),
-    private kvService = inject(KVService)
+    private kvService = inject(KVService),
+    private eventsService = inject(EventsService),
   ) {}
 
   public async banUser(body: BanUserRequest): Promise<void> {
@@ -107,14 +110,13 @@ export class UserModerationService {
       );
     }
 
-    // Dispatch kick user event to notify WebSocket service
-    const kickUserEvent = new CustomEvent(KICK_USER_EVENT, {
-      detail: {
+    this.eventsService.dispatch(
+      BroadcastCommandType.KickPlayer,
+      {
         userId,
       },
-    });
-
-    dispatchEvent(kickUserEvent);
+      EventDispatchMode.LocalAndBroadcast,
+    );
   }
 
   public async unbanUser(userId: string): Promise<void> {
