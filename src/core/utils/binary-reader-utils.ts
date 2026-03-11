@@ -9,7 +9,7 @@ export class BinaryReader {
   private readonly littleEndian: boolean;
   private readonly bufferLength: number;
 
-  private constructor(buffer: ArrayBuffer, littleEndian = true) {
+  private constructor(buffer: ArrayBuffer, littleEndian = false) {
     this.buffer = buffer;
     this.dataView = new DataView(buffer);
     this.uint8 = new Uint8Array(buffer);
@@ -19,14 +19,14 @@ export class BinaryReader {
 
   public static fromArrayBuffer(
     buffer: ArrayBuffer,
-    littleEndian = true,
+    littleEndian = false,
   ): BinaryReader {
     return new BinaryReader(buffer, littleEndian);
   }
 
   public static fromUint8Array(
     array: Uint8Array,
-    littleEndian = true,
+    littleEndian = false,
   ): BinaryReader {
     const subArray = array.subarray(0, array.byteLength);
     return new BinaryReader(subArray.buffer as ArrayBuffer, littleEndian);

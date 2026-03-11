@@ -8,7 +8,7 @@ export class BinaryWriter {
   private encoder: TextEncoder;
   private littleEndian: boolean;
 
-  public constructor(initialSize = 1024, littleEndian = true) {
+  public constructor(initialSize = 1024, littleEndian = false) {
     this.buffer = new ArrayBuffer(initialSize);
     this.dataView = new DataView(this.buffer);
     this.uint8View = new Uint8Array(this.buffer);
@@ -17,7 +17,7 @@ export class BinaryWriter {
     this.littleEndian = littleEndian;
   }
 
-  public static build(initialSize = 1024, littleEndian = true): BinaryWriter {
+  public static build(initialSize = 1024, littleEndian = false): BinaryWriter {
     return new BinaryWriter(initialSize, littleEndian);
   }
 
