@@ -21,13 +21,13 @@ Each frame starts with:
 1. `type: uint8` (message discriminator)
 2. Message-specific payload fields
 
-Numeric values are encoded **little-endian**.
+Numeric values are encoded **big-endian**.
 
 ### Primitive types
 
 - `uint8`: 1-byte unsigned integer.
-- `uint16`: 2-byte unsigned integer, little-endian.
-- `uint32`: 4-byte unsigned integer, little-endian.
+- `uint16`: 2-byte unsigned integer, big-endian.
+- `uint32`: 4-byte unsigned integer, big-endian.
 - `bytes[N]`: exactly `N` raw bytes.
 - `bytes[...]`: all remaining bytes in the frame.
 - `fixedString[N]`:
@@ -35,7 +35,7 @@ Numeric values are encoded **little-endian**.
   - truncated to `N` bytes if longer,
   - zero-padded (`0x00`) if shorter.
 - `varString`:
-  - `byteLength: uint32` (4-byte unsigned integer, little-endian)
+  - `byteLength: uint32` (4-byte unsigned integer, big-endian)
   - `utf8Bytes: bytes[byteLength]`
   - `byteLength` is the number of UTF-8 encoded bytes, not character count.
 
@@ -182,7 +182,7 @@ Sent to match host when a participant is banned/kicked.
 
 - Open socket as binary and parse frames from `ArrayBuffer`.
 - Always send `Authentication` as first frame.
-- Keep a byte reader with little-endian integer decoding.
+- Keep a byte reader with big-endian integer decoding.
 - Dispatch parsing by the first `type` byte.
 - Treat `PlayerRelay` payload as opaque bytes.
 - Preserve exact byte formatting for tokens (`32` raw bytes in protocol messages).
