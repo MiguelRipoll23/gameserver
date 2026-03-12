@@ -1,7 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { userSessionsTable } from "../../../../db/tables/user-sessions-table.ts";
-import { count, eq } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 
 @injectable()
 export class SessionsService {
@@ -39,6 +39,32 @@ export class SessionsService {
 
       throw error;
     }
+  }
+
+  public async getTokenByUserId(userId: string): Promise<string | null> {
+    const db = this.databaseService.get();
+    const session = await db
+      .select({ token: userSessionsTable.token })
+      .from(userSessionsTable)
+      .where(eq(userSessionsTable.userId, userId))
+      .limit(1);
+
+    return session.length > 0 ? session[0].token : null;
+  }
+
+  /**
+   * Check if a session exists for the given user ID
+   * More efficient than getTokenByUserId when only checking existence
+   */
+  public async existsByUserId(userId: string): Promise<boolean> {
+    const db = this.databaseService.get();
+    const result = await db
+      .select({ exists: sql<number>`1` })
+      .from(userSessionsTable)
+      .where(eq(userSessionsTable.userId, userId))
+      .limit(1);
+
+    return result.length > 0;
   }
 
   public async deleteByUserId(userId: string, userName: string): Promise<void> {
