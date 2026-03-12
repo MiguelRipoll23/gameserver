@@ -14,17 +14,22 @@ import {
 } from "../../../../db/schema.ts";
 import { and, eq, sql, inArray } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
+import { SessionsService } from "./sessions-service.ts";
+import { SignatureService } from "./signature-service.ts";
 
 @injectable()
 export class MatchesService {
-  constructor(private databaseService = inject(DatabaseService)) {}
+  constructor(
+    private databaseService = inject(DatabaseService),
+    private sessionsService = inject(SessionsService),
+  ) {}
 
   public async advertise(
     userId: string,
     body: AdvertiseMatchRequest,
   ): Promise<void> {
     const db = this.databaseService.get();
-    await this.validateUserSession(db, userId);
+    await this.ensureUserHasSession(userId);
 
     const {
       clientVersion,
@@ -202,18 +207,10 @@ export class MatchesService {
   /**
    * Validates that a user session exists for the given userId
    */
-  private async validateUserSession(
-    db: NodePgDatabase,
-    userId: string,
-  ): Promise<void> {
-    const session = await db
-      .select({ token: userSessionsTable.token })
-      .from(userSessionsTable)
-      .where(eq(userSessionsTable.userId, userId))
-      .limit(1)
-      .then((rows) => rows[0]);
+  private async ensureUserHasSession(userId: string): Promise<void> {
+    const token = await this.sessionsService.getTokenByUserId(userId);
 
-    if (!session) {
+    if (!token) {
       throw new ServerError(
         "NO_SESSION_FOUND",
         "You must be logged in to advertise a match",

@@ -41,6 +41,17 @@ export class SessionsService {
     }
   }
 
+  public async getTokenByUserId(userId: string): Promise<string | null> {
+    const db = this.databaseService.get();
+    const session = await db
+      .select({ token: userSessionsTable.token })
+      .from(userSessionsTable)
+      .where(eq(userSessionsTable.userId, userId))
+      .limit(1);
+
+    return session.length > 0 ? session[0].token : null;
+  }
+
   public async deleteByUserId(userId: string, userName: string): Promise<void> {
     const db = this.databaseService.get();
     const deletedSessions = await db

@@ -118,7 +118,24 @@ Submit chat text to be filtered and signed by the server.
 **Structure**
 
 - `type: uint8 = 0`
-- `success: uint8` (`1` = success)
+- `reserved: uint8 = 0`
+- `signature: bytes[...]` — ECDSA P-256 / SHA-256 signature over the payload `[token: bytes[32]][networkId: fixedString[32]][userName: fixedString[16]]`, where `token` is the session token received by the server on connection.
+
+**Purpose**
+
+The signature is a server-issued credential the client must present when joining a peer-to-peer match. The match host verifies it to confirm the joining player's identity was authenticated by the server.
+
+**Client implementation note**
+
+Skip the `reserved` byte before reading the signature:
+
+```
+binaryReader.unsignedInt8(); // discard reserved byte
+const signature = binaryReader.bytesAsArrayBuffer();
+```
+
+> [!WARNING]
+> Do **not** use an absolute-seek call (e.g. `seek(1)`) to skip this byte if the reader position has already been advanced past the `type` byte. Use a relative read instead.
 
 ### OnlinePlayers
 
