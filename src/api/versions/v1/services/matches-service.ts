@@ -208,9 +208,9 @@ export class MatchesService {
    * Validates that a user session exists for the given userId
    */
   private async ensureUserHasSession(userId: string): Promise<void> {
-    const token = await this.sessionsService.getTokenByUserId(userId);
+    const hasSession = await this.sessionsService.existsByUserId(userId);
 
-    if (!token) {
+    if (!hasSession) {
       throw new ServerError(
         "NO_SESSION_FOUND",
         "You must be logged in to advertise a match",
