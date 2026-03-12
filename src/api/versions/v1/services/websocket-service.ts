@@ -8,13 +8,12 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import {
-  buildAuthenticationAckPayload,
+  buildAuthenticationResponsePayload,
   buildNotificationPayload,
-  buildPlayerIdentityPayload,
   buildPlayerRelayPayload,
   buildPlayerKickedPayload,
   buildOnlinePlayersPayload,
-} from "./websocket-payloads.ts";
+} from "../models/websocket-payloads.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { EventHandler } from "../decorators/event-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
@@ -24,7 +23,6 @@ import { EventsService } from "./events-service.ts";
 import { WebSocketUserRegistry } from "./websocket-user-registry.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 import { OnlinePlayersPayload } from "../types/online-players-payload-type.ts";
-import { PlayerIdentityPayload } from "../types/player-identity-payload-type.ts";
 import { PlayerRelayPayload } from "../types/player-relay-payload-type.ts";
 import { NotificationPayload } from "../types/notification-payload-type.ts";
 import { PlayerNotificationPayload } from "../types/player-notification-payload-type.ts";
@@ -34,6 +32,7 @@ import { MatchesService } from "./matches-service.ts";
 import { SessionsService } from "./sessions-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { EventDispatchMode } from "../constants/event-constants.ts";
+import { UserSignatureService } from "./user-signature-service.ts";
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
@@ -41,6 +40,7 @@ export class WebSocketService implements WebSocketServer {
     private jwtService = inject(JWTService),
     private kvService = inject(KVService),
     private sessionsService = inject(SessionsService),
+    private userSignatureService = inject(UserSignatureService),
     private matchesService = inject(MatchesService),
     private chatService = inject(ChatService),
     private dispatcher = inject(WebSocketDispatcherService),
@@ -403,10 +403,10 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
-    const token = binaryReader.variableLengthString();
+    const accessToken = binaryReader.variableLengthString();
 
     try {
-      const payload = await this.jwtService.verify(token);
+      const payload = await this.jwtService.verify(accessToken);
 
       // Apply identity from JWT
       originUser.setId(payload.sub as string);
@@ -415,54 +415,35 @@ export class WebSocketService implements WebSocketServer {
       originUser.setAuthenticated(true);
 
       await this.handleAuthentication(originUser);
+
+      // Generate signature and send auth response within guarded block
+      const userSignature = await this.userSignatureService.get(
+        originUser.getToken(),
+        originUser.getNetworkId(),
+        originUser.getName(),
+      );
+
+      // Send authentication response
+      const authenticationResponsePayload =
+        buildAuthenticationResponsePayload(userSignature);
+
+      this.sendMessage(originUser, authenticationResponsePayload);
+
+      // Notify all users about the updated online count after authentication
+      try {
+        await this.getAndSendOnlinePlayers();
+      } catch (error) {
+        console.error(
+          "Failed to notify users count after authentication:",
+          error,
+        );
+      }
     } catch (error) {
       console.error("Authentication failed:", error);
+      this.userRegistry.remove(originUser);
       this.closeConnection(originUser, 1008, "Authentication failed");
       return;
     }
-
-    // Send ACK for successful authentication
-    const authenticationPayload = buildAuthenticationAckPayload(true);
-
-    this.sendMessage(originUser, authenticationPayload);
-
-    // Notify all users about the updated online count after authentication
-    try {
-      await this.getAndSendOnlinePlayers();
-    } catch (error) {
-      console.error(
-        "Failed to notify users count after authentication:",
-        error,
-      );
-    }
-  }
-
-  @CommandHandler(WebSocketType.PlayerIdentity)
-  private handlePlayerIdentityMessage(
-    originUser: WebSocketUser,
-    binaryReader: BinaryReader,
-  ): void {
-    const destinationTokenBytes = binaryReader.bytes(32);
-    const destinationToken = encodeBase64(destinationTokenBytes);
-
-    const originTokenBytes = decodeBase64(originUser.getToken());
-    const originNetworkId = originUser.getNetworkId();
-    const originName = originUser.getName();
-
-    console.debug(
-      `Received PlayerIdentity from user ${originName} (${originNetworkId}) for token ${destinationToken}`,
-    );
-
-    this.eventsService.dispatch(
-      BroadcastCommandType.PlayerIdentity,
-      {
-        destinationToken,
-        originTokenBytes,
-        originNetworkId,
-        originName,
-      },
-      EventDispatchMode.LocalOrBroadcast,
-    );
   }
 
   @CommandHandler(WebSocketType.PlayerRelay)
@@ -495,35 +476,6 @@ export class WebSocketService implements WebSocketServer {
     }
 
     return true;
-  }
-
-  @EventHandler(BroadcastCommandType.PlayerIdentity)
-  private handlePlayerIdentityEvent(
-    eventPayload: PlayerIdentityPayload,
-  ): boolean {
-    const { destinationToken, originTokenBytes, originNetworkId, originName } =
-      eventPayload;
-
-    console.debug(
-      `Handling PlayerIdentity for destination token ${destinationToken} from ${originName} (${originNetworkId})`,
-    );
-
-    const payload = buildPlayerIdentityPayload(
-      originTokenBytes,
-      originNetworkId,
-      originName,
-    );
-
-    return this.withUserByToken(
-      destinationToken,
-      BroadcastCommandType.PlayerIdentity,
-      (user) => {
-        console.debug(
-          `Resolved PlayerIdentity destination token ${destinationToken} to user ${user.getName()}`,
-        );
-        this.sendMessage(user, payload);
-      },
-    );
   }
 
   @EventHandler(BroadcastCommandType.PlayerRelay)

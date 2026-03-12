@@ -49,11 +49,10 @@ Numeric values are encoded **big-endian**.
 |---|---|
 | `0` | Authentication |
 | `1` | OnlinePlayers |
-| `2` | PlayerIdentity |
-| `3` | PlayerRelay |
-| `4` | ChatMessage |
-| `5` | PlayerKicked |
-| `6` | Notification |
+| `2` | PlayerRelay |
+| `3` | ChatMessage |
+| `4` | PlayerKicked |
+| `5` | Notification |
 
 ---
 
@@ -72,34 +71,23 @@ Numeric values are encoded **big-endian**.
 - On invalid token, server closes with code `1008` and reason `Authentication failed`.
 - Re-sending auth after success is ignored.
 
-### PlayerIdentity
-
-Request identity data for another player.
-
-**Structure**
-
-- `type: uint8 = 2`
-- `destinationToken: bytes[32]` (raw 32-byte opaque session token, not base64 text)
-  - The server generates a random 32-byte token for each WebSocket connection.
-  - In some APIs/logs this token may appear base64-encoded; on the wire here it is always raw bytes.
-
 ### PlayerRelay
 
 Relay opaque binary data to another connected player.
 
 **Structure**
 
-- `type: uint8 = 3`
-- `destinationToken: bytes[32]`
+- `type: uint8 = 2`
+- `originToken: bytes[32]`
 - `payload: bytes[...]`
 
-### ChatMessage
+### ChatMessage (signed)
 
 Submit chat text to be filtered and signed by the server.
 
 **Structure**
 
-- `type: uint8 = 4`
+- `type: uint8 = 3`
 - `messageText: varString`
 
 **Constraints**
@@ -118,7 +106,24 @@ Submit chat text to be filtered and signed by the server.
 **Structure**
 
 - `type: uint8 = 0`
-- `success: uint8` (`1` = success)
+- `reserved: uint8 = 0`
+- `signature: bytes[...]` — ECDSA P-256 / SHA-256 signature over the payload `[token: bytes[32]][networkId: fixedString[32]][userName: fixedString[16]]`, where `token` is the session token received by the server on connection.
+
+**Purpose**
+
+The signature is a server-issued credential the client must present when joining a peer-to-peer match. The match host verifies it to confirm the joining player's identity was authenticated by the server.
+
+**Client implementation note**
+
+Skip the `reserved` byte before reading the signature:
+
+```ts
+binaryReader.unsignedInt8(); // discard reserved byte
+const signature = binaryReader.bytesAsArrayBuffer();
+```
+
+> [!WARNING]
+> Do **not** use an absolute-seek call (e.g. `seek(1)`) to skip this byte if the reader position has already been advanced past the `type` byte. Use a relative read instead.
 
 ### OnlinePlayers
 
@@ -127,20 +132,11 @@ Submit chat text to be filtered and signed by the server.
 - `type: uint8 = 1`
 - `totalOnline: uint16` (0..65535)
 
-### PlayerIdentity
-
-**Structure**
-
-- `type: uint8 = 2`
-- `originToken: bytes[32]` (sender token)
-- `networkId: fixedString[32]`
-- `name: fixedString[16]`
-
 ### PlayerRelay
 
 **Structure**
 
-- `type: uint8 = 3`
+- `type: uint8 = 2`
 - `originToken: bytes[32]`
 - `payload: bytes[...]`
 
@@ -150,7 +146,7 @@ Server returns signed chat payload.
 
 **Structure**
 
-- `type: uint8 = 4`
+- `type: uint8 = 3`
 - `authorNetworkId: fixedString[32]`
 - `filteredMessageText: varString`
 - `timestampSeconds: uint32` (Unix time, seconds)
@@ -162,14 +158,14 @@ Sent to match host when a participant is banned/kicked.
 
 **Structure**
 
-- `type: uint8 = 5`
+- `type: uint8 = 4`
 - `bannedUserNetworkId: fixedString[32]`
 
 ### Notification
 
 **Structure**
 
-- `type: uint8 = 6`
+- `type: uint8 = 5`
 - `channel: uint8`
   - `0` = Global
   - `1` = Menu
