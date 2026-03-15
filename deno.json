@@ -9,7 +9,7 @@
     "drizzle-kit": "npm:drizzle-kit@^0.31.9",
     "drizzle-orm": "npm:drizzle-orm@^0.45.1",
     "pg": "npm:pg@^8.20.0",
-    "hono": "npm:hono@^4.12.7",
+    "hono": "npm:hono@^4.12.8",
     "zod": "npm:zod@^4.3.6"
   },
   "permissions": {
