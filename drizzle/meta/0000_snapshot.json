@@ -1,5 +1,5 @@
 {
-  "id": "35e5442c-c4c6-4753-8281-2a00fafbdcde",
+  "id": "8daeaccb-a044-427b-99b0-4b01174a8b28",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1033,14 +1033,7 @@
   "enums": {},
   "schemas": {},
   "sequences": {},
-  "roles": {
-    "authenticated_user": {
-      "name": "authenticated_user",
-      "createDb": false,
-      "createRole": false,
-      "inherit": true
-    }
-  },
+  "roles": {},
   "policies": {},
   "views": {},
   "_meta": {
