@@ -68,7 +68,8 @@ CREATE TABLE "user_reports" (
 	"reporter_user_id" uuid NOT NULL,
 	"reported_user_id" uuid NOT NULL,
 	"reason" varchar(500) NOT NULL,
-	"automatic" boolean DEFAULT false NOT NULL
+	"automatic" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "user_roles" (
