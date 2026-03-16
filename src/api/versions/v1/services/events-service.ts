@@ -83,20 +83,21 @@ export class EventsService {
   ): void {
     const handledLocally = this.notifyHandlers(command, payload);
 
-    console.debug(
-      `Dispatch result for command ${command} on instance ${this.instanceId}: handledLocally=${handledLocally}, mode=${mode}`,
-    );
-
-    if (mode === EventDispatchMode.LocalAndBroadcast || !handledLocally) {
-      this.broadcastChannel.postMessage({
-        command,
-        payload,
-        originInstanceId: this.instanceId,
-      });
-      console.debug(
-        `Broadcasted command ${command} from instance ${this.instanceId}`,
-      );
+    // If the event was handled locally and the mode allows local-only handling,
+    // then we can skip broadcasting to other instances
+    if (mode === EventDispatchMode.LocalOrBroadcast && handledLocally) {
+      return;
     }
+
+    this.broadcastChannel.postMessage({
+      command,
+      payload,
+      originInstanceId: this.instanceId,
+    });
+
+    console.debug(
+      `Broadcasted command ${command} from instance ${this.instanceId} with mode ${mode}`,
+    );
   }
 
   private bindEventHandler(
