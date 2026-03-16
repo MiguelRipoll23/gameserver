@@ -1,8 +1,13 @@
 # Game server
 
-A game server built for multiplayer games.
+A secure game server built for multiplayer games.
 
-[Go to example game](https://hoodball.vercel.app)
+[![Deploy on Deno](https://deno.com/button)](https://console.deno.com/new?clone=https://github.com/MiguelRipoll23/gameserver&predeploy=deno%20task%20migrate)
+
+Used by these games:
+
+- [Hood Ball - 2D multiplayer game inspired by Rocket League](https://hoodball.vercel.app)
+- [Air Combat - 3D flight combat simulator](https://aircombat.vercel.app)
 
 ## Features
 
@@ -14,15 +19,21 @@ A game server built for multiplayer games.
 - Chat messages integrity using digital signatures
 - Secure player score management
 
-## Demo
+## Configuration
 
-![image](https://github.com/user-attachments/assets/3a888869-0ea6-488e-b5d5-181453022672)
+Follow the steps below after using the `Deploy` button above this section:
 
-## Getting started
+1. On the Deno Deploy project page, go to Settings → Environment Variables.
+2. Copy `.env.example` to `.env` (Deno Deploy requires the `.env` extension when
+   importing).
+3. Drag and drop the `.env` file onto the Environment Variables panel, or click
+   Import and select the file.
 
-1. Create an .env file based on the template file `.env.template`
-2. Execute `deno task dev`
-3. Have fun! (mandatory)
+### Database configuration
+
+Provision a database and create the `authenticated_user` role in your production
+branch of your database so the migrations can be automatically applied when
+being deployed.
 
 ## Contributing
 
