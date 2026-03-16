@@ -3,7 +3,8 @@ import { pgRole } from "drizzle-orm/pg-core";
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 // Define roles for Row Level Security
-export const authenticatedUserRole = pgRole("authenticated_user");
+// Using existing() for now due to limitations in Drizzle ORM's role management
+export const authenticatedUserRole = pgRole("authenticated_user").existing();
 
 // Helper function to check if current user ID matches a user ID column
 export const isCurrentUser = (userIdColumn: AnyPgColumn) =>
