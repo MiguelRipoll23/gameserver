@@ -14,9 +14,9 @@
     "npm:@peculiar/asn1-x509@^2.6.1": "2.6.1",
     "npm:@peculiar/x509@^1.14.3": "1.14.3",
     "npm:@scalar/hono-api-reference@~0.10.4": "0.10.4_hono@4.12.8",
-    "npm:@types/pg@^8.18.0": "8.18.0",
+    "npm:@types/pg@^8.20.0": "8.20.0",
     "npm:drizzle-kit@~0.31.10": "0.31.10",
-    "npm:drizzle-orm@~0.45.1": "0.45.1_@types+pg@8.18.0_pg@8.20.0",
+    "npm:drizzle-orm@~0.45.1": "0.45.1_@types+pg@8.20.0_pg@8.20.0",
     "npm:hono@^4.12.8": "4.12.8",
     "npm:pg@^8.20.0": "8.20.0",
     "npm:zod@^4.3.6": "4.3.6"
@@ -613,8 +613,8 @@
         "undici-types"
       ]
     },
-    "@types/pg@8.18.0": {
-      "integrity": "sha512-gT+oueVQkqnj6ajGJXblFR4iavIXWsGAFCk3dP4Kki5+a9R4NMt0JARdk6s8cUKcfUoqP5dAtDSLU8xYUTFV+Q==",
+    "@types/pg@8.20.0": {
+      "integrity": "sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==",
       "dependencies": [
         "@types/node",
         "pg-protocol",
@@ -642,7 +642,7 @@
       ],
       "bin": true
     },
-    "drizzle-orm@0.45.1_@types+pg@8.18.0_pg@8.20.0": {
+    "drizzle-orm@0.45.1_@types+pg@8.20.0_pg@8.20.0": {
       "integrity": "sha512-Te0FOdKIistGNPMq2jscdqngBRfBpC8uMFVwqjf6gtTVJHIQ/dosgV/CLBU2N4ZJBsXL5savCba9b0YJskKdcA==",
       "dependencies": [
         "@types/pg",
@@ -915,7 +915,7 @@
       "jsr:@std/encoding@^1.0.10",
       "npm:@hono/zod-openapi@^1.2.2",
       "npm:@scalar/hono-api-reference@~0.10.4",
-      "npm:@types/pg@^8.18.0",
+      "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
       "npm:drizzle-orm@~0.45.1",
       "npm:hono@^4.12.8",
