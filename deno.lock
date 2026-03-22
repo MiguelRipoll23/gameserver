@@ -5,7 +5,7 @@
     "jsr:@simplewebauthn/server@^13.3.0": "13.3.0",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@^1.2.2": "1.2.2_hono@4.12.8_zod@4.3.6",
+    "npm:@hono/zod-openapi@^1.2.3": "1.2.3_hono@4.12.8_zod@4.3.6",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-ecc@^2.6.1": "2.6.1",
@@ -43,8 +43,8 @@
     }
   },
   "npm": {
-    "@asteasolutions/zod-to-openapi@8.4.1_zod@4.3.6": {
-      "integrity": "sha512-WmJUsFINbnWxGvHSd16aOjgKf+5GsfdxruO2YDLcgplsidakCauik1lhlk83YDH06265Yd1XtUyF24o09uygpw==",
+    "@asteasolutions/zod-to-openapi@8.5.0_zod@4.3.6": {
+      "integrity": "sha512-SABbKiObg5dLRiTFnqiW1WWwGcg1BJfmHtT2asIBnBHg6Smy/Ms2KHc650+JI4Hw7lSkdiNebEGXpwoxfben8Q==",
       "dependencies": [
         "openapi3-ts",
         "zod"
@@ -442,8 +442,8 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@1.2.2_hono@4.12.8_zod@4.3.6": {
-      "integrity": "sha512-va6vsL23wCJ1d0Vd+vGL1XOt+wPwItxirYafuhlW9iC2MstYr2FvsI7mctb45eBTjZfkqB/3LYDJEppPjOEiHw==",
+    "@hono/zod-openapi@1.2.3_hono@4.12.8_zod@4.3.6": {
+      "integrity": "sha512-zAviC3ApRAYGUiGWZiW/mrK/UBqkTi9BKQxn1IvwYyp2kS+k1tlnwut59DfEInpcsq1347zAYOqYI+obMy4vzQ==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
         "@hono/zod-validator",
@@ -900,8 +900,8 @@
     "xtend@4.0.2": {
       "integrity": "sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ=="
     },
-    "yaml@2.8.2": {
-      "integrity": "sha512-mplynKqc1C2hTVYxd0PU2xQAc22TI1vShAYGksCCfxbn/dFwnHTNi1bvYsBTkhdUNtGIf5xNOg938rrSSYvS9A==",
+    "yaml@2.8.3": {
+      "integrity": "sha512-AvbaCLOO2Otw/lW5bmh9d/WEdcDFdQp2Z2ZUH3pX9U2ihyUY0nvLv7J6TrWowklRGPYbB/IuIMfYgxaCPg5Bpg==",
       "bin": true
     },
     "zod@4.3.6": {
@@ -913,7 +913,7 @@
       "jsr:@needle-di/core@^1.1.1",
       "jsr:@simplewebauthn/server@^13.3.0",
       "jsr:@std/encoding@^1.0.10",
-      "npm:@hono/zod-openapi@^1.2.2",
+      "npm:@hono/zod-openapi@^1.2.3",
       "npm:@scalar/hono-api-reference@~0.10.4",
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
