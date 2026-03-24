@@ -5,7 +5,7 @@
     "jsr:@simplewebauthn/server@^13.3.0": "13.3.0",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@^1.2.3": "1.2.3_hono@4.12.8_zod@4.3.6",
+    "npm:@hono/zod-openapi@^1.2.3": "1.2.3_hono@4.12.9_zod@4.3.6",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-ecc@^2.6.1": "2.6.1",
@@ -13,11 +13,11 @@
     "npm:@peculiar/asn1-schema@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-x509@^2.6.1": "2.6.1",
     "npm:@peculiar/x509@^1.14.3": "1.14.3",
-    "npm:@scalar/hono-api-reference@~0.10.4": "0.10.4_hono@4.12.8",
+    "npm:@scalar/hono-api-reference@~0.10.4": "0.10.4_hono@4.12.9",
     "npm:@types/pg@^8.20.0": "8.20.0",
     "npm:drizzle-kit@~0.31.10": "0.31.10",
     "npm:drizzle-orm@~0.45.1": "0.45.1_@types+pg@8.20.0_pg@8.20.0",
-    "npm:hono@^4.12.8": "4.12.8",
+    "npm:hono@^4.12.9": "4.12.9",
     "npm:pg@^8.20.0": "8.20.0",
     "npm:zod@^4.3.6": "4.3.6"
   },
@@ -442,7 +442,7 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@1.2.3_hono@4.12.8_zod@4.3.6": {
+    "@hono/zod-openapi@1.2.3_hono@4.12.9_zod@4.3.6": {
       "integrity": "sha512-zAviC3ApRAYGUiGWZiW/mrK/UBqkTi9BKQxn1IvwYyp2kS+k1tlnwut59DfEInpcsq1347zAYOqYI+obMy4vzQ==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
@@ -452,7 +452,7 @@
         "zod"
       ]
     },
-    "@hono/zod-validator@0.7.6_hono@4.12.8_zod@4.3.6": {
+    "@hono/zod-validator@0.7.6_hono@4.12.9_zod@4.3.6": {
       "integrity": "sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw==",
       "dependencies": [
         "hono",
@@ -591,7 +591,7 @@
     "@scalar/helpers@0.4.2": {
       "integrity": "sha512-IrgrGVSahCfYDNWITazz4Q1BOndp5eEzlimRkfxiYn++KqeWyLfALyym1omqcdKGYtiSx1KIbKaUJL9vkjaN7w=="
     },
-    "@scalar/hono-api-reference@0.10.4_hono@4.12.8": {
+    "@scalar/hono-api-reference@0.10.4_hono@4.12.9": {
       "integrity": "sha512-mRH3GAx5sfXB0e9bHhjaRORzX/Hct1Gmj6s0wVAEMVpYm31dsR4om4Qu5zLAVbYroc0QWpo2h19+vu9pg/lG2w==",
       "dependencies": [
         "@scalar/core",
@@ -759,8 +759,8 @@
         "resolve-pkg-maps"
       ]
     },
-    "hono@4.12.8": {
-      "integrity": "sha512-VJCEvtrezO1IAR+kqEYnxUOoStaQPGrCmX3j4wDTNOcD1uRPFpGlwQUIW8niPuvHXaTUxeOUl5MMDGrl+tmO9A=="
+    "hono@4.12.9": {
+      "integrity": "sha512-wy3T8Zm2bsEvxKZM5w21VdHDDcwVS1yUFFY6i8UobSsKfFceT7TOwhbhfKsDyx7tYQlmRM5FLpIuYvNFyjctiA=="
     },
     "nanoid@5.1.7": {
       "integrity": "sha512-ua3NDgISf6jdwezAheMOk4mbE1LXjm1DfMUDMuJf4AqxLFK3ccGpgWizwa5YV7Yz9EpXwEaWoRXSb/BnV0t5dQ==",
@@ -918,7 +918,7 @@
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
       "npm:drizzle-orm@~0.45.1",
-      "npm:hono@^4.12.8",
+      "npm:hono@^4.12.9",
       "npm:pg@^8.20.0",
       "npm:zod@^4.3.6"
     ]
