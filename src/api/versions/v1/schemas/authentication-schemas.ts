@@ -81,6 +81,10 @@ export const VerifyAuthenticationResponseSchema = z.object({
     .string()
     .describe("The public display name chosen by the user")
     .openapi({ example: "MiguelRipoll23" }),
+  userRoles: z
+    .array(z.string())
+    .describe("List of roles assigned to the authenticated user")
+    .openapi({ example: ["moderator"] }),
   userPublicIp: z
     .union([z.ipv4(), z.ipv6()])
     .nullable()
