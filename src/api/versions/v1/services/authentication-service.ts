@@ -150,6 +150,7 @@ export class AuthenticationService {
       refreshToken,
       userId,
       userDisplayName,
+      userRoles,
       userPublicIp,
       userSymmetricKey,
       serverSignaturePublicKey,
