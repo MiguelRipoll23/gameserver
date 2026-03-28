@@ -16,7 +16,7 @@
     "npm:@scalar/hono-api-reference@~0.10.5": "0.10.5_hono@4.12.9",
     "npm:@types/pg@^8.20.0": "8.20.0",
     "npm:drizzle-kit@~0.31.10": "0.31.10",
-    "npm:drizzle-orm@~0.45.1": "0.45.1_@types+pg@8.20.0_pg@8.20.0",
+    "npm:drizzle-orm@~0.45.2": "0.45.2_@types+pg@8.20.0_pg@8.20.0",
     "npm:hono@^4.12.9": "4.12.9",
     "npm:pg@^8.20.0": "8.20.0",
     "npm:zod@^4.3.6": "4.3.6"
@@ -642,8 +642,8 @@
       ],
       "bin": true
     },
-    "drizzle-orm@0.45.1_@types+pg@8.20.0_pg@8.20.0": {
-      "integrity": "sha512-Te0FOdKIistGNPMq2jscdqngBRfBpC8uMFVwqjf6gtTVJHIQ/dosgV/CLBU2N4ZJBsXL5savCba9b0YJskKdcA==",
+    "drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0": {
+      "integrity": "sha512-kY0BSaTNYWnoDMVoyY8uxmyHjpJW1geOmBMdSSicKo9CIIWkSxMIj2rkeSR51b8KAPB7m+qysjuHme5nKP+E5Q==",
       "dependencies": [
         "@types/pg",
         "pg"
@@ -917,7 +917,7 @@
       "npm:@scalar/hono-api-reference@~0.10.5",
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
-      "npm:drizzle-orm@~0.45.1",
+      "npm:drizzle-orm@~0.45.2",
       "npm:hono@^4.12.9",
       "npm:pg@^8.20.0",
       "npm:zod@^4.3.6"
