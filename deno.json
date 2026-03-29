@@ -1,6 +1,6 @@
 {
   "imports": {
-    "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.2.3",
+    "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.2.4",
     "@needle-di/core": "jsr:@needle-di/core@^1.1.1",
     "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.10.5",
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.3.0",
