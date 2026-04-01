@@ -1,7 +1,7 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@needle-di/core@^1.1.1": "1.1.1",
+    "jsr:@needle-di/core@^1.1.2": "1.1.2",
     "jsr:@simplewebauthn/server@^13.3.0": "13.3.0",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
@@ -22,8 +22,8 @@
     "npm:zod@^4.3.6": "4.3.6"
   },
   "jsr": {
-    "@needle-di/core@1.1.1": {
-      "integrity": "e1e746a82f7a104f05db43ebbc6cc8457b56b67f7b5d7b746c0aa5fb9c838317"
+    "@needle-di/core@1.1.2": {
+      "integrity": "74c9453baa0de202446418dde754645c0b96d0d441e78685e9169fb839fcbd32"
     },
     "@simplewebauthn/server@13.3.0": {
       "integrity": "05673d6ba63ee4c8b0a0c6d417ebabb8ac20c75c323cdbab76eeea996a34d75b",
@@ -910,7 +910,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@needle-di/core@^1.1.1",
+      "jsr:@needle-di/core@^1.1.2",
       "jsr:@simplewebauthn/server@^13.3.0",
       "jsr:@std/encoding@^1.0.10",
       "npm:@hono/zod-openapi@^1.2.4",
