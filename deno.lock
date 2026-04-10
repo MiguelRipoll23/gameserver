@@ -13,7 +13,7 @@
     "npm:@peculiar/asn1-schema@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-x509@^2.6.1": "2.6.1",
     "npm:@peculiar/x509@^1.14.3": "1.14.3",
-    "npm:@scalar/hono-api-reference@~0.10.6": "0.10.6_hono@4.12.12",
+    "npm:@scalar/hono-api-reference@~0.10.7": "0.10.7_hono@4.12.12",
     "npm:@types/pg@^8.20.0": "8.20.0",
     "npm:drizzle-kit@~0.31.10": "0.31.10",
     "npm:drizzle-orm@~0.45.2": "0.45.2_@types+pg@8.20.0_pg@8.20.0",
@@ -582,24 +582,31 @@
         "tsyringe"
       ]
     },
-    "@scalar/core@0.4.6": {
-      "integrity": "sha512-lIlCUx0O18ei63j7Z7QTAVAuh66sdms9zoDPhpDOzHTVObnb7n0f3J306sT3H9KQsoWKQrEsnKx4LcZLw/TlPw==",
+    "@scalar/client-side-rendering@0.1.0": {
+      "integrity": "sha512-SUuLgDmY1mUYOrGB2vpKj2HnYmPibKOewIV0gugv6k/qajE9R88uIj6u0DxAJVOLgihvKdMGyeXsnUs4fTLZYg==",
       "dependencies": [
+        "@scalar/types"
+      ]
+    },
+    "@scalar/core@0.5.0": {
+      "integrity": "sha512-quPUndgBB1fwUkdIgJiCVA3vR6hyCgMYgca9YPI+RwbAB7/H/1otNEKfLBzLVbNllXlGnY4BxmGSft4fUg49jg==",
+      "dependencies": [
+        "@scalar/client-side-rendering",
         "@scalar/types"
       ]
     },
     "@scalar/helpers@0.4.3": {
       "integrity": "sha512-Gv2V7SFreLx3DltzF2lKXdaJSH5cP1LOyt9PxON1cSWGxkrs3sg93c1taEJsW24E9ckfYXkL5hjCAVLfAN3wQw=="
     },
-    "@scalar/hono-api-reference@0.10.6_hono@4.12.12": {
-      "integrity": "sha512-9/sZvJ2P0TCMnTqQHKC7RGT6qBauJ1Z+diiFRtLuJhCk4e+6uzPOD0QmRwpUARK7NXZp4oNPm2hXHHT6GqZZAQ==",
+    "@scalar/hono-api-reference@0.10.7_hono@4.12.12": {
+      "integrity": "sha512-OkOtpMYUchkgMwqJ8M0cgOg5SzMIR4uajhggCWqIZa6b2masLHmS15y2ervEDUZRp0UhEXQWbIJv+6eQJ7KG3g==",
       "dependencies": [
         "@scalar/core",
         "hono"
       ]
     },
-    "@scalar/types@0.7.6": {
-      "integrity": "sha512-n5d7neeGTY/yS36AwAv3FAyCnJbbLjMPwyuEXBLgxHcb5i8DXnNfwy1nzz8jx/EJ88i1zmQ8BuMs+207saHgNA==",
+    "@scalar/types@0.8.0": {
+      "integrity": "sha512-3GP0eqe+4XR8MyKOSCTly/VRobT3sKoFBX1ZSuuZAlcBROqzRkBSzQ+kloGWqTR60vP9GAwW7SnHo72MdCP0DQ==",
       "dependencies": [
         "@scalar/helpers",
         "nanoid",
@@ -914,7 +921,7 @@
       "jsr:@simplewebauthn/server@^13.3.0",
       "jsr:@std/encoding@^1.0.10",
       "npm:@hono/zod-openapi@^1.2.4",
-      "npm:@scalar/hono-api-reference@~0.10.6",
+      "npm:@scalar/hono-api-reference@~0.10.7",
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
       "npm:drizzle-orm@~0.45.2",
