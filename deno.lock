@@ -5,7 +5,7 @@
     "jsr:@simplewebauthn/server@^13.3.0": "13.3.0",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@^1.2.4": "1.2.4_hono@4.12.12_zod@4.3.6",
+    "npm:@hono/zod-openapi@^1.3.0": "1.3.0_hono@4.12.12_zod@4.3.6",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-ecc@^2.6.1": "2.6.1",
@@ -442,8 +442,8 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@1.2.4_hono@4.12.12_zod@4.3.6": {
-      "integrity": "sha512-cZu71bpODTbtIDoUsIIYPrs58wJ565Tbg6FE+JshU0irBAd6KxrP+k62Amm/mjA7tTOQ3+ingODHKGFOnv+Ibw==",
+    "@hono/zod-openapi@1.3.0_hono@4.12.12_zod@4.3.6": {
+      "integrity": "sha512-loDVevfMaaNa0slskhpMcqjSdidVXba2QJwNVmnS5Dp6L8AqSgtjJxWGJfRZtosyzYOb5gx4ZzXNCe+QhwY7xw==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
         "@hono/zod-validator",
@@ -920,7 +920,7 @@
       "jsr:@needle-di/core@^1.1.2",
       "jsr:@simplewebauthn/server@^13.3.0",
       "jsr:@std/encoding@^1.0.10",
-      "npm:@hono/zod-openapi@^1.2.4",
+      "npm:@hono/zod-openapi@^1.3.0",
       "npm:@scalar/hono-api-reference@~0.10.7",
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
