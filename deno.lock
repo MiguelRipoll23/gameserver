@@ -13,7 +13,7 @@
     "npm:@peculiar/asn1-schema@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-x509@^2.6.1": "2.6.1",
     "npm:@peculiar/x509@^1.14.3": "1.14.3",
-    "npm:@scalar/hono-api-reference@~0.10.7": "0.10.7_hono@4.12.14",
+    "npm:@scalar/hono-api-reference@~0.10.8": "0.10.8_hono@4.12.14",
     "npm:@types/pg@^8.20.0": "8.20.0",
     "npm:drizzle-kit@~0.31.10": "0.31.10",
     "npm:drizzle-orm@~0.45.2": "0.45.2_@types+pg@8.20.0_pg@8.20.0",
@@ -582,31 +582,31 @@
         "tsyringe"
       ]
     },
-    "@scalar/client-side-rendering@0.1.0": {
-      "integrity": "sha512-SUuLgDmY1mUYOrGB2vpKj2HnYmPibKOewIV0gugv6k/qajE9R88uIj6u0DxAJVOLgihvKdMGyeXsnUs4fTLZYg==",
+    "@scalar/client-side-rendering@0.1.1": {
+      "integrity": "sha512-ACASA/nQAC6HXQTIkkBlvCFxUN9xfCy3Zdgo75rw8jzUqsxRIpTuucR7r9VW1bO/N4qsgEQumC4hK4ESCMdZmQ==",
       "dependencies": [
         "@scalar/types"
       ]
     },
-    "@scalar/core@0.5.0": {
-      "integrity": "sha512-quPUndgBB1fwUkdIgJiCVA3vR6hyCgMYgca9YPI+RwbAB7/H/1otNEKfLBzLVbNllXlGnY4BxmGSft4fUg49jg==",
+    "@scalar/core@0.5.1": {
+      "integrity": "sha512-LvH4m502KjEICn7d6lG28fU2TT5AIAJN/czpnx1wusLei2EAgVeEfy0Gkr/kQy+lU215fockVngcvOktYb6KrA==",
       "dependencies": [
         "@scalar/client-side-rendering",
         "@scalar/types"
       ]
     },
-    "@scalar/helpers@0.4.3": {
-      "integrity": "sha512-Gv2V7SFreLx3DltzF2lKXdaJSH5cP1LOyt9PxON1cSWGxkrs3sg93c1taEJsW24E9ckfYXkL5hjCAVLfAN3wQw=="
+    "@scalar/helpers@0.5.0": {
+      "integrity": "sha512-S7m46UWqngUmDXuihUerNKS58vlUqF/qaXle3QREfc8Xh9wperAKxFmmxrnulAayrcCQ/fTJyGu5oSM2STlxkA=="
     },
-    "@scalar/hono-api-reference@0.10.7_hono@4.12.14": {
-      "integrity": "sha512-OkOtpMYUchkgMwqJ8M0cgOg5SzMIR4uajhggCWqIZa6b2masLHmS15y2ervEDUZRp0UhEXQWbIJv+6eQJ7KG3g==",
+    "@scalar/hono-api-reference@0.10.8_hono@4.12.14": {
+      "integrity": "sha512-/8Pfg1ijyiL0gypc85geh7xFl0+iLUQS0tcqrX5cdao7pRO+aiDreMxYOBcRD9MJRD++nFUVYla97nmNwoTRTQ==",
       "dependencies": [
         "@scalar/core",
         "hono"
       ]
     },
-    "@scalar/types@0.8.0": {
-      "integrity": "sha512-3GP0eqe+4XR8MyKOSCTly/VRobT3sKoFBX1ZSuuZAlcBROqzRkBSzQ+kloGWqTR60vP9GAwW7SnHo72MdCP0DQ==",
+    "@scalar/types@0.9.0": {
+      "integrity": "sha512-SJNI2f2ZEsN+Cp7o4rAjPu2nFRFXdSkO1ocG9rzynhJhbMBniHnbkCAe19QT/iHMvSCXfj8J8qDOn2S+TnMymg==",
       "dependencies": [
         "@scalar/helpers",
         "nanoid",
@@ -769,8 +769,8 @@
     "hono@4.12.14": {
       "integrity": "sha512-am5zfg3yu6sqn5yjKBNqhnTX7Cv+m00ox+7jbaKkrLMRJ4rAdldd1xPd/JzbBWspqaQv6RSTrgFN95EsfhC+7w=="
     },
-    "nanoid@5.1.7": {
-      "integrity": "sha512-ua3NDgISf6jdwezAheMOk4mbE1LXjm1DfMUDMuJf4AqxLFK3ccGpgWizwa5YV7Yz9EpXwEaWoRXSb/BnV0t5dQ==",
+    "nanoid@5.1.9": {
+      "integrity": "sha512-ZUvP7KeBLe3OZ1ypw6dI/TzYJuvHP77IM4Ry73waSQTLn8/g8rpdjfyVAh7t1/+FjBtG4lCP42MEbDxOsRpBMw==",
       "bin": true
     },
     "openapi3-ts@4.5.0": {
@@ -921,7 +921,7 @@
       "jsr:@simplewebauthn/server@^13.3.0",
       "jsr:@std/encoding@^1.0.10",
       "npm:@hono/zod-openapi@^1.3.0",
-      "npm:@scalar/hono-api-reference@~0.10.7",
+      "npm:@scalar/hono-api-reference@~0.10.8",
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
       "npm:drizzle-orm@~0.45.2",
