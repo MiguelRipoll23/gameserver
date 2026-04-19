@@ -6,7 +6,7 @@ A secure game server built for multiplayer games.
 
 Used by these games:
 
-- [Hood Ball - 2D multiplayer game inspired by Rocket League](https://hoodball.vercel.app)
+- [Hood Ball - 2D Rocket League inspired-game](https://hoodball.vercel.app)
 - [Air Combat - 3D flight combat simulator](https://aircombat.vercel.app)
 
 ## Features
