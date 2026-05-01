@@ -5,7 +5,7 @@
     "jsr:@simplewebauthn/server@^13.3.0": "13.3.0",
     "jsr:@std/encoding@^1.0.10": "1.0.10",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
-    "npm:@hono/zod-openapi@^1.3.0": "1.3.0_hono@4.12.15_zod@4.4.1",
+    "npm:@hono/zod-openapi@^1.3.0": "1.3.0_hono@4.12.16_zod@4.4.1",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
     "npm:@peculiar/asn1-android@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-ecc@^2.6.1": "2.6.1",
@@ -13,11 +13,11 @@
     "npm:@peculiar/asn1-schema@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-x509@^2.6.1": "2.6.1",
     "npm:@peculiar/x509@^1.14.3": "1.14.3",
-    "npm:@scalar/hono-api-reference@~0.10.12": "0.10.12_hono@4.12.15",
+    "npm:@scalar/hono-api-reference@~0.10.13": "0.10.13_hono@4.12.16",
     "npm:@types/pg@^8.20.0": "8.20.0",
     "npm:drizzle-kit@~0.31.10": "0.31.10",
     "npm:drizzle-orm@~0.45.2": "0.45.2_@types+pg@8.20.0_pg@8.20.0",
-    "npm:hono@^4.12.15": "4.12.15",
+    "npm:hono@^4.12.16": "4.12.16",
     "npm:pg@^8.20.0": "8.20.0",
     "npm:zod@^4.4.1": "4.4.1"
   },
@@ -442,7 +442,7 @@
     "@hexagon/base64@1.1.28": {
       "integrity": "sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw=="
     },
-    "@hono/zod-openapi@1.3.0_hono@4.12.15_zod@4.4.1": {
+    "@hono/zod-openapi@1.3.0_hono@4.12.16_zod@4.4.1": {
       "integrity": "sha512-loDVevfMaaNa0slskhpMcqjSdidVXba2QJwNVmnS5Dp6L8AqSgtjJxWGJfRZtosyzYOb5gx4ZzXNCe+QhwY7xw==",
       "dependencies": [
         "@asteasolutions/zod-to-openapi",
@@ -452,7 +452,7 @@
         "zod"
       ]
     },
-    "@hono/zod-validator@0.7.6_hono@4.12.15_zod@4.4.1": {
+    "@hono/zod-validator@0.7.6_hono@4.12.16_zod@4.4.1": {
       "integrity": "sha512-Io1B6d011Gj1KknV4rXYz4le5+5EubcWEU/speUjuw9XMMIaP3n78yXLhjd2A3PXaXaUwEAluOiAyLqhBEJgsw==",
       "dependencies": [
         "hono",
@@ -582,24 +582,24 @@
         "tsyringe"
       ]
     },
-    "@scalar/client-side-rendering@0.1.5": {
-      "integrity": "sha512-XZ+lZbVli1rAX8Y13sQqisvbjVhkbePVeo0izJZ4cNzpzSh7fDpigEqpV67u4ljpTpLO0B12JDXR5xnmSy+YwQ==",
+    "@scalar/client-side-rendering@0.1.6": {
+      "integrity": "sha512-ooc5RKyi83EvBuxB2N8H00ZE2CF4oKynuUToSCaoqxkjv+oJ6B3+OYsb0HVixznsyWhUDdtQZm4/xOb0kxBaaA==",
       "dependencies": [
         "@scalar/types"
       ]
     },
-    "@scalar/helpers@0.5.4": {
-      "integrity": "sha512-AJFJNoSVcCHXDPH1Mosie+5+AOpNC4zrtwWywvQEhcaqHfiH4LSq8Og8Bay82M/jhCwNRNjWfGOGcaCE4XbCDw=="
+    "@scalar/helpers@0.5.5": {
+      "integrity": "sha512-TqbErkqGijJJW6Ad8lpswHFTmlJaYFt9oolaWF1/Nn9171xdkK9ZDAk3pCaOCWs8WpwvcbUSxIVD8JxdBg0MFg=="
     },
-    "@scalar/hono-api-reference@0.10.12_hono@4.12.15": {
-      "integrity": "sha512-X7ueApsdUkTEhyLfR9S6G+qzvoFUwZk4Hfh/I8EwTocxMAcv28bWvf0fe9UbmhXBN/vO6lKdpey/RCr5kiFjcg==",
+    "@scalar/hono-api-reference@0.10.13_hono@4.12.16": {
+      "integrity": "sha512-xYSN6GVdzsgt5i3OTt4wDpIcD/KpKTwb6Wiy65NucGIFW0WidM6ilb9Lf8EG9xescut5djLtGOOxO4Ze0w8qgQ==",
       "dependencies": [
         "@scalar/client-side-rendering",
         "hono"
       ]
     },
-    "@scalar/types@0.9.4": {
-      "integrity": "sha512-nspIWRUVPv2uf9d0bBxn2uqKcEVbLqoUqKvNAuBgKMinZ95XSMcGjQjsgqDiRBPsn1luTtjC9xupUFfer7kLtg==",
+    "@scalar/types@0.9.5": {
+      "integrity": "sha512-joen5nuqgmGzgXK5XIqkGs0JmCZ16djaw+pgC24sfb+p3sSPVfKQTNTil/RuvHMNsmA/dFcQ6GI0Y3HhTlUQrg==",
       "dependencies": [
         "@scalar/helpers",
         "nanoid",
@@ -759,11 +759,11 @@
         "resolve-pkg-maps"
       ]
     },
-    "hono@4.12.15": {
-      "integrity": "sha512-qM0jDhFEaCBb4TxoW7f53Qrpv9RBiayUHo0S52JudprkhvpjIrGoU1mnnr29Fvd1U335ZFPZQY1wlkqgfGXyLg=="
+    "hono@4.12.16": {
+      "integrity": "sha512-jN0ZewiNAWSe5khM3EyCmBb250+b40wWbwNILNfEvq84VREWwOIkuUsFONk/3i3nqkz7Oe1PcpM2mwQEK2L9Kg=="
     },
-    "nanoid@5.1.9": {
-      "integrity": "sha512-ZUvP7KeBLe3OZ1ypw6dI/TzYJuvHP77IM4Ry73waSQTLn8/g8rpdjfyVAh7t1/+FjBtG4lCP42MEbDxOsRpBMw==",
+    "nanoid@5.1.11": {
+      "integrity": "sha512-v+KEsUv2ps74PaSKv0gHTxTCgMXOIfBEbaqa6w6ISIGC7ZsvHN4N9oJ8d4cmf0n5oTzQz2SLmThbQWhjd/8eKg==",
       "bin": true
     },
     "openapi3-ts@4.5.0": {
@@ -914,11 +914,11 @@
       "jsr:@simplewebauthn/server@^13.3.0",
       "jsr:@std/encoding@^1.0.10",
       "npm:@hono/zod-openapi@^1.3.0",
-      "npm:@scalar/hono-api-reference@~0.10.12",
+      "npm:@scalar/hono-api-reference@~0.10.13",
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
       "npm:drizzle-orm@~0.45.2",
-      "npm:hono@^4.12.15",
+      "npm:hono@^4.12.16",
       "npm:pg@^8.20.0",
       "npm:zod@^4.4.1"
     ]
