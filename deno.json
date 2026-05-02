@@ -10,7 +10,7 @@
     "drizzle-orm": "npm:drizzle-orm@^0.45.2",
     "pg": "npm:pg@^8.20.0",
     "hono": "npm:hono@^4.12.16",
-    "zod": "npm:zod@^4.4.1"
+    "zod": "npm:zod@^4.4.2"
   },
   "permissions": {
     "development": {
