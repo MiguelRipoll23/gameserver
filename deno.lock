@@ -13,7 +13,7 @@
     "npm:@peculiar/asn1-schema@^2.6.0": "2.6.0",
     "npm:@peculiar/asn1-x509@^2.6.1": "2.6.1",
     "npm:@peculiar/x509@^1.14.3": "1.14.3",
-    "npm:@scalar/hono-api-reference@~0.10.13": "0.10.13_hono@4.12.16",
+    "npm:@scalar/hono-api-reference@~0.10.14": "0.10.14_hono@4.12.16",
     "npm:@types/pg@^8.20.0": "8.20.0",
     "npm:drizzle-kit@~0.31.10": "0.31.10",
     "npm:drizzle-orm@~0.45.2": "0.45.2_@types+pg@8.20.0_pg@8.20.0",
@@ -582,24 +582,24 @@
         "tsyringe"
       ]
     },
-    "@scalar/client-side-rendering@0.1.6": {
-      "integrity": "sha512-ooc5RKyi83EvBuxB2N8H00ZE2CF4oKynuUToSCaoqxkjv+oJ6B3+OYsb0HVixznsyWhUDdtQZm4/xOb0kxBaaA==",
+    "@scalar/client-side-rendering@0.1.7": {
+      "integrity": "sha512-IDzjKF93jrOljlvKBsLHXT1FPWgz56jFrMPC+iLihREp1qH8wF92mG8Zpakw8cURkEuw5WijRk0xNBP2moGyuw==",
       "dependencies": [
         "@scalar/types"
       ]
     },
-    "@scalar/helpers@0.5.5": {
-      "integrity": "sha512-TqbErkqGijJJW6Ad8lpswHFTmlJaYFt9oolaWF1/Nn9171xdkK9ZDAk3pCaOCWs8WpwvcbUSxIVD8JxdBg0MFg=="
+    "@scalar/helpers@0.6.0": {
+      "integrity": "sha512-pfSamAgBxqFeE8IpEG6uGkHlnPhY1CLeOTttV9+vKQbrBk5b7vvyTsUXv0Hz4kNU1TFrxcTTPE+Akn5S+jlTtQ=="
     },
-    "@scalar/hono-api-reference@0.10.13_hono@4.12.16": {
-      "integrity": "sha512-xYSN6GVdzsgt5i3OTt4wDpIcD/KpKTwb6Wiy65NucGIFW0WidM6ilb9Lf8EG9xescut5djLtGOOxO4Ze0w8qgQ==",
+    "@scalar/hono-api-reference@0.10.14_hono@4.12.16": {
+      "integrity": "sha512-LCIT4ul3c4MyD7shhxsWcvvOABt0fEHNQID2n+2TPeItc/MR2qCjjp/QfqD+JoQ7zbc0nnzh1kwRR06MVBmnUA==",
       "dependencies": [
         "@scalar/client-side-rendering",
         "hono"
       ]
     },
-    "@scalar/types@0.9.5": {
-      "integrity": "sha512-joen5nuqgmGzgXK5XIqkGs0JmCZ16djaw+pgC24sfb+p3sSPVfKQTNTil/RuvHMNsmA/dFcQ6GI0Y3HhTlUQrg==",
+    "@scalar/types@0.9.6": {
+      "integrity": "sha512-UaCQQcscFTJdxZREE8KhUdSJgaDlc44TZbmWcZffs4m1hzqOvEI7lEBS13iBpLq7/cxUXFgyJdecywvNqJ0PkA==",
       "dependencies": [
         "@scalar/helpers",
         "nanoid",
@@ -914,7 +914,7 @@
       "jsr:@simplewebauthn/server@^13.3.0",
       "jsr:@std/encoding@^1.0.10",
       "npm:@hono/zod-openapi@^1.3.0",
-      "npm:@scalar/hono-api-reference@~0.10.13",
+      "npm:@scalar/hono-api-reference@~0.10.14",
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@~0.31.10",
       "npm:drizzle-orm@~0.45.2",
