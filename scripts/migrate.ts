@@ -24,7 +24,7 @@ try {
 } catch (error) {
   console.error("Database migration failed");
   console.error(error);
-  Deno.exit(1);
+  Deno.exitCode = 1;
 } finally {
   await databasePool.end();
 }
