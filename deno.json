@@ -37,7 +37,7 @@
     "check": "deno check src/main.ts",
     "studio": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit studio",
     "generate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit generate",
-    "migrate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit migrate"
+    "migrate": "deno run --permission-set=database --env scripts/migrate.ts"
   },
   "deploy": {
     "predeploy": "deno task migrate",
