@@ -78,7 +78,7 @@ Relay opaque binary data to another connected player.
 **Structure**
 
 - `type: uint8 = 2`
-- `originToken: bytes[32]`
+- `destinationToken: bytes[32]`
 - `payload: bytes[...]`
 
 ### ChatMessage (signed)
