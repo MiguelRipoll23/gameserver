@@ -18,7 +18,6 @@
     "npm:drizzle-kit@~0.31.10": "0.31.10",
     "npm:drizzle-orm@~0.45.2": "0.45.2_@types+pg@8.20.0_pg@8.22.0",
     "npm:hono@^4.12.26": "4.12.26",
-    "npm:pg@^8.22.0": "8.22.0",
     "npm:zod@^4.4.3": "4.4.3"
   },
   "jsr": {
@@ -937,7 +936,7 @@
       "npm:drizzle-kit@~0.31.10",
       "npm:drizzle-orm@~0.45.2",
       "npm:hono@^4.12.26",
-      "npm:pg@^8.22.0",
+      "npm:pg@^8.21.0",
       "npm:zod@^4.4.3"
     ]
   }
