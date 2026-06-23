@@ -10,7 +10,7 @@ import { usersTable } from "./users-table.ts";
 import { rolesTable } from "./roles-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
 
-export const userRolesTable = pgTable(
+export const userRolesTable = pgTable.withRLS(
   "user_roles",
   {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),

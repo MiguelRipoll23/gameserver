@@ -16,19 +16,19 @@ import {
   GetRegistrationOptionsRequest,
   VerifyRegistrationRequest,
 } from "../schemas/registration-schemas.ts";
-import { KV_OPTIONS_EXPIRATION_TIME } from "../constants/kv-constants.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { userCredentialsTable, usersTable } from "../../../../db/schema.ts";
 import { eq } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
-import { KVService } from "./kv-service.ts";
+import { OPTIONS_EXPIRATION_TIME } from "../constants/authentication-constants.ts";
+import { AuthenticationChallengesService } from "./authentication-challenges-service.ts";
 
 @injectable()
 export class RegistrationService {
   private static readonly emojiRegex = /[\p{Extended_Pictographic}]/u;
   constructor(
-    private kvService = inject(KVService),
+    private authenticationChallengesService = inject(AuthenticationChallengesService),
     private databaseService = inject(DatabaseService),
     private authenticationService = inject(AuthenticationService)
   ) {}
@@ -68,10 +68,11 @@ export class RegistrationService {
       },
     });
 
-    await this.kvService.setRegistrationOptions(transactionId, {
-      data: options,
-      createdAt: Date.now(),
-    });
+    await this.authenticationChallengesService.save(
+      transactionId,
+      "registration",
+      { data: options, createdAt: Date.now() },
+    );
 
     return options;
   }
@@ -141,12 +142,15 @@ export class RegistrationService {
   private async consumeRegistrationOptionsOrThrow(
     transactionId: string
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const registrationOptions =
-      await this.kvService.consumeRegistrationOptionsByTransactionId(
-        transactionId
-      );
+    const challenge = await this.authenticationChallengesService.consume<{
+      data: PublicKeyCredentialCreationOptionsJSON;
+      createdAt: number;
+    }>(
+      transactionId,
+      "registration",
+    );
 
-    if (registrationOptions === null) {
+    if (challenge === null) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
         "Registration options not found",
@@ -154,10 +158,7 @@ export class RegistrationService {
       );
     }
 
-    if (
-      registrationOptions.createdAt + KV_OPTIONS_EXPIRATION_TIME <
-      Date.now()
-    ) {
+    if (challenge.createdAt + OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
         "Registration options expired",
@@ -165,7 +166,7 @@ export class RegistrationService {
       );
     }
 
-    return registrationOptions.data;
+    return challenge.data;
   }
 
   private async verifyRegistrationResponse(
@@ -236,6 +237,7 @@ export class RegistrationService {
     return {
       id: userId,
       displayName: registrationOptions.user.name,
+      tokenVersion: 0,
       createdAt: new Date(),
     };
   }
