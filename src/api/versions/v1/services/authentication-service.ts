@@ -143,10 +143,7 @@ export class AuthenticationService {
     const userSymmetricKey: string = encodeBase64(
       crypto.getRandomValues(new Uint8Array(32)).buffer,
     );
-    const expiresAt = new Date(
-      Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000,
-    );
-    await this.userSymmetricKeysService.save(userId, userSymmetricKey, expiresAt);
+    await this.userSymmetricKeysService.save(userId, userSymmetricKey);
 
     // Server configuration
     const serverSignaturePublicKey =

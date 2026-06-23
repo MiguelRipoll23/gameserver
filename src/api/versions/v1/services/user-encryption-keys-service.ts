@@ -24,14 +24,14 @@ export class UserEncryptionKeysService {
     return rows[0].key;
   }
 
-  public async save(userId: string, key: string, expiresAt: Date): Promise<void> {
+  public async save(userId: string, key: string): Promise<void> {
     await this.databaseService.executeWithUserContext(userId, async (tx) => {
       await tx
         .insert(userEncryptionKeysTable)
-        .values({ userId, key, expiresAt })
+        .values({ userId, key })
         .onConflictDoUpdate({
           target: userEncryptionKeysTable.userId,
-          set: { key, expiresAt },
+          set: { key },
         });
     });
   }

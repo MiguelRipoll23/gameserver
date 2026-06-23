@@ -15,7 +15,6 @@ export const userEncryptionKeysTable = pgTable(
       .primaryKey()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     key: varchar("key", { length: 64 }).notNull(),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
