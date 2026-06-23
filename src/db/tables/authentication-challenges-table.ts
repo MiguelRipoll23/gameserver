@@ -5,6 +5,7 @@ import {
   varchar,
   jsonb,
   timestamp,
+  unique,
   pgPolicy,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -22,6 +23,7 @@ export const authenticationChallengesTable = pgTable(
       .notNull(),
   },
   (table) => [
+    unique().on(table.transactionId, table.type),
     pgPolicy("authentication_challenges_all_insert", {
       for: "insert",
       to: authenticatedUserRole,
