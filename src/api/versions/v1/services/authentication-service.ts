@@ -428,8 +428,9 @@ export class AuthenticationService {
     const newCounter = authenticationInfo.newCounter;
 
     try {
-      await this.databaseService.executeWithCredentialContext(
+      await this.databaseService.executeWithCredentialAndUserContext(
         credential.id,
+        credential.userId,
         (tx) => {
           return tx
             .update(userCredentialsTable)

@@ -34,6 +34,19 @@ export class DatabaseService {
     return this.database;
   }
 
+  public executeWithCredentialAndUserContext<T>(
+    credentialId: string,
+    userId: string,
+    fn: (tx: NodePgDatabase) => Promise<T>
+  ): Promise<T> {
+    return this.get().transaction(async (tx) => {
+      await tx.execute(sql.raw(`SET app.credential_id = '${credentialId}'`));
+      await tx.execute(sql.raw(`SET app.user_id = '${userId}'`));
+
+      return await fn(tx);
+    });
+  }
+
   public executeWithCredentialContext<T>(
     credentialId: string,
     fn: (tx: NodePgDatabase) => Promise<T>
