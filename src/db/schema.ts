@@ -10,7 +10,7 @@ export { userScoresTable } from "./tables/user-scores-table.ts";
 export { blockedWordsTable } from "./tables/blocked-words-table.ts";
 export { rolesTable } from "./tables/roles-table.ts";
 export { userRolesTable } from "./tables/user-roles-table.ts";
-export { userSignatureKeysTable } from "./tables/user-signature-keys-table.ts";
+export { serverSignatureKeysTable } from "./tables/server-signature-keys-table.ts";
 export { gameConfigurationTable } from "./tables/game-configuration-table.ts";
 export { authenticationChallengesTable } from "./tables/authentication-challenges-table.ts";
 export { userEncryptionKeysTable } from "./tables/user-encryption-keys-table.ts";

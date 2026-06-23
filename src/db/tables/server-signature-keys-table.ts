@@ -4,12 +4,13 @@ import {
   timestamp,
   integer,
   pgPolicy,
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { authenticatedUserRole } from "../rls.ts";
 
-export const userSignatureKeysTable = pgTable(
-  "user_signature_keys",
+export const serverSignatureKeysTable = pgTable(
+  "server_signature_keys",
   {
     id: integer("id").primaryKey().default(1),
     privateKey: jsonb("private_key").notNull(),
@@ -22,17 +23,18 @@ export const userSignatureKeysTable = pgTable(
       .notNull(),
   },
   (table) => [
-    pgPolicy("user_signature_keys_all_insert", {
+    check("server_signature_keys_singleton", sql`${table.id} = 1`),
+    pgPolicy("server_signature_keys_all_insert", {
       for: "insert",
       to: authenticatedUserRole,
       withCheck: sql`true`,
     }),
-    pgPolicy("user_signature_keys_all_select", {
+    pgPolicy("server_signature_keys_all_select", {
       for: "select",
       to: authenticatedUserRole,
       using: sql`true`,
     }),
-    pgPolicy("user_signature_keys_all_update", {
+    pgPolicy("server_signature_keys_all_update", {
       for: "update",
       to: authenticatedUserRole,
       using: sql`true`,
@@ -41,7 +43,7 @@ export const userSignatureKeysTable = pgTable(
   ],
 );
 
-export type UserSignatureKeyEntity =
-  typeof userSignatureKeysTable.$inferSelect;
-export type UserSignatureKeyInsertEntity =
-  typeof userSignatureKeysTable.$inferInsert;
+export type ServerSignatureKeyEntity =
+  typeof serverSignatureKeysTable.$inferSelect;
+export type ServerSignatureKeyInsertEntity =
+  typeof serverSignatureKeysTable.$inferInsert;

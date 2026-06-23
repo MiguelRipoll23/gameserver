@@ -1,6 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { userSignatureKeysTable } from "../../../../db/schema.ts";
+import { serverSignatureKeysTable } from "../../../../db/schema.ts";
 
 export interface SignatureKeysData {
   privateKey: JsonWebKey;
@@ -8,17 +8,17 @@ export interface SignatureKeysData {
 }
 
 @injectable()
-export class UserSignatureKeysService {
+export class ServerSignatureKeysService {
   constructor(private databaseService = inject(DatabaseService)) {}
 
   public async get(): Promise<SignatureKeysData | null> {
     const rows = await this.databaseService
       .get()
       .select({
-        privateKey: userSignatureKeysTable.privateKey,
-        publicKey: userSignatureKeysTable.publicKey,
+        privateKey: serverSignatureKeysTable.privateKey,
+        publicKey: serverSignatureKeysTable.publicKey,
       })
-      .from(userSignatureKeysTable)
+      .from(serverSignatureKeysTable)
       .limit(1);
 
     if (rows.length === 0) return null;
@@ -32,7 +32,7 @@ export class UserSignatureKeysService {
   public async save(data: SignatureKeysData): Promise<void> {
     await this.databaseService
       .get()
-      .insert(userSignatureKeysTable)
+      .insert(serverSignatureKeysTable)
       .values({
         id: 1,
         privateKey: data.privateKey,
@@ -40,7 +40,7 @@ export class UserSignatureKeysService {
         updatedAt: new Date(),
       })
       .onConflictDoUpdate({
-        target: userSignatureKeysTable.id,
+        target: serverSignatureKeysTable.id,
         set: {
           privateKey: data.privateKey,
           publicKey: data.publicKey,

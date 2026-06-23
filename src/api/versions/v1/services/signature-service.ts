@@ -1,6 +1,6 @@
 import { encodeBase64 } from "hono/utils/encode";
 import { ServerError } from "../models/server-error.ts";
-import { UserSignatureKeysService } from "./user-signature-keys-service.ts";
+import { ServerSignatureKeysService } from "./server-signature-keys-service.ts";
 import { inject, injectable } from "@needle-di/core";
 
 @injectable()
@@ -18,7 +18,7 @@ export class SignatureService {
   private encodedPublicKey: string | null = null;
 
   constructor(
-    private userSignatureKeysService = inject(UserSignatureKeysService),
+    private serverSignatureKeysService = inject(ServerSignatureKeysService),
   ) {}
 
   /**
@@ -132,7 +132,7 @@ export class SignatureService {
   }
 
   private async loadKeysFromStorage(): Promise<boolean> {
-    const savedKeys = await this.userSignatureKeysService.get();
+    const savedKeys = await this.serverSignatureKeysService.get();
     if (!savedKeys) return false;
 
     this.privateKey = await this.importKey(
@@ -163,7 +163,7 @@ export class SignatureService {
     // Cache encoded public key here as well
     this.encodedPublicKey = await this.exportPublicKeyToBase64(this.publicKey);
 
-    await this.userSignatureKeysService.save({
+    await this.serverSignatureKeysService.save({
       privateKey: await this.exportKey(this.privateKey),
       publicKey: await this.exportKey(this.publicKey),
     });
