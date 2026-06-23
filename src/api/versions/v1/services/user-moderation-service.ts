@@ -16,19 +16,32 @@ import {
   userReportsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, sql } from "drizzle-orm";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { EventsService } from "./events-service.ts";
 import { EventDispatchMode } from "../constants/event-constants.ts";
-import { KVService } from "./kv-service.ts";
 
 @injectable()
 export class UserModerationService {
   constructor(
     private databaseService = inject(DatabaseService),
-    private kvService = inject(KVService),
     private eventsService = inject(EventsService),
   ) {}
+
+  public async isBanned(userId: string): Promise<boolean> {
+    const rows = await this.databaseService
+      .get()
+      .select({ expiresAt: userBansTable.expiresAt })
+      .from(userBansTable)
+      .where(eq(userBansTable.userId, userId))
+      .orderBy(desc(userBansTable.createdAt))
+      .limit(1);
+
+    if (rows.length === 0) return false;
+
+    const latestBan = rows[0];
+    return !latestBan.expiresAt || latestBan.expiresAt > new Date();
+  }
 
   public async banUser(body: BanUserRequest): Promise<void> {
     const { userId, reason, duration } = body;
@@ -38,10 +51,8 @@ export class UserModerationService {
     const expiresAt = this.calculateExpirationDate(duration);
 
     // Create ban record atomically with user existence check
-    let insertedBan;
-
     try {
-      insertedBan = await db.transaction(async (tx) => {
+      await db.transaction(async (tx) => {
         // Check if user exists and lock the row to prevent race conditions
         await this.checkUserExists(tx, userId, true);
 
@@ -68,16 +79,13 @@ export class UserModerationService {
         }
 
         // Create ban record
-        const result = await tx
+        await tx
           .insert(userBansTable)
           .values({
             userId,
             reason,
             expiresAt,
-          })
-          .returning({ id: userBansTable.id });
-
-        return result;
+          });
       });
     } catch (error) {
       if (error instanceof ServerError) {
@@ -96,20 +104,6 @@ export class UserModerationService {
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
       }`
     );
-    try {
-      await this.kvService.banUser(userId, expiresAt ?? undefined);
-    } catch (error) {
-      console.error("KV error while storing ban record:", error);
-      await db
-        .delete(userBansTable)
-        .where(eq(userBansTable.id, insertedBan[0].id));
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to create ban record",
-        500
-      );
-    }
-
     this.eventsService.dispatch(
       BroadcastCommandType.KickPlayer,
       {
@@ -150,22 +144,9 @@ export class UserModerationService {
     }
 
     // Delete the latest ban
-    const deleted = await db
+    await db
       .delete(userBansTable)
-      .where(eq(userBansTable.id, ban.id))
-      .returning();
-
-    try {
-      await this.kvService.unbanUser(userId);
-    } catch (error) {
-      console.error("KV error while removing ban record:", error);
-      await db.insert(userBansTable).values(deleted[0]);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to remove ban record",
-        500
-      );
-    }
+      .where(eq(userBansTable.id, ban.id));
 
     console.log(`User ${userId} has been unbanned`);
   }

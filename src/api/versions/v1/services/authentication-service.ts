@@ -24,10 +24,10 @@ import {
 } from "../schemas/authentication-schemas.ts";
 import {
   ACCESS_TOKEN_EXPIRATION_SECONDS,
-  KV_OPTIONS_EXPIRATION_TIME,
+  OPTIONS_EXPIRATION_TIME,
   REFRESH_TOKEN_EXPIRATION_SECONDS,
   SESSION_LIFETIME_SECONDS,
-} from "../constants/kv-constants.ts";
+} from "../constants/authentication-constants.ts";
 import {
   rolesTable,
   userBansTable,
@@ -39,13 +39,17 @@ import {
 import { and, eq, lt, desc, sql } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
-import { KVService } from "./kv-service.ts";
+import { AuthenticationChallengesService } from "./authentication-challenges-service.ts";
+import { RefreshTokensService } from "./refresh-tokens-service.ts";
+import { UserEncryptionKeysService } from "./user-encryption-keys-service.ts";
 import { SignatureService } from "./signature-service.ts";
 
 @injectable()
 export class AuthenticationService {
   constructor(
-    private kvService = inject(KVService),
+    private authenticationChallengesService = inject(AuthenticationChallengesService),
+    private refreshTokensService = inject(RefreshTokensService),
+    private userEncryptionKeysService = inject(UserEncryptionKeysService),
     private databaseService = inject(DatabaseService),
     private jwtService = inject(JWTService),
     private signatureService = inject(SignatureService),
@@ -72,10 +76,11 @@ export class AuthenticationService {
       userVerification: "preferred",
     });
 
-    await this.kvService.setAuthenticationOptions(transactionId, {
-      data: options,
-      createdAt: Date.now(),
-    });
+    await this.authenticationChallengesService.save(
+      transactionId,
+      "authentication",
+      { data: options, createdAt: Date.now() },
+    );
 
     return options;
   }
@@ -138,7 +143,7 @@ export class AuthenticationService {
     const userSymmetricKey: string = encodeBase64(
       crypto.getRandomValues(new Uint8Array(32)).buffer,
     );
-    await this.kvService.setUserKey(userId, userSymmetricKey);
+    await this.userEncryptionKeysService.save(userId, userSymmetricKey);
 
     // Server configuration
     const serverSignaturePublicKey =
@@ -165,7 +170,7 @@ export class AuthenticationService {
     const refreshTokenHash =
       await AuthenticationService.hashToken(refreshToken);
     const tokenData =
-      await this.kvService.consumeRefreshToken(refreshTokenHash);
+      await this.refreshTokensService.consume(refreshTokenHash);
 
     if (tokenData === null || tokenData.expiresAt <= Date.now()) {
       throw new ServerError(
@@ -185,9 +190,10 @@ export class AuthenticationService {
     );
 
     try {
-      const currentTokenVersion = await this.kvService.getRefreshTokenVersion(
-        tokenData.userId,
-      );
+      const currentTokenVersion =
+        await this.refreshTokensService.getVersion(
+          tokenData.userId,
+        );
 
       if (tokenData.tokenVersion !== currentTokenVersion) {
         throw new ServerError(
@@ -272,18 +278,19 @@ export class AuthenticationService {
     const refreshTokenHash =
       await AuthenticationService.hashToken(refreshToken);
     const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
-    const tokenVersion = await this.kvService.getRefreshTokenVersion(userId);
+    const tokenVersion = await this.refreshTokensService.getVersion(userId);
 
     // NOTE: There is a TOCTOU window between reading tokenVersion and writing
     // the refresh token entry. If invalidation runs in between, this token can
     // be immediately stale. This is intentionally fail-closed (safe) but may
     // feel confusing to users. Avoiding it would require an atomic,
     // cross-key transactional approach.
-    await this.kvService.setRefreshToken(refreshTokenHash, {
+    await this.refreshTokensService.save(
+      refreshTokenHash,
       userId,
-      expiresAt,
+      new Date(expiresAt),
       tokenVersion,
-    });
+    );
 
     return refreshToken;
   }
@@ -302,12 +309,15 @@ export class AuthenticationService {
   private async getAuthenticationOptionsOrThrow(
     transactionId: string,
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    const authenticationOptions =
-      await this.kvService.takeAuthenticationOptionsByTransactionId(
-        transactionId,
-      );
+    const challenge = await this.authenticationChallengesService.consume<{
+      data: PublicKeyCredentialRequestOptionsJSON;
+      createdAt: number;
+    }>(
+      transactionId,
+      "authentication",
+    );
 
-    if (authenticationOptions === null) {
+    if (challenge === null) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_NOT_FOUND",
         "Authentication options not found",
@@ -315,9 +325,7 @@ export class AuthenticationService {
       );
     }
 
-    const createdAt = authenticationOptions.createdAt;
-
-    if (createdAt + KV_OPTIONS_EXPIRATION_TIME < Date.now()) {
+    if (challenge.createdAt + OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_EXPIRED",
         "Authentication options expired",
@@ -325,7 +333,7 @@ export class AuthenticationService {
       );
     }
 
-    return authenticationOptions.data;
+    return challenge.data;
   }
 
   private async getCredentialOrThrow(
@@ -420,8 +428,9 @@ export class AuthenticationService {
     const newCounter = authenticationInfo.newCounter;
 
     try {
-      await this.databaseService.executeWithCredentialContext(
+      await this.databaseService.executeWithCredentialAndUserContext(
         credential.id,
+        credential.userId,
         (tx) => {
           return tx
             .update(userCredentialsTable)

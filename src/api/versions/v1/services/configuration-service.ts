@@ -5,17 +5,21 @@ import {
   GetConfigurationResponse,
   UpdateConfigurationRequest,
 } from "../schemas/configuration-schemas.ts";
-import { KVService } from "./kv-service.ts";
+import { GameConfigurationService } from "./game-configuration-service.ts";
+
+const CLOUD_CONFIGURATION_KEY = "cloud_configuration";
 
 @injectable()
 export class ConfigurationService {
   constructor(
-    private kvService = inject(KVService),
+    private gameConfigurationService = inject(GameConfigurationService),
     private cryptoService = inject(CryptoService)
   ) {}
 
   public async getData(): Promise<GetConfigurationResponse> {
-    const configuration = await this.kvService.getConfiguration();
+    const configuration = await this.gameConfigurationService.get(
+      CLOUD_CONFIGURATION_KEY,
+    );
 
     if (configuration === null) {
       throw new ServerError(
@@ -25,17 +29,22 @@ export class ConfigurationService {
       );
     }
 
-    return configuration;
+    return configuration as unknown as GetConfigurationResponse;
   }
 
   public async setData(
     configurationRequest: UpdateConfigurationRequest
   ): Promise<void> {
-    await this.kvService.setConfiguration(configurationRequest);
+    await this.gameConfigurationService.save(
+      CLOUD_CONFIGURATION_KEY,
+      configurationRequest as unknown as Record<string, unknown>,
+    );
   }
 
   public async getBlob(userId: string): Promise<ArrayBuffer> {
-    const configuration = await this.kvService.getConfiguration();
+    const configuration = await this.gameConfigurationService.get(
+      CLOUD_CONFIGURATION_KEY,
+    );
 
     if (configuration === null) {
       throw new ServerError(

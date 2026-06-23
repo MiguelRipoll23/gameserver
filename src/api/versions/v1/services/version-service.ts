@@ -2,16 +2,21 @@ import { inject, injectable } from "@needle-di/core";
 import { ServerError } from "../models/server-error.ts";
 import {
   GetVersionResponse,
+  GetVersionResponseSchema,
   UpdateVersionRequest,
 } from "../schemas/version-schemas.ts";
-import { KVService } from "./kv-service.ts";
+import { GameConfigurationService } from "./game-configuration-service.ts";
+
+const VERSION_KEY = "version";
 
 @injectable()
 export class VersionService {
-  constructor(private kvService = inject(KVService)) {}
+  constructor(
+    private gameConfigurationService = inject(GameConfigurationService),
+  ) {}
 
   public async get(): Promise<GetVersionResponse> {
-    const response = await this.kvService.getVersion();
+    const response = await this.gameConfigurationService.get(VERSION_KEY);
 
     if (response === null) {
       throw new ServerError(
@@ -21,10 +26,13 @@ export class VersionService {
       );
     }
 
-    return response;
+    return GetVersionResponseSchema.parse(response);
   }
 
   public async set(data: UpdateVersionRequest): Promise<void> {
-    await this.kvService.setVersion(data);
+    await this.gameConfigurationService.save(
+      VERSION_KEY,
+      data,
+    );
   }
 }

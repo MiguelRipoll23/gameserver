@@ -1,4 +1,4 @@
-export interface SignatureKeysKV {
+export interface SignatureKeysData {
   privateKey: JsonWebKey;
   publicKey: JsonWebKey;
 }

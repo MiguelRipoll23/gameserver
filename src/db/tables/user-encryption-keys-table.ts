@@ -1,58 +1,50 @@
 import {
   pgTable,
   varchar,
-  timestamp,
   uuid,
-  inet,
+  timestamp,
   pgPolicy,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
 
-export const userSessionsTable = pgTable.withRLS(
-  "user_sessions",
+export const userEncryptionKeysTable = pgTable.withRLS(
+  "user_encryption_keys",
   {
     userId: uuid("user_id")
       .primaryKey()
       .references(() => usersTable.id, { onDelete: "cascade" }),
-    token: varchar("token", { length: 44 }).notNull().unique(),
-    publicIp: inet("public_ip").notNull(),
-    country: varchar("country"), // will be obtained from public ip later
+    key: varchar("key", { length: 64 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
   },
   (table) => [
-    // Users can read their own sessions
-    pgPolicy("user_sessions_select_own", {
+    pgPolicy("user_encryption_keys_select_own", {
       for: "select",
       to: authenticatedUserRole,
       using: isCurrentUser(table.userId),
     }),
-    // Users can insert their own sessions
-    pgPolicy("user_sessions_insert_own", {
+    pgPolicy("user_encryption_keys_insert_own", {
       for: "insert",
       to: authenticatedUserRole,
       withCheck: isCurrentUser(table.userId),
     }),
-    // Users can update their own sessions
-    pgPolicy("user_sessions_update_own", {
+    pgPolicy("user_encryption_keys_update_own", {
       for: "update",
       to: authenticatedUserRole,
       using: isCurrentUser(table.userId),
       withCheck: isCurrentUser(table.userId),
     }),
-    // Users can delete their own sessions
-    pgPolicy("user_sessions_delete_own", {
+    pgPolicy("user_encryption_keys_delete_own", {
       for: "delete",
       to: authenticatedUserRole,
       using: isCurrentUser(table.userId),
     }),
-  ]
+  ],
 );
 
-export type UserSessionEntity = typeof userSessionsTable.$inferSelect;
-export type UserSessionInsertEntity = typeof userSessionsTable.$inferInsert;
+export type UserEncryptionKeyEntity =
+  typeof userEncryptionKeysTable.$inferSelect;
+export type UserEncryptionKeyInsertEntity =
+  typeof userEncryptionKeysTable.$inferInsert;
