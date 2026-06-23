@@ -49,7 +49,7 @@ export class AuthenticationService {
   constructor(
     private authenticationChallengesService = inject(AuthenticationChallengesService),
     private refreshTokensService = inject(RefreshTokensService),
-    private userSymmetricKeysService = inject(UserEncryptionKeysService),
+    private userEncryptionKeysService = inject(UserEncryptionKeysService),
     private databaseService = inject(DatabaseService),
     private jwtService = inject(JWTService),
     private signatureService = inject(SignatureService),
@@ -143,7 +143,7 @@ export class AuthenticationService {
     const userSymmetricKey: string = encodeBase64(
       crypto.getRandomValues(new Uint8Array(32)).buffer,
     );
-    await this.userSymmetricKeysService.save(userId, userSymmetricKey);
+    await this.userEncryptionKeysService.save(userId, userSymmetricKey);
 
     // Server configuration
     const serverSignaturePublicKey =

@@ -42,7 +42,7 @@ export class WebSocketService implements WebSocketServer {
     private jwtService = inject(JWTService),
     private userModerationService = inject(UserModerationService),
     private refreshTokensService = inject(RefreshTokensService),
-    private userSymmetricKeysService = inject(UserEncryptionKeysService),
+    private userEncryptionKeysService = inject(UserEncryptionKeysService),
     private sessionsService = inject(SessionsService),
     private userSignatureService = inject(UserSignatureService),
     private matchesService = inject(MatchesService),
@@ -185,7 +185,7 @@ export class WebSocketService implements WebSocketServer {
   ): Promise<void> {
     try {
       await this.refreshTokensService.incrementVersion(userId);
-      await this.userSymmetricKeysService.delete(userId);
+      await this.userEncryptionKeysService.delete(userId);
       console.log(`Deleted temporary data for user ${userName}`);
     } catch (error) {
       console.error(

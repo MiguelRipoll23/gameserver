@@ -8,14 +8,14 @@ export class CryptoService {
   private static readonly IV_LENGTH = 12;
 
   constructor(
-    private userSymmetricKeysService = inject(UserEncryptionKeysService),
+    private userEncryptionKeysService = inject(UserEncryptionKeysService),
   ) {}
 
   public async encryptForUser(
     userId: string,
     data: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const key: string | null = await this.userSymmetricKeysService.get(userId);
+    const key: string | null = await this.userEncryptionKeysService.get(userId);
 
     if (key === null) {
       throw new ServerError(
@@ -41,7 +41,7 @@ export class CryptoService {
     userId: string,
     encryptedData: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const key: string | null = await this.userSymmetricKeysService.get(userId);
+    const key: string | null = await this.userEncryptionKeysService.get(userId);
 
     if (key === null) {
       throw new ServerError(
