@@ -9,7 +9,7 @@ import {
 import { usersTable } from "./users-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
 
-export const userSessionsTable = pgTable(
+export const userSessionsTable = pgTable.withRLS(
   "user_sessions",
   {
     userId: uuid("user_id")

@@ -9,7 +9,7 @@ import {
 import { usersTable } from "./users-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
 
-export const userBansTable = pgTable(
+export const userBansTable = pgTable.withRLS(
   "user_bans",
   {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),

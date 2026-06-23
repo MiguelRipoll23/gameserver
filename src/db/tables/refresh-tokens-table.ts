@@ -9,7 +9,7 @@ import {
 import { usersTable } from "./users-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
 
-export const refreshTokensTable = pgTable(
+export const refreshTokensTable = pgTable.withRLS(
   "refresh_tokens",
   {
     tokenHash: varchar("token_hash", { length: 64 }).primaryKey(),

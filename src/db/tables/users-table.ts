@@ -8,7 +8,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
 
-export const usersTable = pgTable(
+export const usersTable = pgTable.withRLS(
   "users",
   {
     id: uuid("id").primaryKey(),

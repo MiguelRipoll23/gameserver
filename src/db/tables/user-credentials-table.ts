@@ -16,7 +16,7 @@ import {
   isCurrentCredential,
 } from "../rls.ts";
 
-export const userCredentialsTable = pgTable(
+export const userCredentialsTable = pgTable.withRLS(
   "user_credentials",
   {
     id: varchar("id", { length: 255 }).primaryKey(),

@@ -8,7 +8,7 @@ import {
 import { usersTable } from "./users-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
 
-export const userEncryptionKeysTable = pgTable(
+export const userEncryptionKeysTable = pgTable.withRLS(
   "user_encryption_keys",
   {
     userId: uuid("user_id")
