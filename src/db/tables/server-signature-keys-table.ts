@@ -3,11 +3,9 @@ import {
   jsonb,
   timestamp,
   integer,
-  pgPolicy,
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { authenticatedUserRole } from "../rls.ts";
 
 export const serverSignatureKeysTable = pgTable(
   "server_signature_keys",
@@ -24,22 +22,6 @@ export const serverSignatureKeysTable = pgTable(
   },
   (table) => [
     check("server_signature_keys_singleton", sql`${table.id} = 1`),
-    pgPolicy("server_signature_keys_all_insert", {
-      for: "insert",
-      to: authenticatedUserRole,
-      withCheck: sql`true`,
-    }),
-    pgPolicy("server_signature_keys_all_select", {
-      for: "select",
-      to: authenticatedUserRole,
-      using: sql`true`,
-    }),
-    pgPolicy("server_signature_keys_all_update", {
-      for: "update",
-      to: authenticatedUserRole,
-      using: sql`true`,
-      withCheck: sql`true`,
-    }),
   ],
 );
 
