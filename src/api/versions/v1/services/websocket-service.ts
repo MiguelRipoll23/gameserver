@@ -18,7 +18,9 @@ import { CommandHandler } from "../decorators/command-handler.ts";
 import { EventHandler } from "../decorators/event-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
-import { KVService } from "./kv-service.ts";
+import { RefreshTokensService } from "./refresh-tokens-service.ts";
+import { UserEncryptionKeysService } from "./user-encryption-keys-service.ts";
+import { UserModerationService } from "./user-moderation-service.ts";
 import { EventsService } from "./events-service.ts";
 import { WebSocketUserRegistry } from "./websocket-user-registry.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
@@ -38,7 +40,9 @@ import { UserSignatureService } from "./user-signature-service.ts";
 export class WebSocketService implements WebSocketServer {
   constructor(
     private jwtService = inject(JWTService),
-    private kvService = inject(KVService),
+    private userModerationService = inject(UserModerationService),
+    private refreshTokensService = inject(RefreshTokensService),
+    private userSymmetricKeysService = inject(UserEncryptionKeysService),
     private sessionsService = inject(SessionsService),
     private userSignatureService = inject(UserSignatureService),
     private matchesService = inject(MatchesService),
@@ -165,7 +169,7 @@ export class WebSocketService implements WebSocketServer {
 
     try {
       await this.sessionsService.deleteByUserId(userId, userName);
-      await this.deleteUserKeyValueData(userId, userName);
+      await this.deleteUserTemporaryData(userId, userName);
       await this.matchesService.deleteIfExists(userId, userName);
       await this.getAndSendOnlinePlayers();
     } catch (error) {
@@ -175,16 +179,19 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private async deleteUserKeyValueData(
+  private async deleteUserTemporaryData(
     userId: string,
     userName: string,
   ): Promise<void> {
-    const result = await this.kvService.deleteUserTemporaryData(userId);
-
-    if (result.ok) {
-      console.log(`Deleted temporary key/value data for user ${userName}`);
-    } else {
-      console.error(`Failed to delete key/value data for user ${userName}`);
+    try {
+      await this.refreshTokensService.incrementVersion(userId);
+      await this.userSymmetricKeysService.delete(userId);
+      console.log(`Deleted temporary data for user ${userName}`);
+    } catch (error) {
+      console.error(
+        `Failed to delete temporary data for user ${userName}:`,
+        error,
+      );
     }
   }
 
@@ -233,7 +240,7 @@ export class WebSocketService implements WebSocketServer {
     const userId = webSocketUser.getId();
     const userName = webSocketUser.getName();
 
-    if (await this.kvService.isUserBanned(userId)) {
+    if (await this.userModerationService.isBanned(userId)) {
       this.closeConnection(webSocketUser, 1008, "User has been banned");
       throw new Error(`Banned user ${userName} attempted to connect to server`);
     }

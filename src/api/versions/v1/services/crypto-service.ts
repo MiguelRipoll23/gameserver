@@ -1,19 +1,21 @@
 import { inject, injectable } from "@needle-di/core";
 import { ServerError } from "../models/server-error.ts";
 import { CryptoUtils } from "../../../../core/utils/crypto-utils.ts";
-import { KVService } from "./kv-service.ts";
+import { UserEncryptionKeysService } from "./user-encryption-keys-service.ts";
 
 @injectable()
 export class CryptoService {
   private static readonly IV_LENGTH = 12;
 
-  constructor(private kvService = inject(KVService)) {}
+  constructor(
+    private userSymmetricKeysService = inject(UserEncryptionKeysService),
+  ) {}
 
   public async encryptForUser(
     userId: string,
     data: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const key: string | null = await this.kvService.getUserKey(userId);
+    const key: string | null = await this.userSymmetricKeysService.get(userId);
 
     if (key === null) {
       throw new ServerError(
@@ -39,7 +41,7 @@ export class CryptoService {
     userId: string,
     encryptedData: ArrayBuffer
   ): Promise<ArrayBuffer> {
-    const key: string | null = await this.kvService.getUserKey(userId);
+    const key: string | null = await this.userSymmetricKeysService.get(userId);
 
     if (key === null) {
       throw new ServerError(

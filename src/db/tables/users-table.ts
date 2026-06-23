@@ -3,6 +3,7 @@ import {
   varchar,
   timestamp,
   uuid,
+  integer,
   pgPolicy,
 } from "drizzle-orm/pg-core";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
@@ -12,6 +13,7 @@ export const usersTable = pgTable(
   {
     id: uuid("id").primaryKey(),
     displayName: varchar("display_name", { length: 16 }).notNull().unique(),
+    tokenVersion: integer("token_version").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
