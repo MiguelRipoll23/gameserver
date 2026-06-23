@@ -1,11 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { serverSignatureKeysTable } from "../../../../db/schema.ts";
-
-export interface SignatureKeysData {
-  privateKey: JsonWebKey;
-  publicKey: JsonWebKey;
-}
+import { SignatureKeysData } from "../types/signature-keys-data-type.ts";
 
 @injectable()
 export class ServerSignatureKeysService {
