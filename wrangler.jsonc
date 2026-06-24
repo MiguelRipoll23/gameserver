@@ -4,12 +4,6 @@
   "main": "src/main.ts",
   "compatibility_date": "2024-12-01",
   "compatibility_flags": ["nodejs_compat"],
-  "vars": {
-    "GAME_URL": "https://hoodball.vercel.app",
-    "RP_ALLOWED_ORIGINS": "https://hoodball.vercel.app,https://aircombat.vercel.app",
-    "CLOUDFLARE_CALLS_URL": "https://rtc.live.cloudflare.com/v1/turn/keys/78525f0a365009c0e0ddfc53d6c85ce7/credentials/generate",
-    "RP_NAME": "Game server API"
-  },
   "durable_objects": {
     "bindings": [
       {

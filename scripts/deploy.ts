@@ -213,7 +213,30 @@ async function ensureNeonBranch(name: string): Promise<string> {
   });
 
   if (!res.ok) {
-    console.error(`Branch creation failed: ${res.status} ${await res.text()}`);
+    console.warn(`Branch creation failed (possible race): ${res.status} ${await res.text()}`);
+    console.log("Re-trying lookup in case another deploy created the branch concurrently...");
+    const retry = await findNeonBranch(name);
+    if (retry) {
+      console.log(`Found branch "${name}" after creation race — reusing.`);
+      const ttlRes = await fetch(
+        `${NEON_API}/projects/${projectId}/branches/${retry}`,
+        {
+          method: "PATCH",
+          headers: neonHeaders(apiKey),
+          body: JSON.stringify({
+            branch: {
+              expires_at: new Date(Date.now() + BRANCH_TTL_MS).toISOString(),
+            },
+          }),
+        },
+      );
+      if (!ttlRes.ok) {
+        console.error(`TTL refresh on retried branch failed: ${ttlRes.status} ${await ttlRes.text()}`);
+        process.exit(1);
+      }
+      return retry;
+    }
+    console.error(`Branch creation failed and no existing branch was found: ${res.status} ${await res.text()}`);
     process.exit(1);
   }
 
@@ -372,7 +395,27 @@ async function ensureHyperdrive(name: string, uri: string): Promise<string> {
   );
 
   if (!postRes.ok) {
-    console.error(`Hyperdrive create failed: ${postRes.status} ${await postRes.text()}`);
+    console.warn(`Hyperdrive create failed (possible race): ${postRes.status} ${await postRes.text()}`);
+    console.log("Re-listing Hyperdrive configs in case another deploy created it concurrently...");
+    const retryConfigs = await listHyperdriveConfigs();
+    const retryExisting = retryConfigs.find((c) => c.name === name);
+    if (retryExisting) {
+      console.log(`Found Hyperdrive config "${name}" after creation race — reusing.`);
+      const putRes = await fetch(
+        `${CF_API}/accounts/${accountId}/hyperdrive/configs/${retryExisting.id}`,
+        {
+          method: "PUT",
+          headers: cfHeaders(token),
+          body: JSON.stringify({ name, origin }),
+        },
+      );
+      if (!putRes.ok) {
+        console.error(`Hyperdrive update on retried config failed: ${putRes.status} ${await putRes.text()}`);
+        process.exit(1);
+      }
+      return retryExisting.id;
+    }
+    console.error(`Hyperdrive create failed and no existing config was found: ${postRes.status} ${await postRes.text()}`);
     process.exit(1);
   }
 
@@ -462,14 +505,13 @@ async function deployProduction(): Promise<void> {
 async function deployPreview(): Promise<void> {
   const gitBranch = requireEnv("WORKERS_CI_BRANCH");
 
-  const safeBranch = gitBranch
+  const slug = gitBranch
     .toLowerCase()
-    .replace(/\//g, "-")
-    .replace(/[^a-z0-9._-]+/g, "_")
-    .replace(/^_+|_+$/g, "")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
     .slice(0, 56) || "branch";
 
-  const branchName = `preview-${safeBranch}`;
+  const branchName = `preview-${slug}`;
   const branchId = await ensureNeonBranch(branchName);
   const { database, role } = await fetchDatabaseAndRole(branchId);
 
@@ -487,14 +529,11 @@ async function deployPreview(): Promise<void> {
   });
 
   const wranglerConfig = await readWranglerConfig();
-  const hyperdriveName = `${wranglerConfig.name as string}--preview--${safeBranch}`;
+  const hyperdriveName = `${wranglerConfig.name as string}--preview--${slug}`;
   const hyperdriveId = await ensureHyperdrive(hyperdriveName, unpooled);
   const configPath = await writeTempWranglerConfig(hyperdriveId);
 
-  const previewAlias = safeBranch
-    .replace(/[^a-z0-9-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60) || "preview";
+  const previewAlias = slug;
 
   try {
     await runWranglerWithSecrets(

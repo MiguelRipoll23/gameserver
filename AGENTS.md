@@ -98,9 +98,10 @@ Branch-aware deployments via `scripts/deploy.ts`, triggered by **Cloudflare Work
 ### Flow
 1. Push to GitHub → Workers Builds triggers.
 2. `scripts/deploy.ts` runs. It checks `WORKERS_CI_BRANCH` to determine production vs preview.
-3. Neon branch is created/found, Hyperdrive config is provisioned.
+3. Neon branch is created/found.
 4. `scripts/pre-deploy.ts` runs migrations against the new branch.
-5. Worker is deployed (production) or uploaded as preview version.
+5. Hyperdrive config is provisioned.
+6. Worker is deployed (production) or uploaded as preview version.
 
 ### Setup
 1. Install [Cloudflare Workers and Pages GitHub App](https://github.com/apps/cloudflare-workers-and-pages) on the repo.

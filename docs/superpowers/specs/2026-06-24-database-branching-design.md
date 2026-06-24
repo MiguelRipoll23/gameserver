@@ -6,7 +6,7 @@ Every Git branch gets its own isolated Neon database branch, fronted by a dedica
 
 ## Architecture
 
-```
+```text
 ┌──────────────┐     push to main     ┌─────────────────┐
 │   GitHub     │ ──────────────────→  │ Workers Builds  │
 │   (source)   │                      │ (CI/CD trigger) │
@@ -29,13 +29,13 @@ Every Git branch gets its own isolated Neon database branch, fronted by a dedica
                             │                                    │
                             ▼                                    ▼
                    ┌──────────────────┐              ┌──────────────────────┐
-                   │ 1. Use Neon's    │              │ 1. Create/reuse Neon │
-                   │    default branch │              │    branch preview-*  │
-                   │ 2. Upsert        │              │ 2. Upsert Hyperdrive │
-                   │    Hyperdrive    │              │    per branch        │
-                   │ 3. Run migrations│              │ 3. Run migrations    │
-                   │ 4. wrangler      │              │ 4. wrangler versions │
-                   │    deploy        │              │    upload --preview  │
+                    │ 1. Use Neon's    │              │ 1. Create/reuse Neon │
+                    │    default branch │              │    branch preview-*  │
+                    │ 2. Run migrations│              │ 2. Run migrations    │
+                    │ 3. Upsert        │              │ 3. Upsert Hyperdrive │
+                    │    Hyperdrive    │              │    per branch        │
+                    │ 4. wrangler      │              │ 4. wrangler versions │
+                    │    deploy        │              │    upload --preview  │
                    └──────────────────┘              └──────────────────────┘
 ```
 

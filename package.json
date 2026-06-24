@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "deploy": "npx tsx scripts/deploy.ts",
     "deploy:production": "npx tsx scripts/deploy.ts",
     "check": "tsc --noEmit",
     "generate": "drizzle-kit generate",
