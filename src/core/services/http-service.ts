@@ -5,7 +5,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
 import { OpenAPIService } from "./openapi-service.ts";
 import { APIRouter } from "../../api/routers/api-router.ts";
-import { RootRouter } from "../routers/root_rooter.ts";
+import { RootRouter } from "../routers/root-router.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
 import { HonoVariables } from "../types/hono-variables-type.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
