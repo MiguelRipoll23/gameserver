@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-This is a **Deno-based game server** using:
-- **Runtime:** Deno (KV, BroadcastChannel)
+This is a **Node.js game server for Cloudflare Workers** using:
+- **Runtime:** Cloudflare Workers (Durable Objects, WebSocket)
 - **Framework:** Hono (with Zod OpenAPI)
 - **Database:** PostgreSQL via `pg` driver, **Drizzle ORM**
 - **Auth:** WebAuthn (passkeys) via `@simplewebauthn/server`
 - **DI:** `@needle-di/core` (with decorators)
 - **Validation:** Zod schemas (v4)
-- **Deployment:** Deno Deploy
+- **Deployment:** Cloudflare Workers via Wrangler
 
 ## TypeScript & Import Rules
 
@@ -59,7 +59,7 @@ This is a **Deno-based game server** using:
   }
   ```
 - All injectable dependencies are declared with `= inject(...)` default values.
-- `compilerOptions.experimentalDecorators: true` is set in deno.json.
+- `compilerOptions.experimentalDecorators: true` is set in tsconfig.json.
 
 ## Error Handling
 
@@ -88,15 +88,46 @@ All required env vars (see `.env.example`):
 - `RP_ALLOWED_ORIGINS` — WebAuthn allowed origins (comma-separated, wildcard support)
 - `CLOUDFLARE_CALLS_URL` / `CLOUDFLARE_CALLS_TOKEN` — Cloudflare Calls (WebRTC)
 
+## Database Branching
+
+Branch-aware deployments via `scripts/deploy.ts`, triggered by **Cloudflare Workers Builds** (GitHub App).
+
+- **Production** (`main` branch): uses Neon's default branch, upserts `gameserver--production` Hyperdrive config.
+- **Preview** (any other branch): creates/reuses a `preview-<slug>` Neon branch (7-day TTL), upserts a per-branch Hyperdrive config, deploys as a preview version.
+
+### Flow
+1. Push to GitHub → Workers Builds triggers.
+2. `scripts/deploy.ts` runs. It checks `WORKERS_CI_BRANCH` to determine production vs preview.
+3. Neon branch is created/found, Hyperdrive config is provisioned.
+4. `scripts/pre-deploy.ts` runs migrations against the new branch.
+5. Worker is deployed (production) or uploaded as preview version.
+
+### Setup
+1. Install [Cloudflare Workers and Pages GitHub App](https://github.com/apps/cloudflare-workers-and-pages) on the repo.
+2. In Cloudflare dashboard → Worker → Settings → Build:
+   - Build command: `npm ci`
+   - Deploy command: `npx tsx scripts/deploy.ts`
+   - Non-production branch deploy command: `npx tsx scripts/deploy.ts`
+3. Add to Worker's build environment variables:
+   - `NEON_API_KEY` (secret) — from Neon dashboard
+   - `NEON_PROJECT_ID` (text) — from Neon dashboard
+   - `GIT_DEFAULT_BRANCH` (text) — defaults to `main`
+
+### Local Development
+- Create a `dev` branch in your Neon project.
+- Set `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` in `.env`.
+
 ## Tasks & Scripts
 
 | Task | Command | Purpose |
 |---|---|---|
-| `dev` | `deno task dev` | Dev server with watch |
-| `check` | `deno task check` | Type-check the project |
-| `generate` | `deno task generate` | Generate Drizzle migrations from schema |
-| `migrate` | `deno task migrate` | Apply pending migrations |
-| `studio` | `deno task studio` | Open Drizzle Studio |
+| `dev` | `npm run dev` | Dev server with `wrangler dev` |
+| `check` | `npx tsc --noEmit` | Type-check the project |
+| `generate` | `npx drizzle-kit generate` | Generate Drizzle migrations from schema |
+| `migrate` | `npx tsx scripts/migrate.ts` | Apply pending migrations |
+| `studio` | `npx drizzle-kit studio` | Open Drizzle Studio |
+| `deploy` | `npx wrangler deploy` | Deploy to Cloudflare Workers (uses current config) |
+| `deploy:production` | `npx tsx scripts/deploy.ts` | Production deploy via deploy script |
 
 ## Testing
 

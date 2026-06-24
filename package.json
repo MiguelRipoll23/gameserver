@@ -1,0 +1,33 @@
+{
+  "name": "gameserver",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:production": "npx tsx scripts/deploy.ts",
+    "check": "tsc --noEmit",
+    "generate": "drizzle-kit generate",
+    "migrate": "npx tsx scripts/migrate.ts",
+    "studio": "drizzle-kit studio",
+    "cf-typegen": "wrangler types --env-interface Env src/core/types/env-type.ts"
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^1.4.0",
+    "@needle-di/core": "^1.1.2",
+    "@scalar/hono-api-reference": "^0.11.5",
+    "@simplewebauthn/server": "^13.3.1",
+    "drizzle-orm": "1.0.0-rc.3",
+    "hono": "^4.12.27",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "1.0.0-rc.3",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "wrangler": "^4.104.0"
+  }
+}
