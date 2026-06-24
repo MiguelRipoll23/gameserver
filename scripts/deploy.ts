@@ -212,16 +212,19 @@ async function runWranglerWithSecrets(
   }
 }
 
+function getCurrentBranch(): string {
+  return process.env["WORKERS_CI_BRANCH"] ?? process.env["GITHUB_REF_NAME"] ?? "branch";
+}
+
 function getDeployEnv(): "production" | "preview" {
   const defaultBranch = process.env["GIT_DEFAULT_BRANCH"] ?? "main";
   const env = process.env["DEPLOY_ENV"];
   if (env === "production" || env === "preview") return env;
-  return process.env["GITHUB_REF_NAME"] === defaultBranch ? "production" : "preview";
+  return getCurrentBranch() === defaultBranch ? "production" : "preview";
 }
 
 function getPreviewSlug(): string {
-  const gitBranch = process.env["GITHUB_REF_NAME"] ?? "branch";
-  return gitBranch
+  return getCurrentBranch()
     .toLowerCase()
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "")

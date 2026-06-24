@@ -103,11 +103,6 @@ Neon branch lifecycle is managed by the official `neondatabase/create-branch-act
 3. Add deployment steps (migrations, Hyperdrive, wrangler deploy) to the workflow using `${{ steps.create_neon_branch.outputs.db_url_with_pooler }}`.
 4. If closed: Neon branch is automatically deleted.
 
-### Setup
-1. Install the [Neon GitHub App](https://github.com/apps/neon-database) on your repository.
-2. Add `NEON_API_KEY` (secret) and `NEON_PROJECT_ID` (variable) to your GitHub repository settings.
-
-
 ### Local Development
 - Create a `dev` branch in your Neon project.
 - Set `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` in `.env`.
