@@ -4,9 +4,7 @@ import { join } from "node:path";
 import { execSync } from "node:child_process";
 
 const PRE_DEPLOY_HOOK = "scripts/pre-deploy.ts";
-const NEON_API = "https://console.neon.tech/api/v2";
 const CF_API = "https://api.cloudflare.com/client/v4";
-const BRANCH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const HYPERDRIVE_BINDING = "HYPERDRIVE";
 
 function requireEnv(name: string): string {
@@ -30,8 +28,6 @@ function runOrExit(command: string, options?: { env?: Record<string, string | un
 async function runPreDeployHook(args: {
   pooledUri: string;
   unpooledUri: string;
-  branchId: string;
-  branchName: string;
   deployEnv: "production" | "preview";
 }): Promise<void> {
   try {
@@ -46,202 +42,10 @@ async function runPreDeployHook(args: {
     env: {
       DATABASE_URL: args.pooledUri,
       DATABASE_URL_UNPOOLED: args.unpooledUri,
-      NEON_BRANCH_ID: args.branchId,
-      NEON_BRANCH_NAME: args.branchName,
       DEPLOY_ENV: args.deployEnv,
     },
   });
   console.log(`=== Pre-deploy hook complete ===`);
-}
-
-function neonHeaders(apiKey: string): HeadersInit {
-  return {
-    Authorization: `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
-}
-
-async function fetchDefaultBranch(): Promise<{ id: string; name: string }> {
-  const projectId = requireEnv("NEON_PROJECT_ID");
-  const apiKey = requireEnv("NEON_API_KEY");
-
-  const res = await fetch(`${NEON_API}/projects/${projectId}/branches`, {
-    headers: neonHeaders(apiKey),
-  });
-
-  if (!res.ok) {
-    console.error(`Branches list failed: ${res.status} ${await res.text()}`);
-    process.exit(1);
-  }
-
-  const result = (await res.json()) as {
-    branches: Array<{ id: string; name: string; default?: boolean }>;
-  };
-  const def = result.branches.find((b) => b.default);
-
-  if (!def) {
-    console.error("No default branch found on Neon project");
-    process.exit(1);
-  }
-
-  return { id: def.id, name: def.name };
-}
-
-async function fetchDatabaseAndRole(
-  branchId: string,
-): Promise<{ database: string; role: string }> {
-  const projectId = requireEnv("NEON_PROJECT_ID");
-  const apiKey = requireEnv("NEON_API_KEY");
-
-  const res = await fetch(
-    `${NEON_API}/projects/${projectId}/branches/${branchId}/databases`,
-    { headers: neonHeaders(apiKey) },
-  );
-
-  if (!res.ok) {
-    console.error(`Databases list failed: ${res.status} ${await res.text()}`);
-    process.exit(1);
-  }
-
-  const result = (await res.json()) as {
-    databases: Array<{ name: string; owner_name: string }>;
-  };
-  const db = result.databases[0];
-
-  if (!db) {
-    console.error(`No databases found on branch ${branchId}`);
-    process.exit(1);
-  }
-
-  return { database: db.name, role: db.owner_name };
-}
-
-async function fetchConnectionUri(
-  branchId: string,
-  database: string,
-  role: string,
-  pooled: boolean,
-): Promise<string> {
-  const projectId = requireEnv("NEON_PROJECT_ID");
-  const apiKey = requireEnv("NEON_API_KEY");
-
-  const params = new URLSearchParams({
-    database_name: database,
-    role_name: role,
-    pooled: String(pooled),
-    branch_id: branchId,
-  });
-
-  const res = await fetch(
-    `${NEON_API}/projects/${projectId}/connection_uri?${params}`,
-    { headers: neonHeaders(apiKey) },
-  );
-
-  if (!res.ok) {
-    console.error(`Connection URI fetch failed: ${res.status} ${await res.text()}`);
-    process.exit(1);
-  }
-
-  const result = (await res.json()) as { uri: string };
-  return result.uri;
-}
-
-async function findNeonBranch(name: string): Promise<string | null> {
-  const projectId = requireEnv("NEON_PROJECT_ID");
-  const apiKey = requireEnv("NEON_API_KEY");
-
-  const res = await fetch(
-    `${NEON_API}/projects/${projectId}/branches?search=${encodeURIComponent(name)}`,
-    { headers: neonHeaders(apiKey) },
-  );
-
-  if (!res.ok) {
-    console.error(`Branch lookup failed: ${res.status} ${await res.text()}`);
-    process.exit(1);
-  }
-
-  const result = (await res.json()) as {
-    branches: Array<{ id: string; name: string }>;
-  };
-  const match = result.branches.find((b) => b.name === name);
-  return match?.id ?? null;
-}
-
-async function ensureNeonBranch(name: string): Promise<string> {
-  const projectId = requireEnv("NEON_PROJECT_ID");
-  const apiKey = requireEnv("NEON_API_KEY");
-
-  const existing = await findNeonBranch(name);
-
-  if (existing) {
-    console.log(`Reusing existing Neon branch: ${name} (refreshing TTL)`);
-
-    const res = await fetch(
-      `${NEON_API}/projects/${projectId}/branches/${existing}`,
-      {
-        method: "PATCH",
-        headers: neonHeaders(apiKey),
-        body: JSON.stringify({
-          branch: {
-            expires_at: new Date(Date.now() + BRANCH_TTL_MS).toISOString(),
-          },
-        }),
-      },
-    );
-
-    if (!res.ok) {
-      console.error(`TTL refresh failed: ${res.status} ${await res.text()}`);
-      process.exit(1);
-    }
-
-    return existing;
-  }
-
-  console.log(`Creating Neon branch: ${name}`);
-
-  const res = await fetch(`${NEON_API}/projects/${projectId}/branches`, {
-    method: "POST",
-    headers: neonHeaders(apiKey),
-    body: JSON.stringify({
-      branch: {
-        name,
-        expires_at: new Date(Date.now() + BRANCH_TTL_MS).toISOString(),
-      },
-      endpoints: [{ type: "read_write" }],
-    }),
-  });
-
-  if (!res.ok) {
-    console.warn(`Branch creation failed (possible race): ${res.status} ${await res.text()}`);
-    console.log("Re-trying lookup in case another deploy created the branch concurrently...");
-    const retry = await findNeonBranch(name);
-    if (retry) {
-      console.log(`Found branch "${name}" after creation race — reusing.`);
-      const ttlRes = await fetch(
-        `${NEON_API}/projects/${projectId}/branches/${retry}`,
-        {
-          method: "PATCH",
-          headers: neonHeaders(apiKey),
-          body: JSON.stringify({
-            branch: {
-              expires_at: new Date(Date.now() + BRANCH_TTL_MS).toISOString(),
-            },
-          }),
-        },
-      );
-      if (!ttlRes.ok) {
-        console.error(`TTL refresh on retried branch failed: ${ttlRes.status} ${await ttlRes.text()}`);
-        process.exit(1);
-      }
-      return retry;
-    }
-    console.error(`Branch creation failed and no existing branch was found: ${res.status} ${await res.text()}`);
-    process.exit(1);
-  }
-
-  const created = (await res.json()) as { branch: { id: string } };
-  return created.branch.id;
 }
 
 function cfHeaders(token: string): HeadersInit {
@@ -292,67 +96,6 @@ async function listHyperdriveConfigs(): Promise<
     result: Array<{ id: string; name: string }>;
   };
   return result.result;
-}
-
-async function deleteHyperdrive(id: string): Promise<void> {
-  const accountId = requireEnv("CLOUDFLARE_ACCOUNT_ID");
-  const token = requireEnv("CLOUDFLARE_API_TOKEN");
-
-  const res = await fetch(
-    `${CF_API}/accounts/${accountId}/hyperdrive/configs/${id}`,
-    { method: "DELETE", headers: cfHeaders(token) },
-  );
-
-  if (!res.ok) {
-    console.error(`Hyperdrive delete failed: ${res.status} ${await res.text()}`);
-    process.exit(1);
-  }
-}
-
-async function listNeonBranches(): Promise<Array<{ id: string; name: string }>> {
-  const projectId = requireEnv("NEON_PROJECT_ID");
-  const apiKey = requireEnv("NEON_API_KEY");
-
-  const res = await fetch(`${NEON_API}/projects/${projectId}/branches`, {
-    headers: neonHeaders(apiKey),
-  });
-
-  if (!res.ok) {
-    console.error(`Branches list failed: ${res.status} ${await res.text()}`);
-    process.exit(1);
-  }
-
-  const result = (await res.json()) as {
-    branches: Array<{ id: string; name: string }>;
-  };
-  return result.branches;
-}
-
-async function cleanupOrphanHyperdrives(workerName: string): Promise<void> {
-  const previewPrefix = `${workerName}--preview--`;
-
-  const [hyperdrives, neonBranches] = await Promise.all([
-    listHyperdriveConfigs(),
-    listNeonBranches(),
-  ]);
-
-  const previewHyperdrives = hyperdrives.filter((h) =>
-    h.name.startsWith(previewPrefix),
-  );
-
-  if (previewHyperdrives.length === 0) return;
-
-  const liveBranches = new Set(neonBranches.map((b) => b.name));
-
-  for (const h of previewHyperdrives) {
-    const slug = h.name.slice(previewPrefix.length);
-    const expectedBranch = `preview-${slug}`;
-
-    if (!liveBranches.has(expectedBranch)) {
-      console.log(`Cleaning up orphan Hyperdrive: ${h.name}`);
-      await deleteHyperdrive(h.id);
-    }
-  }
 }
 
 async function ensureHyperdrive(name: string, uri: string): Promise<string> {
@@ -469,97 +212,62 @@ async function runWranglerWithSecrets(
   }
 }
 
-async function deployProduction(): Promise<void> {
-  console.log("Production deploy — fetching default branch URI from Neon");
-
-  const { id: branchId, name: branchName } = await fetchDefaultBranch();
-  const { database, role } = await fetchDatabaseAndRole(branchId);
-  const [pooled, unpooled] = await Promise.all([
-    fetchConnectionUri(branchId, database, role, true),
-    fetchConnectionUri(branchId, database, role, false),
-  ]);
-
-  await runPreDeployHook({
-    pooledUri: pooled,
-    unpooledUri: unpooled,
-    branchId,
-    branchName,
-    deployEnv: "production",
-  });
-
-  const wranglerConfig = await readWranglerConfig();
-  const hyperdriveName = `${wranglerConfig.name as string}--production`;
-  const hyperdriveId = await ensureHyperdrive(hyperdriveName, unpooled);
-  const configPath = await writeTempWranglerConfig(hyperdriveId);
-
-  try {
-    await runWranglerWithSecrets(["deploy", "--config", configPath], {
-      DATABASE_URL: pooled,
-      DATABASE_URL_UNPOOLED: unpooled,
-    });
-  } finally {
-    await unlink(configPath).catch(() => { });
-  }
+function getDeployEnv(): "production" | "preview" {
+  const defaultBranch = process.env["GIT_DEFAULT_BRANCH"] ?? "main";
+  const env = process.env["DEPLOY_ENV"];
+  if (env === "production" || env === "preview") return env;
+  return process.env["GITHUB_REF_NAME"] === defaultBranch ? "production" : "preview";
 }
 
-async function deployPreview(): Promise<void> {
-  const gitBranch = requireEnv("WORKERS_CI_BRANCH");
-
-  const slug = gitBranch
+function getPreviewSlug(): string {
+  const gitBranch = process.env["GITHUB_REF_NAME"] ?? "branch";
+  return gitBranch
     .toLowerCase()
     .replace(/[^a-z0-9-]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 56) || "branch";
+}
 
-  const branchName = `preview-${slug}`;
-  const branchId = await ensureNeonBranch(branchName);
-  const { database, role } = await fetchDatabaseAndRole(branchId);
+async function main(): Promise<void> {
+  const deployEnv = getDeployEnv();
+  console.log(`Deploy environment: ${deployEnv}`);
 
-  const [pooled, unpooled] = await Promise.all([
-    fetchConnectionUri(branchId, database, role, true),
-    fetchConnectionUri(branchId, database, role, false),
-  ]);
+  const pooled = requireEnv("DATABASE_URL");
+  const unpooled = requireEnv("DATABASE_URL_UNPOOLED");
 
   await runPreDeployHook({
     pooledUri: pooled,
     unpooledUri: unpooled,
-    branchId,
-    branchName,
-    deployEnv: "preview",
+    deployEnv,
   });
 
   const wranglerConfig = await readWranglerConfig();
-  const hyperdriveName = `${wranglerConfig.name as string}--preview--${slug}`;
+  const workerName = wranglerConfig.name as string;
+  const hyperdriveName = deployEnv === "production"
+    ? `${workerName}--production`
+    : `${workerName}--preview--${getPreviewSlug()}`;
+
   const hyperdriveId = await ensureHyperdrive(hyperdriveName, unpooled);
   const configPath = await writeTempWranglerConfig(hyperdriveId);
 
-  const previewAlias = slug;
-
   try {
-    await runWranglerWithSecrets(
-      ["versions", "upload", "--preview-alias", previewAlias, "--config", configPath],
-      {
+    if (deployEnv === "production") {
+      await runWranglerWithSecrets(["deploy", "--config", configPath], {
         DATABASE_URL: pooled,
         DATABASE_URL_UNPOOLED: unpooled,
-      },
-    );
+      });
+    } else {
+      await runWranglerWithSecrets(
+        ["versions", "upload", "--preview-alias", getPreviewSlug(), "--config", configPath],
+        {
+          DATABASE_URL: pooled,
+          DATABASE_URL_UNPOOLED: unpooled,
+        },
+      );
+    }
   } finally {
     await unlink(configPath).catch(() => { });
   }
 }
 
-if (!process.env["WORKERS_CI_BUILD_UUID"]) {
-  console.log("Not running in Cloudflare Workers Builds (WORKERS_CI_BUILD_UUID unset) — skipping.");
-  process.exit(0);
-}
-
-const GIT_DEFAULT_BRANCH = process.env["GIT_DEFAULT_BRANCH"] ?? "main";
-
-const wranglerConfigInit = await readWranglerConfig();
-await cleanupOrphanHyperdrives(wranglerConfigInit.name as string);
-
-if (requireEnv("WORKERS_CI_BRANCH") === GIT_DEFAULT_BRANCH) {
-  await deployProduction();
-} else {
-  await deployPreview();
-}
+await main();

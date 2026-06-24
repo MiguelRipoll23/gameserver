@@ -8,10 +8,19 @@ export class CORSMiddleware {
         return next();
       }
 
+      const origin = c.req.header("Origin");
+
       // Set CORS headers for all requests
-      c.res.headers.set("Access-Control-Allow-Origin", "*");
-      c.res.headers.set("Access-Control-Allow-Methods", "*");
-      c.res.headers.set(
+      if (origin) {
+        // Use the specific origin (required by browsers for credentialed requests)
+        c.header("Access-Control-Allow-Origin", origin);
+        c.header("Vary", "Origin");
+        c.header("Access-Control-Allow-Credentials", "true");
+      } else {
+        c.header("Access-Control-Allow-Origin", "*");
+      }
+      c.header("Access-Control-Allow-Methods", "*");
+      c.header(
         "Access-Control-Allow-Headers",
         "Content-Type, Authorization",
       );

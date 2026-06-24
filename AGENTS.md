@@ -90,29 +90,23 @@ All required env vars (see `.env.example`):
 
 ## Database Branching
 
-Branch-aware deployments via `scripts/deploy.ts`, triggered by **Cloudflare Workers Builds** (GitHub App).
+Branch-aware deployments via **Neon GitHub App integration** (`neon_workflow.yml`).
 
-- **Production** (`main` branch): uses Neon's default branch, upserts `gameserver--production` Hyperdrive config.
-- **Preview** (any other branch): creates/reuses a `preview-<slug>` Neon branch (7-day TTL), upserts a per-branch Hyperdrive config, deploys as a preview version.
+Neon branch lifecycle is managed by the official `neondatabase/create-branch-action` and `neondatabase/delete-branch-action` on PR events:
+
+- **PR opened / synchronized / reopened**: creates (or reuses) a `preview/pr-<number>-<branch>` Neon branch with a 14-day TTL.
+- **PR closed**: deletes the associated Neon branch.
 
 ### Flow
-1. Push to GitHub → Workers Builds triggers.
-2. `scripts/deploy.ts` runs. It checks `WORKERS_CI_BRANCH` to determine production vs preview.
-3. Neon branch is created/found.
-4. `scripts/pre-deploy.ts` runs migrations against the new branch.
-5. Hyperdrive config is provisioned.
-6. Worker is deployed (production) or uploaded as preview version.
+1. PR event triggers `.github/workflows/neon_workflow.yml`.
+2. If opened/synchronized/reopened: Neon branch is created with connection strings available as outputs.
+3. Add deployment steps (migrations, Hyperdrive, wrangler deploy) to the workflow using `${{ steps.create_neon_branch.outputs.db_url_with_pooler }}`.
+4. If closed: Neon branch is automatically deleted.
 
 ### Setup
-1. Install [Cloudflare Workers and Pages GitHub App](https://github.com/apps/cloudflare-workers-and-pages) on the repo.
-2. In Cloudflare dashboard → Worker → Settings → Build:
-   - Build command: `npm ci`
-   - Deploy command: `npx tsx scripts/deploy.ts`
-   - Non-production branch deploy command: `npx tsx scripts/deploy.ts`
-3. Add to Worker's build environment variables:
-   - `NEON_API_KEY` (secret) — from Neon dashboard
-   - `NEON_PROJECT_ID` (text) — from Neon dashboard
-   - `GIT_DEFAULT_BRANCH` (text) — defaults to `main`
+1. Install the [Neon GitHub App](https://github.com/apps/neon-database) on your repository.
+2. Add `NEON_API_KEY` (secret) and `NEON_PROJECT_ID` (variable) to your GitHub repository settings.
+
 
 ### Local Development
 - Create a `dev` branch in your Neon project.
@@ -127,8 +121,7 @@ Branch-aware deployments via `scripts/deploy.ts`, triggered by **Cloudflare Work
 | `generate` | `npx drizzle-kit generate` | Generate Drizzle migrations from schema |
 | `migrate` | `npx tsx scripts/migrate.ts` | Apply pending migrations |
 | `studio` | `npx drizzle-kit studio` | Open Drizzle Studio |
-| `deploy` | `npx wrangler deploy` | Deploy to Cloudflare Workers (uses current config) |
-| `deploy:production` | `npx tsx scripts/deploy.ts` | Production deploy via deploy script |
+| `deploy` | `npx tsx scripts/deploy.ts` | Full deploy (migrations + Hyperdrive + wrangler) |
 
 ## Testing
 
