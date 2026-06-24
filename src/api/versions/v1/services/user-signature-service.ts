@@ -1,7 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { SignatureService } from "./signature-service.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
-import { decodeBase64 } from "@std/encoding/base64";
 
 @injectable()
 export class UserSignatureService {
@@ -12,7 +11,7 @@ export class UserSignatureService {
     networkId: string,
     userName: string,
   ): Promise<ArrayBuffer> {
-    const tokenBytes = decodeBase64(token);
+    const tokenBytes = new Uint8Array(Buffer.from(token, "base64"));
     const signaturePayload = BinaryWriter.build()
       .bytes(tokenBytes, 32)
       .fixedLengthString(networkId, 32)

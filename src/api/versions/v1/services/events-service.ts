@@ -1,5 +1,5 @@
-import { injectable } from "@needle-di/core";
-import { SHARED_BROADCAST_CHANNEL } from "../constants/broadcast-channel-constants.ts";
+import { inject, injectable } from "@needle-di/core";
+import { EnvService } from "../../../../core/services/env-service.ts";
 import { EventDispatchMode } from "../constants/event-constants.ts";
 import { getEventHandlers } from "../decorators/event-handler.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
@@ -9,10 +9,13 @@ import { z } from "zod";
 
 @injectable()
 export class EventsService {
-  private readonly broadcastChannel = new BroadcastChannel(
-    SHARED_BROADCAST_CHANNEL,
-  );
+  private static readonly DO_ID_NAME = "events-hub";
+
   private readonly instanceId = crypto.randomUUID();
+  private doWebSocket: WebSocket | null = null;
+  private connecting = false;
+  private doReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectRetryCount = 0;
   private readonly handlers = new Map<
     BroadcastCommandType,
     Set<EventHandlerFunction>
@@ -22,19 +25,21 @@ export class EventsService {
     Set<string>
   >();
 
-  constructor() {
-    this.broadcastChannel.addEventListener(
-      "message",
-      this.handleIncomingMessage,
-    );
+  constructor(private envService = inject(EnvService)) {}
+
+  public async init(): Promise<void> {
+    await this.connectToDO();
   }
 
   public close(): void {
-    this.broadcastChannel.removeEventListener(
-      "message",
-      this.handleIncomingMessage,
-    );
-    this.broadcastChannel.close();
+    if (this.doReconnectTimer !== null) {
+      clearTimeout(this.doReconnectTimer);
+      this.doReconnectTimer = null;
+    }
+    if (this.doWebSocket !== null) {
+      this.doWebSocket.close();
+      this.doWebSocket = null;
+    }
   }
 
   public registerEventHandlers(instance: unknown): void {
@@ -83,21 +88,82 @@ export class EventsService {
   ): void {
     const handledLocally = this.notifyHandlers(command, payload);
 
-    // If the event was handled locally and the mode allows local-only handling,
-    // then we can skip broadcasting to other instances
     if (mode === EventDispatchMode.LocalOrBroadcast && handledLocally) {
       return;
     }
 
-    this.broadcastChannel.postMessage({
-      command,
-      payload,
-      originInstanceId: this.instanceId,
-    });
+    this.postToDO({ command, payload, originInstanceId: this.instanceId });
+  }
 
-    console.debug(
-      `Broadcasted command ${command} from instance ${this.instanceId} with mode ${mode}`,
-    );
+  private async connectToDO(): Promise<void> {
+    if (this.connecting) return;
+    this.connecting = true;
+    try {
+      const ns = this.envService.getDurableObjectNamespace();
+      const id = ns.idFromName(EventsService.DO_ID_NAME);
+      const stub = ns.get(id);
+
+      const url = `http://do/connect?instanceId=${this.instanceId}`;
+      const response = await stub.fetch(url);
+      // WebSocket upgrade response
+      if (response.status === 101) {
+        this.doWebSocket = (response as unknown as { webSocket: WebSocket }).webSocket;
+        this.doWebSocket.accept();
+        this.doWebSocket.addEventListener("message", (event: MessageEvent) => {
+          this.handleIncomingMessage(event);
+        });
+        this.doWebSocket.addEventListener("close", () => {
+          this.doWebSocket = null;
+          this.scheduleReconnect();
+        });
+        this.doWebSocket.addEventListener("error", () => {
+          this.doWebSocket = null;
+          this.scheduleReconnect();
+        });
+        this.onReconnectSuccess();
+      }
+    } catch (error) {
+      console.error("Failed to connect to Durable Object:", error);
+      this.scheduleReconnect();
+    } finally {
+      this.connecting = false;
+    }
+  }
+
+  private scheduleReconnect(): void {
+    if (this.doReconnectTimer !== null) return;
+    const delay = Math.min(5000 * Math.pow(2, this.reconnectRetryCount), 60000);
+    this.reconnectRetryCount++;
+    this.doReconnectTimer = setTimeout(() => {
+      this.doReconnectTimer = null;
+      void this.connectToDO();
+    }, delay);
+  }
+
+  private onReconnectSuccess(): void {
+    this.reconnectRetryCount = 0;
+  }
+
+  private async postToDO(payload: {
+    command: BroadcastCommandType;
+    payload: unknown;
+    originInstanceId: string;
+  }): Promise<void> {
+    try {
+      const ns = this.envService.getDurableObjectNamespace();
+      const id = ns.idFromName(EventsService.DO_ID_NAME);
+      const stub = ns.get(id);
+
+      await stub.fetch("http://do/dispatch", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      console.debug(
+        `Broadcasted command ${payload.command} from instance ${this.instanceId}`,
+      );
+    } catch (error) {
+      console.error("Failed to dispatch event to Durable Object:", error);
+    }
   }
 
   private bindEventHandler(
@@ -118,7 +184,7 @@ export class EventsService {
     let message: z.infer<typeof BroadcastEnvelopeSchema>;
 
     try {
-      message = BroadcastEnvelopeSchema.parse(event.data);
+      message = BroadcastEnvelopeSchema.parse(JSON.parse(event.data as string));
     } catch (error) {
       console.warn("Ignored malformed broadcast message", event.data, error);
       return;
@@ -129,7 +195,7 @@ export class EventsService {
     }
 
     console.debug(
-      `Received broadcasted command ${message.command} on instance ${this.instanceId} from instance ${message.originInstanceId}`,
+      `Received broadcasted command ${message.command} on instance ${this.instanceId}`,
     );
 
     this.notifyHandlers(message.command, message.payload);
@@ -176,7 +242,6 @@ export class EventsService {
             console.error(`Event handler error for command ${command}:`, error);
           });
 
-        // Synchronous dispatch cannot await async completion. Consider it handled to avoid duplicate broadcasts.
         return true;
       }
 

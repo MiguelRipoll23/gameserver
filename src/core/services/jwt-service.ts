@@ -1,7 +1,8 @@
 import { sign, verify } from "hono/jwt";
 import { jwt } from "hono/jwt";
 import type { MiddlewareHandler } from "hono";
-import { injectable } from "@needle-di/core";
+import { inject, injectable } from "@needle-di/core";
+import { EnvService } from "./env-service.ts";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 
@@ -10,7 +11,7 @@ export class JWTService {
   private static EXPIRATION_SECONDS = 1800;
   private secret: string;
 
-  constructor() {
+  constructor(private envService = inject(EnvService)) {
     this.secret = this.resolveSecret();
   }
 
@@ -52,9 +53,9 @@ export class JWTService {
   }
 
   private resolveSecret(): string {
-    const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
+    const secret = this.envService.get(ENV_JWT_SECRET);
 
-    if (secret === undefined) {
+    if (!secret) {
       throw new Error("JWT secret is not defined in environment variables");
     }
 

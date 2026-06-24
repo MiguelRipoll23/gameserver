@@ -1,4 +1,5 @@
-import { injectable } from "@needle-di/core";
+import { inject, injectable } from "@needle-di/core";
+import { EnvService } from "../../../../core/services/env-service.ts";
 import { DEFAULT_ICE_SERVERS } from "../constants/api-constants.ts";
 import {
   ENV_CLOUDFLARE_CALLS_TOKEN,
@@ -8,6 +9,8 @@ import { RTCIceServer } from "../schemas/authentication-schemas.ts";
 
 @injectable()
 export class ICEService {
+  constructor(private envService = inject(EnvService)) {}
+
   public async getServers(): Promise<RTCIceServer[]> {
     let iceServers: RTCIceServer[] = DEFAULT_ICE_SERVERS;
 
@@ -21,8 +24,8 @@ export class ICEService {
   }
 
   private async getCloudflareServers(): Promise<RTCIceServer[]> {
-    const url = Deno.env.get(ENV_CLOUDFLARE_CALLS_URL) ?? null;
-    const token = Deno.env.get(ENV_CLOUDFLARE_CALLS_TOKEN) ?? null;
+    const url = this.envService.get(ENV_CLOUDFLARE_CALLS_URL) ?? null;
+    const token = this.envService.get(ENV_CLOUDFLARE_CALLS_TOKEN) ?? null;
 
     if (url === null || token === null) {
       throw new Error("Cloudflare environment variables not set");
@@ -45,8 +48,8 @@ export class ICEService {
       );
     }
 
-    const data = await response.json();
+    const data = await response.json() as { iceServers: RTCIceServer[] };
 
-    return [data.iceServers];
+    return data.iceServers;
   }
 }

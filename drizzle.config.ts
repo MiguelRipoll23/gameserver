@@ -6,7 +6,7 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url:
-      Deno.env.get("DATABASE_URL") ??
+      process.env["DATABASE_URL"] ??
       (() => {
         throw new Error("DATABASE_URL environment variable is required");
       })(),

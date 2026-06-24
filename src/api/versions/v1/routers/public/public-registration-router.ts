@@ -2,7 +2,7 @@ import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { ErrorResponseSchema } from "../../schemas/error-response-schema.ts";
 import { RegistrationService } from "../../services/registration-service.ts";
-import { getConnInfo } from "hono/deno";
+import { getConnInfo } from "hono/cloudflare-workers";
 import { VerifyAuthenticationResponseSchema } from "../../schemas/authentication-schemas.ts";
 import {
   GetRegistrationOptionsRequestSchema,

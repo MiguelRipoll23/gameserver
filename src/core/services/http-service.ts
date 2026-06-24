@@ -1,11 +1,10 @@
 import { logger } from "hono/logger";
 import { bodyLimit } from "hono/body-limit";
-import { serveStatic } from "hono/deno";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
 import { OpenAPIService } from "./openapi-service.ts";
 import { APIRouter } from "../../api/routers/api-router.ts";
-import { RootRouter } from "../routers/root_rooter.ts";
+import { RootRouter } from "../routers/root-router.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
 import { HonoVariables } from "../types/hono-variables-type.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
@@ -13,7 +12,7 @@ import { JWTService } from "./jwt-service.ts";
 
 @injectable()
 export class HTTPService {
-  private app: OpenAPIHono<{ Variables: HonoVariables }>;
+  public app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(
     private rootRooter = inject(RootRouter),
@@ -26,10 +25,8 @@ export class HTTPService {
     this.setRoutes();
   }
 
-  public async listen(): Promise<void> {
+  public async init(): Promise<void> {
     await this.apiRouter.init();
-
-    Deno.serve(this.app.fetch);
   }
 
   private configure(): void {
@@ -39,7 +36,6 @@ export class HTTPService {
 
   private setMiddlewares(): void {
     this.app.use("*", logger());
-    this.app.use("*", serveStatic({ root: "./static" }));
     this.setBodyLimitMiddleware();
   }
 

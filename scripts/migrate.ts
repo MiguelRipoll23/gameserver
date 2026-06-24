@@ -4,11 +4,11 @@ import { Pool } from "pg";
 
 const DATABASE_URL_ENV = "DATABASE_URL";
 
-const databaseUrl = Deno.env.get(DATABASE_URL_ENV);
+const databaseUrl = process.env[DATABASE_URL_ENV];
 
 if (!databaseUrl) {
   console.error(`${DATABASE_URL_ENV} environment variable is required`);
-  Deno.exit(1);
+  process.exit(1);
 }
 
 const databasePool = new Pool({
@@ -16,7 +16,7 @@ const databasePool = new Pool({
 });
 
 try {
-  const database = drizzle(databasePool);
+  const database = drizzle({ client: databasePool });
 
   console.log("Running database migrations");
   await migrate(database, { migrationsFolder: "drizzle" });
@@ -24,7 +24,7 @@ try {
 } catch (error) {
   console.error("Database migration failed");
   console.error(error);
-  Deno.exitCode = 1;
+  process.exit(1);
 } finally {
   await databasePool.end();
 }

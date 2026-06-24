@@ -1,28 +1,30 @@
 export class WebAuthnUtils {
   private static readonly DEFAULT_RP_NAME = "Game server API";
   private static readonly DEFAULT_ALLOWED_ORIGINS = "http://localhost:8000";
-  private static cachedPatterns: string[] | null = null;
-  private static cachedAllowedOrigins: string | null = null;
 
   /**
    * Gets the relying party name from environment variable or uses default
    */
-  public static getRelyingPartyName(): string {
-    return Deno.env.get("RP_NAME") ?? WebAuthnUtils.DEFAULT_RP_NAME;
+  public static getRelyingPartyName(rpName?: string): string {
+    return rpName ?? WebAuthnUtils.DEFAULT_RP_NAME;
   }
 
   /**
    * Validates if the given origin matches any of the allowed origin patterns
    * @param origin - The origin to validate (e.g., "https://example.com")
+   * @param allowedOriginsEnv - The RP_ALLOWED_ORIGINS env value (comma-separated)
    * @returns true if the origin is allowed, false otherwise
    */
-  public static isOriginAllowed(origin: string): boolean {
+  public static isOriginAllowed(
+    origin: string,
+    allowedOriginsEnv?: string,
+  ): boolean {
     // Input validation
     if (typeof origin !== "string" || origin.trim().length === 0) {
       return false;
     }
 
-    const patterns = WebAuthnUtils.getAllowedOriginPatterns();
+    const patterns = WebAuthnUtils.parseAllowedOriginPatterns(allowedOriginsEnv);
 
     // Check if origin matches any pattern
     for (const pattern of patterns) {
@@ -35,29 +37,19 @@ export class WebAuthnUtils {
   }
 
   /**
-   * Gets and caches the allowed origin patterns from environment variable
+   * Parses the allowed origin patterns from environment variable value
    * @returns Array of origin patterns
    */
-  private static getAllowedOriginPatterns(): string[] {
+  public static parseAllowedOriginPatterns(
+    allowedOriginsEnv?: string,
+  ): string[] {
     const allowedOrigins =
-      Deno.env.get("RP_ALLOWED_ORIGINS") ??
-      WebAuthnUtils.DEFAULT_ALLOWED_ORIGINS;
+      allowedOriginsEnv ?? WebAuthnUtils.DEFAULT_ALLOWED_ORIGINS;
 
-    // Return cached patterns if the env var hasn't changed
-    if (
-      WebAuthnUtils.cachedAllowedOrigins === allowedOrigins &&
-      WebAuthnUtils.cachedPatterns !== null
-    ) {
-      return WebAuthnUtils.cachedPatterns;
-    }
-
-    // Parse and cache the patterns, filtering out empty strings
-    WebAuthnUtils.cachedAllowedOrigins = allowedOrigins;
-    WebAuthnUtils.cachedPatterns = allowedOrigins
+    return allowedOrigins
       .split(",")
       .map((p) => p.trim())
       .filter((p) => p.length > 0);
-    return WebAuthnUtils.cachedPatterns;
   }
 
   /**

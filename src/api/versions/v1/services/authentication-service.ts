@@ -1,5 +1,6 @@
 import { encodeBase64 } from "hono/utils/encode";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
+import { EnvService } from "../../../../core/services/env-service.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { inject, injectable } from "@needle-di/core";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
@@ -54,6 +55,7 @@ export class AuthenticationService {
     private jwtService = inject(JWTService),
     private signatureService = inject(SignatureService),
     private iceService = inject(ICEService),
+    private envService = inject(EnvService),
   ) {}
 
   public async getOptions(
@@ -62,7 +64,7 @@ export class AuthenticationService {
   ): Promise<object> {
     const { transactionId } = authenticationRequest;
 
-    if (!WebAuthnUtils.isOriginAllowed(origin)) {
+    if (!WebAuthnUtils.isOriginAllowed(origin, this.envService.get("RP_ALLOWED_ORIGINS"))) {
       throw new ServerError(
         "ORIGIN_NOT_ALLOWED",
         "Origin is not in the allowed list",
@@ -94,7 +96,7 @@ export class AuthenticationService {
     const authenticationResponse =
       authenticationRequest.authenticationResponse as object as AuthenticationResponseJSON;
 
-    if (!WebAuthnUtils.isOriginAllowed(origin)) {
+    if (!WebAuthnUtils.isOriginAllowed(origin, this.envService.get("RP_ALLOWED_ORIGINS"))) {
       throw new ServerError(
         "ORIGIN_NOT_ALLOWED",
         "Origin is not in the allowed list",

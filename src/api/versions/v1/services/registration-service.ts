@@ -1,5 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
+import { EnvService } from "../../../../core/services/env-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   generateRegistrationOptions,
@@ -30,7 +31,8 @@ export class RegistrationService {
   constructor(
     private authenticationChallengesService = inject(AuthenticationChallengesService),
     private databaseService = inject(DatabaseService),
-    private authenticationService = inject(AuthenticationService)
+    private authenticationService = inject(AuthenticationService),
+    private envService = inject(EnvService)
   ) {}
 
   public async getOptions(
@@ -45,7 +47,9 @@ export class RegistrationService {
 
     await this.ensureUserDoesNotExist(displayName);
 
-    if (!WebAuthnUtils.isOriginAllowed(origin)) {
+    const allowedOrigins = this.envService.get("RP_ALLOWED_ORIGINS");
+
+    if (!WebAuthnUtils.isOriginAllowed(origin, allowedOrigins)) {
       throw new ServerError(
         "ORIGIN_NOT_ALLOWED",
         "Origin is not in the allowed list",
@@ -54,9 +58,10 @@ export class RegistrationService {
     }
 
     const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+    const rpName = this.envService.get("RP_NAME") || undefined;
     const userId = crypto.randomUUID();
     const options = await generateRegistrationOptions({
-      rpName: WebAuthnUtils.getRelyingPartyName(),
+      rpName: WebAuthnUtils.getRelyingPartyName(rpName),
       rpID,
       userName: displayName,
       userDisplayName: displayName,
@@ -87,7 +92,7 @@ export class RegistrationService {
       transactionId
     );
 
-    if (!WebAuthnUtils.isOriginAllowed(origin)) {
+    if (!WebAuthnUtils.isOriginAllowed(origin, this.envService.get("RP_ALLOWED_ORIGINS"))) {
       throw new ServerError(
         "ORIGIN_NOT_ALLOWED",
         "Origin is not in the allowed list",

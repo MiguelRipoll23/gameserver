@@ -1,24 +1,29 @@
 import { drizzle, NodePgDatabase } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
-import { injectable } from "@needle-di/core";
+import { inject, injectable } from "@needle-di/core";
+import { EnvService } from "./env-service.ts";
 import { sql } from "drizzle-orm/sql";
 
 @injectable()
 export class DatabaseService {
   private database: NodePgDatabase | null = null;
 
-  public init(): void {
-    const databaseUrl = Deno.env.get("DATABASE_URL");
+  constructor(private envService = inject(EnvService)) {}
 
-    if (!databaseUrl) {
+  public init(): void {
+    const hyperdrive = this.envService.get<{ connectionString: string }>("HYPERDRIVE");
+
+    if (!hyperdrive?.connectionString) {
       throw new ServerError(
         "BAD_SERVER_CONFIGURATION",
-        "Database URL is not set in environment variables",
+        "Hyperdrive database connection is not configured",
         500
       );
     }
 
-    this.database = drizzle(databaseUrl);
+    const pool = new Pool({ connectionString: hyperdrive.connectionString });
+    this.database = drizzle({ client: pool });
     console.log("Database connection opened");
   }
 

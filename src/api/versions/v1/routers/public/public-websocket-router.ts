@@ -1,7 +1,9 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
-import { upgradeWebSocket } from "hono/deno";
-import { getConnInfo } from "hono/deno";
+import { upgradeWebSocket } from "hono/cloudflare-workers";
+import { getConnInfo } from "hono/cloudflare-workers";
+import type { Context } from "hono";
+import type { WSContext } from "hono/ws";
 import { WebSocketService } from "../../services/websocket-service.ts";
 import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 import { ServerResponse } from "../../models/server-response.ts";
@@ -40,25 +42,26 @@ export class AuthenticatedWebSocketRouter {
           ...ServerResponse.Unauthorized,
         },
       }),
-      // @ts-expect-error: using helper
+      // @ts-expect-error: upgradeWebSocket helper type mismatch with openapi route
       upgradeWebSocket((context: Context) => {
-        // Get client IP address
         const info = getConnInfo(context);
         const publicIp = info.remote.address || "unknown";
         const user = new WebSocketUser(publicIp);
 
-        return {
-          onOpen: (event, webSocketContext) => {
-            webSocketContext.binaryType = "arraybuffer";
-            user.setWebSocket(webSocketContext);
-            webSocketService.handleOpenEvent(event, user);
-          },
+        function ensureWebSocket(ws: WSContext<WebSocket>): void {
+          if (!user.getWebSocket()) {
+            ws.binaryType = "arraybuffer";
+            user.setWebSocket(ws);
+          }
+        }
 
-          onMessage(event) {
+        return {
+          onMessage: (event, ws) => {
+            ensureWebSocket(ws);
             webSocketService.handleMessageEvent(event, user);
           },
-
-          onClose: (event) => {
+          onClose: (event, ws) => {
+            ensureWebSocket(ws);
             webSocketService.handleCloseEvent(event, user);
           },
         };

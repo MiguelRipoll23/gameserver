@@ -1,4 +1,3 @@
-import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { ChatService } from "./chat-service.ts";
@@ -24,12 +23,12 @@ import { UserModerationService } from "./user-moderation-service.ts";
 import { EventsService } from "./events-service.ts";
 import { WebSocketUserRegistry } from "./websocket-user-registry.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
-import { OnlinePlayersPayload } from "../types/online-players-payload-type.ts";
-import { PlayerRelayPayload } from "../types/player-relay-payload-type.ts";
-import { NotificationPayload } from "../types/notification-payload-type.ts";
-import { PlayerNotificationPayload } from "../types/player-notification-payload-type.ts";
-import { KickPlayerPayload } from "../types/kick-player-payload-type.ts";
-import { PlayerKickedNotificationPayload } from "../types/player-kicked-notification-payload-type.ts";
+import type { OnlinePlayersPayload } from "../types/online-players-payload-type.ts";
+import type { PlayerRelayPayload } from "../types/player-relay-payload-type.ts";
+import type { NotificationPayload } from "../types/notification-payload-type.ts";
+import type { PlayerNotificationPayload } from "../types/player-notification-payload-type.ts";
+import type { KickPlayerPayload } from "../types/kick-player-payload-type.ts";
+import type { PlayerKickedNotificationPayload } from "../types/player-kicked-notification-payload-type.ts";
 import { MatchesService } from "./matches-service.ts";
 import { SessionsService } from "./sessions-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
@@ -461,12 +460,12 @@ export class WebSocketService implements WebSocketServer {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
     const tunnelPayload = buildPlayerRelayPayload(
-      decodeBase64(originUser.getToken()),
+      new Uint8Array(Buffer.from(originUser.getToken(), "base64")),
       dataBytes,
     );
 
     this.sendPlayerRelayToToken(
-      encodeBase64(destinationTokenBytes),
+      Buffer.from(destinationTokenBytes).toString("base64"),
       tunnelPayload,
     );
   }

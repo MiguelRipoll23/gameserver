@@ -21,7 +21,7 @@ export class OpenAPIService {
       info: {
         version: "1.0.0",
         title: "Game server API",
-        description: "A game server built with Deno",
+        description: "A game server built with Cloudflare Workers",
       },
     });
 

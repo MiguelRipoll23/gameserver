@@ -1,7 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { AuthenticationService } from "../../services/authentication-service.ts";
-import { getConnInfo } from "hono/deno";
+import { getConnInfo } from "hono/cloudflare-workers";
 import {
   GetAuthenticationOptionsRequestSchema,
   GetAuthenticationOptionsResponseSchema,
