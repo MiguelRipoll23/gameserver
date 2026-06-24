@@ -6,8 +6,8 @@
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.3.2",
     "@std/encoding": "jsr:@std/encoding@^1.0.10",
     "@types/pg": "npm:@types/pg@^8.20.0",
-    "drizzle-kit": "npm:drizzle-kit@^1.0.0-rc.3",
-    "drizzle-orm": "npm:drizzle-orm@^1.0.0-rc.3",
+    "drizzle-kit": "npm:drizzle-kit@beta",
+    "drizzle-orm": "npm:drizzle-orm@beta",
     "pg": "npm:pg@^8.22.0",
     "hono": "npm:hono@^4.12.27",
     "zod": "npm:zod@^4.4.3"
@@ -35,8 +35,8 @@
     "dev": "deno run --permission-set=development --env --watch src/main.ts",
     "debug": "deno run --inspect-wait --permission-set=development --env --watch src/main.ts",
     "check": "deno check src/main.ts",
-    "studio": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit studio",
-    "generate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit generate",
+    "studio": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit@beta studio",
+    "generate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit@beta generate",
     "migrate": "deno run --permission-set=database --env scripts/migrate.ts"
   },
   "deploy": {
