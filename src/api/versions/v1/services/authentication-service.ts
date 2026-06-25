@@ -147,7 +147,7 @@ export class AuthenticationService {
 
     // Server configuration
     const serverSignaturePublicKey =
-      this.signatureService.getEncodedPublicKey();
+      await this.signatureService.getEncodedPublicKey();
     const rtcIceServers = await this.iceService.getServers();
 
     return {

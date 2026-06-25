@@ -14,37 +14,32 @@ export class SignatureService {
 
   private privateKey: CryptoKey | null = null;
   private publicKey: CryptoKey | null = null;
-
   private encodedPublicKey: string | null = null;
+  private initialized = false;
 
   constructor(
     private serverSignatureKeysService = inject(ServerSignatureKeysService),
   ) {}
 
-  /**
-   * Initialize the service by loading keys from storage or generating new ones.
-   * Must be called before using the service.
-   */
-  public async init(): Promise<void> {
-    // Try to load keys from storage
-    const loaded = await this.loadKeysFromStorage();
-
-    if (loaded) {
-      // Cache encoded public key after loading
-      const publicKey = this.getPublicKey();
-      this.encodedPublicKey = await this.exportPublicKeyToBase64(publicKey);
-      return;
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    this.initialized = true;
+    try {
+      await this.loadOrGenerateKeys();
+    } catch (error) {
+      this.initialized = false;
+      throw error;
     }
-
-    // If not loaded, generate and store keys
-    await this.generateAndStoreKeys();
-
-    // Cache encoded public key after generation
-    const publicKey = this.getPublicKey();
-    this.encodedPublicKey = await this.exportPublicKeyToBase64(publicKey);
   }
 
-  public getEncodedPublicKey(): string {
+  private async loadOrGenerateKeys(): Promise<void> {
+    const loaded = await this.loadKeysFromStorage();
+    if (loaded) return;
+    await this.generateAndStoreKeys();
+  }
+
+  public async getEncodedPublicKey(): Promise<string> {
+    await this.ensureInitialized();
     if (this.encodedPublicKey === null) {
       throw new ServerError(
         "INVALID_SERVER_CONFIGURATION",
@@ -52,45 +47,27 @@ export class SignatureService {
         500
       );
     }
-
     return this.encodedPublicKey;
   }
 
-  public signArrayBuffer(data: ArrayBuffer): Promise<ArrayBuffer> {
-    const privateKey = this.getPrivateKey();
+  public async signArrayBuffer(data: ArrayBuffer): Promise<ArrayBuffer> {
+    await this.ensureInitialized();
+    if (this.privateKey === null) {
+      throw new ServerError(
+        "INVALID_SERVER_CONFIGURATION",
+        "Invalid server configuration",
+        500
+      );
+    }
 
     return crypto.subtle.sign(
       {
         name: SignatureService.ALGORITHM_NAME,
         hash: { name: SignatureService.SIGN_HASH },
       },
-      privateKey,
+      this.privateKey,
       data
     );
-  }
-
-  private getPrivateKey(): CryptoKey {
-    if (!this.privateKey) {
-      throw new ServerError(
-        "INVALID_SERVER_CONFIGURATION",
-        "Invalid server configuration",
-        500
-      );
-    }
-
-    return this.privateKey;
-  }
-
-  private getPublicKey(): CryptoKey {
-    if (!this.publicKey) {
-      throw new ServerError(
-        "INVALID_SERVER_CONFIGURATION",
-        "Invalid server configuration",
-        500
-      );
-    }
-
-    return this.publicKey;
   }
 
   private async exportPublicKeyToBase64(publicKey: CryptoKey): Promise<string> {
@@ -143,6 +120,8 @@ export class SignatureService {
       savedKeys.publicKey,
       SignatureService.VERIFY_USAGE
     );
+
+    this.encodedPublicKey = await this.exportPublicKeyToBase64(this.publicKey);
 
     return true;
   }

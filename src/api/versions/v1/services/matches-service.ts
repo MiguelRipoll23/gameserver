@@ -15,7 +15,6 @@ import {
 import { and, eq, sql, inArray } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { SessionsService } from "./sessions-service.ts";
-import { SignatureService } from "./signature-service.ts";
 
 @injectable()
 export class MatchesService {
