@@ -27,8 +27,6 @@ export class HTTPService {
   }
 
   public async listen(): Promise<void> {
-    await this.apiRouter.init();
-
     Deno.serve(this.app.fetch);
   }
 
