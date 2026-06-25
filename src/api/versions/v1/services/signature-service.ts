@@ -16,6 +16,7 @@ export class SignatureService {
   private publicKey: CryptoKey | null = null;
   private encodedPublicKey: string | null = null;
   private initialized = false;
+  private initializationPromise: Promise<void> | null = null;
 
   constructor(
     private serverSignatureKeysService = inject(ServerSignatureKeysService),
@@ -23,13 +24,20 @@ export class SignatureService {
 
   private async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
-    this.initialized = true;
-    try {
-      await this.loadOrGenerateKeys();
-    } catch (error) {
-      this.initialized = false;
-      throw error;
-    }
+    this.initializationPromise ??= this.loadOrGenerateKeys()
+      .then(() => {
+        this.initialized = true;
+      })
+      .catch((error) => {
+        this.privateKey = null;
+        this.publicKey = null;
+        this.encodedPublicKey = null;
+        throw error;
+      })
+      .finally(() => {
+        this.initializationPromise = null;
+      });
+    await this.initializationPromise;
   }
 
   private async loadOrGenerateKeys(): Promise<void> {
