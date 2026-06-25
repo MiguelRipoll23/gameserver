@@ -47,6 +47,7 @@ export class ICEService {
 
     const data = await response.json();
 
-    return [data.iceServers];
+    // data.iceServers is already an array of RTCIceServer objects from Cloudflare Calls API
+    return data.iceServers;
   }
 }
