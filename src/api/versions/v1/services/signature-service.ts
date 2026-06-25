@@ -5,167 +5,110 @@ import { inject, injectable } from "@needle-di/core";
 
 @injectable()
 export class SignatureService {
-  private static readonly ALGORITHM_NAME = "ECDSA";
-  private static readonly NAMED_CURVE = "P-256";
-  private static readonly SIGN_USAGE: KeyUsage = "sign";
-  private static readonly VERIFY_USAGE: KeyUsage = "verify";
-  private static readonly SIGN_VERIFY_USAGES: KeyUsage[] = ["sign", "verify"];
-  private static readonly SIGN_HASH = "SHA-256";
+  private ALGORITHM: EcKeyImportParams & EcKeyGenParams = {
+    name: "ECDSA",
+    namedCurve: "P-256",
+  };
 
   private privateKey: CryptoKey | null = null;
   private publicKey: CryptoKey | null = null;
-
   private encodedPublicKey: string | null = null;
+
+  private initialized = false;
+  private initializationPromise: Promise<void> | null = null;
 
   constructor(
     private serverSignatureKeysService = inject(ServerSignatureKeysService),
-  ) {}
+  ) { }
 
-  /**
-   * Initialize the service by loading keys from storage or generating new ones.
-   * Must be called before using the service.
-   */
-  public async init(): Promise<void> {
-    // Try to load keys from storage
-    const loaded = await this.loadKeysFromStorage();
-
-    if (loaded) {
-      // Cache encoded public key after loading
-      const publicKey = this.getPublicKey();
-      this.encodedPublicKey = await this.exportPublicKeyToBase64(publicKey);
-      return;
-    }
-
-    // If not loaded, generate and store keys
-    await this.generateAndStoreKeys();
-
-    // Cache encoded public key after generation
-    const publicKey = this.getPublicKey();
-    this.encodedPublicKey = await this.exportPublicKeyToBase64(publicKey);
-  }
-
-  public getEncodedPublicKey(): string {
+  public async getEncodedPublicKey(): Promise<string> {
+    await this.ensureInitialized();
     if (this.encodedPublicKey === null) {
       throw new ServerError(
         "INVALID_SERVER_CONFIGURATION",
-        "Signature public key not generated",
-        500
+        "Signature public key not available",
+        500,
       );
     }
-
     return this.encodedPublicKey;
   }
 
-  public signArrayBuffer(data: ArrayBuffer): Promise<ArrayBuffer> {
-    const privateKey = this.getPrivateKey();
-
+  public async signArrayBuffer(data: ArrayBuffer): Promise<ArrayBuffer> {
+    await this.ensureInitialized();
+    if (this.privateKey === null) {
+      throw new ServerError(
+        "INVALID_SERVER_CONFIGURATION",
+        "Signature private key not available",
+        500,
+      );
+    }
     return crypto.subtle.sign(
-      {
-        name: SignatureService.ALGORITHM_NAME,
-        hash: { name: SignatureService.SIGN_HASH },
-      },
-      privateKey,
-      data
+      { name: "ECDSA", hash: "SHA-256" },
+      this.privateKey,
+      data,
     );
   }
 
-  private getPrivateKey(): CryptoKey {
-    if (!this.privateKey) {
-      throw new ServerError(
-        "INVALID_SERVER_CONFIGURATION",
-        "Invalid server configuration",
-        500
-      );
-    }
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
 
-    return this.privateKey;
+    this.initializationPromise ??= this.initializeKeys().catch((error) => {
+      // Allow retry on next call
+      this.initializationPromise = null;
+      throw error;
+    });
+
+    await this.initializationPromise;
   }
 
-  private getPublicKey(): CryptoKey {
-    if (!this.publicKey) {
-      throw new ServerError(
-        "INVALID_SERVER_CONFIGURATION",
-        "Invalid server configuration",
-        500
-      );
-    }
-
-    return this.publicKey;
+  private async initializeKeys(): Promise<void> {
+    const didLoad = await this.tryLoadKeysFromStorage();
+    if (!didLoad) await this.generateAndStoreKeys();
+    this.initialized = true;
   }
 
-  private async exportPublicKeyToBase64(publicKey: CryptoKey): Promise<string> {
-    // Export the public key as spki (SubjectPublicKeyInfo) format
-    const spkiBuffer = await crypto.subtle.exportKey("spki", publicKey);
+  private async tryLoadKeysFromStorage(): Promise<boolean> {
+    const saved = await this.serverSignatureKeysService.get();
+    if (!saved) return false;
 
-    // Convert ArrayBuffer to base64
-    const base64 = encodeBase64(spkiBuffer);
-
-    return base64;
-  }
-
-  private async importKey(
-    jwk: JsonWebKey,
-    usage: KeyUsage
-  ): Promise<CryptoKey> {
-    try {
-      return await crypto.subtle.importKey(
-        "jwk",
-        jwk,
-        {
-          name: SignatureService.ALGORITHM_NAME,
-          namedCurve: SignatureService.NAMED_CURVE,
-        },
-        true,
-        [usage]
-      );
-    } catch {
-      throw new ServerError(
-        "INVALID_SERVER_CONFIGURATION",
-        "Invalid server configuration",
-        500
-      );
-    }
-  }
-
-  private exportKey(key: CryptoKey): Promise<JsonWebKey> {
-    return crypto.subtle.exportKey("jwk", key);
-  }
-
-  private async loadKeysFromStorage(): Promise<boolean> {
-    const savedKeys = await this.serverSignatureKeysService.get();
-    if (!savedKeys) return false;
-
-    this.privateKey = await this.importKey(
-      savedKeys.privateKey,
-      SignatureService.SIGN_USAGE
-    );
-    this.publicKey = await this.importKey(
-      savedKeys.publicKey,
-      SignatureService.VERIFY_USAGE
-    );
+    this.privateKey = await this.importKey(saved.privateKey, "sign");
+    this.publicKey = await this.importKey(saved.publicKey, "verify");
+    this.encodedPublicKey = await this.encodePublicKey(this.publicKey);
 
     return true;
   }
 
   private async generateAndStoreKeys(): Promise<void> {
-    const keyPair = await crypto.subtle.generateKey(
-      {
-        name: SignatureService.ALGORITHM_NAME,
-        namedCurve: SignatureService.NAMED_CURVE,
-      },
+    const { privateKey, publicKey } = await crypto.subtle.generateKey(
+      this.ALGORITHM,
       true,
-      SignatureService.SIGN_VERIFY_USAGES
+      ["sign", "verify"],
     );
 
-    this.privateKey = keyPair.privateKey;
-    this.publicKey = keyPair.publicKey;
-
-    // Cache encoded public key here as well
-    this.encodedPublicKey = await this.exportPublicKeyToBase64(this.publicKey);
+    this.privateKey = privateKey;
+    this.publicKey = publicKey;
+    this.encodedPublicKey = await this.encodePublicKey(publicKey);
 
     await this.serverSignatureKeysService.save({
-      privateKey: await this.exportKey(this.privateKey),
-      publicKey: await this.exportKey(this.publicKey),
+      privateKey: await crypto.subtle.exportKey("jwk", privateKey),
+      publicKey: await crypto.subtle.exportKey("jwk", publicKey),
     });
+  }
+
+  private async importKey(jwk: JsonWebKey, usage: "sign" | "verify"): Promise<CryptoKey> {
+    try {
+      return await crypto.subtle.importKey("jwk", jwk, this.ALGORITHM, true, [usage]);
+    } catch (cause) {
+      throw new ServerError(
+        "INVALID_SERVER_CONFIGURATION",
+        `Failed to import ${usage} key`,
+        500,
+      );
+    }
+  }
+
+  private async encodePublicKey(key: CryptoKey): Promise<string> {
+    const spki = await crypto.subtle.exportKey("spki", key);
+    return encodeBase64(spki);
   }
 }

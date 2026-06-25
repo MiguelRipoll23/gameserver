@@ -13,10 +13,6 @@ export class APIRouter {
     this.setRoutes();
   }
 
-  public async init(): Promise<void> {
-    await this.v1Router.init();
-  }
-
   public getRouter(): OpenAPIHono {
     return this.app;
   }
