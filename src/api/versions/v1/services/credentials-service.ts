@@ -46,7 +46,7 @@ export class CredentialsService {
     newCounter: number,
   ): Promise<void> {
     try {
-      await this.databaseService.executeWithCredentialAndUserContext(
+      const result = await this.databaseService.executeWithCredentialAndUserContext(
         id,
         userId,
         (tx) => {
@@ -58,9 +58,16 @@ export class CredentialsService {
                 eq(userCredentialsTable.id, id),
                 lt(userCredentialsTable.counter, newCounter),
               ),
-            );
+            )
+            .returning({ id: userCredentialsTable.id });
         },
       );
+
+      if (result.length === 0 && newCounter > 0) {
+        console.warn(
+          `Credential counter not advanced for ${id}: stored >= ${newCounter}. Possible race condition or credential cloning.`,
+        );
+      }
     } catch (error) {
       console.error("Failed to update credential counter:", error);
       throw new ServerError(
