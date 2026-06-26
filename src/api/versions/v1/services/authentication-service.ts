@@ -76,7 +76,7 @@ export class AuthenticationService {
     await this.authenticationChallengesService.save(
       transactionId,
       "authentication",
-      { data: options, createdAt: Date.now() },
+      options as unknown as Record<string, unknown>,
     );
 
     return options;
@@ -299,10 +299,7 @@ export class AuthenticationService {
   private async getAuthenticationOptionsOrThrow(
     transactionId: string,
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    const challenge = await this.authenticationChallengesService.consume<{
-      data: PublicKeyCredentialRequestOptionsJSON;
-      createdAt: number;
-    }>(
+    const challenge = await this.authenticationChallengesService.consume<PublicKeyCredentialRequestOptionsJSON>(
       transactionId,
       "authentication",
     );
@@ -315,7 +312,7 @@ export class AuthenticationService {
       );
     }
 
-    if (challenge.createdAt + OPTIONS_EXPIRATION_TIME < Date.now()) {
+    if (challenge.createdAt.getTime() + OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
         "AUTHENTICATION_OPTIONS_EXPIRED",
         "Authentication options expired",
