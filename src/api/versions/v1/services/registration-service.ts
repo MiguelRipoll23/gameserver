@@ -71,7 +71,7 @@ export class RegistrationService {
     await this.authenticationChallengesService.save(
       transactionId,
       "registration",
-      { data: options, createdAt: Date.now() },
+      options as unknown as Record<string, unknown>,
     );
 
     return options;
@@ -142,10 +142,7 @@ export class RegistrationService {
   private async consumeRegistrationOptionsOrThrow(
     transactionId: string
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const challenge = await this.authenticationChallengesService.consume<{
-      data: PublicKeyCredentialCreationOptionsJSON;
-      createdAt: number;
-    }>(
+    const challenge = await this.authenticationChallengesService.consume<PublicKeyCredentialCreationOptionsJSON>(
       transactionId,
       "registration",
     );
@@ -158,7 +155,7 @@ export class RegistrationService {
       );
     }
 
-    if (challenge.createdAt + OPTIONS_EXPIRATION_TIME < Date.now()) {
+    if (challenge.createdAt.getTime() + OPTIONS_EXPIRATION_TIME < Date.now()) {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
         "Registration options expired",

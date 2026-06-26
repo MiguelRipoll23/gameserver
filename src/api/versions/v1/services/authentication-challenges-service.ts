@@ -25,7 +25,7 @@ export class AuthenticationChallengesService {
   public async consume<T>(
     transactionId: string,
     type: string,
-  ): Promise<T | null> {
+  ): Promise<{ data: T; createdAt: Date } | null> {
     const rows = await this.databaseService
       .get()
       .delete(authenticationChallengesTable)
@@ -37,10 +37,11 @@ export class AuthenticationChallengesService {
       )
       .returning({
         data: authenticationChallengesTable.data,
+        createdAt: authenticationChallengesTable.createdAt,
       });
 
     if (rows.length === 0) return null;
 
-    return rows[0].data as T;
+    return { data: rows[0].data as T, createdAt: rows[0].createdAt };
   }
 }
