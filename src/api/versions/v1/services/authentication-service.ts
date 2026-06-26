@@ -1,6 +1,5 @@
 import { encodeBase64 } from "hono/utils/encode";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { inject, injectable } from "@needle-di/core";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
 import { ConnInfo } from "hono/conninfo";
@@ -9,7 +8,6 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
   type AuthenticationResponseJSON,
-  type AuthenticatorTransportFuture,
   type PublicKeyCredentialRequestOptionsJSON,
   type VerifiedAuthenticationResponse,
 } from "@simplewebauthn/server";
@@ -26,23 +24,18 @@ import {
   ACCESS_TOKEN_EXPIRATION_SECONDS,
   OPTIONS_EXPIRATION_TIME,
   REFRESH_TOKEN_EXPIRATION_SECONDS,
-  SESSION_LIFETIME_SECONDS,
 } from "../constants/authentication-constants.ts";
-import {
-  rolesTable,
-  userBansTable,
-  userCredentialsTable,
-  userRolesTable,
-  userSessionsTable,
-  usersTable,
-} from "../../../../db/schema.ts";
-import { and, eq, lt, desc, sql } from "drizzle-orm";
 import { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
 import { UserEntity } from "../../../../db/tables/users-table.ts";
 import { AuthenticationChallengesService } from "./authentication-challenges-service.ts";
 import { RefreshTokensService } from "./refresh-tokens-service.ts";
 import { UserEncryptionKeysService } from "./user-encryption-keys-service.ts";
 import { SignatureService } from "./signature-service.ts";
+import { CredentialsService } from "./credentials-service.ts";
+import { UsersService } from "./users-service.ts";
+import { UserModerationService } from "./user-moderation-service.ts";
+import { SessionsService } from "./sessions-service.ts";
+import { AuthenticationUtils } from "../utils/authentication-utils.ts";
 
 @injectable()
 export class AuthenticationService {
@@ -54,6 +47,10 @@ export class AuthenticationService {
     private jwtService = inject(JWTService),
     private signatureService = inject(SignatureService),
     private iceService = inject(ICEService),
+    private credentialsService = inject(CredentialsService),
+    private usersService = inject(UsersService),
+    private userModerationService = inject(UserModerationService),
+    private sessionsService = inject(SessionsService),
   ) {}
 
   public async getOptions(
@@ -105,7 +102,7 @@ export class AuthenticationService {
     const authenticationOptions =
       await this.getAuthenticationOptionsOrThrow(transactionId);
 
-    const credential = await this.getCredentialOrThrow(
+    const credential = await this.credentialsService.getByIdOrThrow(
       authenticationResponse.id,
     );
 
@@ -116,9 +113,13 @@ export class AuthenticationService {
       origin,
     );
 
-    await this.updateCredentialCounter(credential, verification);
+    await this.credentialsService.updateCounter(
+      credential.id,
+      credential.userId,
+      verification.authenticationInfo.newCounter,
+    );
 
-    const user = await this.getUserOrThrowError(credential);
+    const user = await this.usersService.getByIdOrThrow(credential.userId);
     await this.ensureUserCanSignIn(user);
 
     return await this.getResponseForUser(connectionInfo, user);
@@ -131,7 +132,7 @@ export class AuthenticationService {
     const userId = user.id;
     const userDisplayName = user.displayName;
     const userPublicIp = connectionInfo.remote.address ?? null;
-    const userRoles = await this.getUserRoles(userId);
+    const userRoles = await this.usersService.getRoles(userId);
     const accessToken = await this.createAccessToken(
       userId,
       userDisplayName,
@@ -168,7 +169,7 @@ export class AuthenticationService {
   ): Promise<RefreshTokenResponse> {
     const { refreshToken } = refreshRequest;
     const refreshTokenHash =
-      await AuthenticationService.hashToken(refreshToken);
+      await AuthenticationUtils.hashToken(refreshToken);
     const tokenData =
       await this.refreshTokensService.consume(refreshTokenHash);
 
@@ -203,10 +204,10 @@ export class AuthenticationService {
         );
       }
 
-      const user = await this.getUserByIdOrThrow(tokenData.userId);
+      const user = await this.usersService.getByIdOrThrow(tokenData.userId);
       await this.ensureUserNotBanned(user);
-      await this.ensureUserHasActiveSession(user.id);
-      const userRoles = await this.getUserRoles(user.id);
+      await this.sessionsService.ensureHasActiveSession(user.id);
+      const userRoles = await this.usersService.getRoles(user.id);
 
       return {
         accessToken: await this.createAccessToken(
@@ -276,7 +277,7 @@ export class AuthenticationService {
       crypto.getRandomValues(new Uint8Array(64)).buffer,
     );
     const refreshTokenHash =
-      await AuthenticationService.hashToken(refreshToken);
+      await AuthenticationUtils.hashToken(refreshToken);
     const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
     const tokenVersion = await this.refreshTokensService.getVersion(userId);
 
@@ -293,17 +294,6 @@ export class AuthenticationService {
     );
 
     return refreshToken;
-  }
-
-  private static async hashToken(token: string): Promise<string> {
-    const digest = await crypto.subtle.digest(
-      "SHA-256",
-      new TextEncoder().encode(token),
-    );
-
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
   }
 
   private async getAuthenticationOptionsOrThrow(
@@ -336,54 +326,6 @@ export class AuthenticationService {
     return challenge.data;
   }
 
-  private async getCredentialOrThrow(
-    id: string,
-  ): Promise<UserCredentialEntity> {
-    try {
-      const credentials =
-        await this.databaseService.executeWithCredentialContext(id, (tx) => {
-          return tx
-            .select()
-            .from(userCredentialsTable)
-            .where(eq(userCredentialsTable.id, id))
-            .limit(1);
-        });
-
-      if (credentials.length === 0) {
-        throw new ServerError(
-          "CREDENTIAL_NOT_FOUND",
-          "Credential not found",
-          400,
-        );
-      }
-
-      return credentials[0];
-    } catch (error) {
-      if (error instanceof ServerError) throw error;
-      console.error("Failed to query credential:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to retrieve credential",
-        500,
-      );
-    }
-  }
-
-  private transformCredentialForWebAuthn(credential: UserCredentialEntity) {
-    const publicKeyBuffer = new Uint8Array(
-      Base64Utils.base64UrlToArrayBuffer(credential.publicKey),
-    );
-
-    return {
-      id: credential.id,
-      publicKey: publicKeyBuffer,
-      counter: credential.counter,
-      transports: credential.transports as
-        | AuthenticatorTransportFuture[]
-        | undefined,
-    };
-  }
-
   private async verifyAuthenticationResponse(
     authenticationResponse: AuthenticationResponseJSON,
     authenticationOptions: PublicKeyCredentialRequestOptionsJSON,
@@ -397,7 +339,7 @@ export class AuthenticationService {
         expectedChallenge: authenticationOptions.challenge,
         expectedOrigin: origin,
         expectedRPID: rpID,
-        credential: this.transformCredentialForWebAuthn(credential),
+        credential: AuthenticationUtils.transformCredentialForWebAuthn(credential),
       });
 
       if (!verification.verified) {
@@ -420,99 +362,10 @@ export class AuthenticationService {
     }
   }
 
-  private async updateCredentialCounter(
-    credential: UserCredentialEntity,
-    verification: VerifiedAuthenticationResponse,
-  ): Promise<void> {
-    const { authenticationInfo } = verification;
-    const newCounter = authenticationInfo.newCounter;
-
-    try {
-      await this.databaseService.executeWithCredentialAndUserContext(
-        credential.id,
-        credential.userId,
-        (tx) => {
-          return tx
-            .update(userCredentialsTable)
-            .set({ counter: newCounter })
-            .where(
-              and(
-                eq(userCredentialsTable.id, credential.id),
-                lt(userCredentialsTable.counter, newCounter),
-              ),
-            );
-        },
-      );
-    } catch (error) {
-      console.error("Failed to update credential counter:", error);
-      throw new ServerError(
-        "CREDENTIAL_COUNTER_UPDATE_FAILED",
-        "Failed to update credential counter",
-        500,
-      );
-    }
-  }
-
-  private async getUserOrThrowError(
-    credential: UserCredentialEntity,
-  ): Promise<UserEntity> {
-    return await this.getUserByIdOrThrow(credential.userId);
-  }
-
-  private async getUserByIdOrThrow(userId: string): Promise<UserEntity> {
-    const users = await this.fetchUsersById(userId);
-
-    if (users.length === 0) {
-      throw new ServerError("USER_NOT_FOUND", "User not found", 400);
-    }
-
-    return users[0];
-  }
-
-  private async fetchUsersById(userId: string): Promise<UserEntity[]> {
-    try {
-      return await this.databaseService.executeWithUserContext(userId, (tx) => {
-        return tx
-          .select()
-          .from(usersTable)
-          .where(eq(usersTable.id, userId))
-          .limit(1);
-      });
-    } catch (error) {
-      if (error instanceof ServerError) throw error;
-      console.error("Failed to query user:", error);
-      throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
-    }
-  }
-
-  private async getUserRoles(userId: string): Promise<string[]> {
-    try {
-      const userRoleResults = await this.databaseService.executeWithUserContext(
-        userId,
-        (tx) => {
-          return tx
-            .select({ name: rolesTable.name })
-            .from(userRolesTable)
-            .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
-            .where(eq(userRolesTable.userId, userId));
-        },
-      );
-
-      return userRoleResults.map((role: { name: string }) => role.name);
-    } catch (error) {
-      console.error("Failed to query user roles:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to retrieve user roles",
-        500,
-      );
-    }
-  }
-
   private async ensureUserCanSignIn(user: UserEntity): Promise<void> {
     const [banResult, sessionResult] = await Promise.allSettled([
       this.ensureUserNotBanned(user),
-      this.ensureUserHasNoActiveSession(user),
+      this.sessionsService.ensureHasNoActiveSession(user.id),
     ]);
 
     if (banResult.status === "rejected") {
@@ -524,120 +377,9 @@ export class AuthenticationService {
     }
   }
 
-  private async ensureUserHasActiveSession(userId: string): Promise<void> {
-    try {
-      const activeSessions = await this.databaseService.executeWithUserContext(
-        userId,
-        (tx) => {
-          return tx
-            .select({ userId: userSessionsTable.userId })
-            .from(userSessionsTable)
-            .where(
-              and(
-                eq(userSessionsTable.userId, userId),
-                sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
-              ),
-            )
-            .limit(1);
-        },
-      );
-
-      if (activeSessions.length === 0) {
-        throw new ServerError("SESSION_NOT_FOUND", "Session not found", 401);
-      }
-    } catch (error) {
-      if (error instanceof ServerError) throw error;
-      console.error("Failed to query active user session:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to validate active session",
-        500,
-      );
-    }
-  }
-
-  private async ensureUserHasNoActiveSession(user: UserEntity): Promise<void> {
-    try {
-      const existingSessions =
-        await this.databaseService.executeWithUserContext(user.id, (tx) => {
-          return tx
-            .select({ userId: userSessionsTable.userId })
-            .from(userSessionsTable)
-            .where(
-              and(
-                eq(userSessionsTable.userId, user.id),
-                sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
-              ),
-            )
-            .limit(1);
-        });
-
-      if (existingSessions.length > 0) {
-        throw new ServerError(
-          "USER_ALREADY_SIGNED_IN",
-          "Please disconnect from other devices before signing in.",
-          409,
-        );
-      }
-    } catch (error) {
-      if (error instanceof ServerError) throw error;
-      console.error("Failed to query user sessions:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to check for existing sessions",
-        500,
-      );
-    }
-  }
-
   private async ensureUserNotBanned(user: UserEntity): Promise<void> {
-    try {
-      const userBans = await this.databaseService.executeWithUserContext(
-        user.id,
-        (tx) => {
-          return tx
-            .select({ expiresAt: userBansTable.expiresAt })
-            .from(userBansTable)
-            .where(eq(userBansTable.userId, user.id))
-            .orderBy(desc(userBansTable.createdAt))
-            .limit(1);
-        },
-      );
-
-      if (userBans.length === 0) return;
-
-      const latestBan = userBans[0];
-      const now = new Date();
-
-      if (!latestBan.expiresAt) {
-        throw new ServerError(
-          "USER_BANNED_PERMANENTLY",
-          "Your account has been permanently banned",
-          403,
-        );
-      }
-
-      if (latestBan.expiresAt > now) {
-        const formattedDate = latestBan.expiresAt.toLocaleString("en-US", {
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          dateStyle: "medium",
-          timeStyle: "long",
-        });
-
-        throw new ServerError(
-          "USER_BANNED_TEMPORARILY",
-          `Your account is temporarily banned until ${formattedDate}.`,
-          403,
-        );
-      }
-    } catch (error) {
-      if (error instanceof ServerError) throw error;
-      console.error("Failed to query user bans:", error);
-      throw new ServerError(
-        "DATABASE_ERROR",
-        "Failed to retrieve user bans",
-        500,
-      );
-    }
+    await this.databaseService.executeWithUserContext(user.id, async (tx) => {
+      await this.userModerationService.throwIfBanned(tx, user.id);
+    });
   }
 }
