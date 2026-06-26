@@ -1,11 +1,84 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { userSessionsTable } from "../../../../db/tables/user-sessions-table.ts";
-import { count, eq, sql } from "drizzle-orm";
+import { ServerError } from "../models/server-error.ts";
+import { userSessionsTable } from "../../../../db/schema.ts";
+import {
+  SESSION_LIFETIME_SECONDS,
+} from "../constants/authentication-constants.ts";
+import { and, count, eq, sql } from "drizzle-orm";
 
 @injectable()
 export class SessionsService {
   constructor(private databaseService = inject(DatabaseService)) {}
+
+  public async ensureHasActiveSession(userId: string): Promise<void> {
+    try {
+      const activeSessions = await this.databaseService.executeWithUserContext(
+        userId,
+        (tx) => {
+          return tx
+            .select({ userId: userSessionsTable.userId })
+            .from(userSessionsTable)
+            .where(
+              and(
+                eq(userSessionsTable.userId, userId),
+                sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
+              ),
+            )
+            .limit(1);
+        },
+      );
+
+      if (activeSessions.length === 0) {
+        throw new ServerError("SESSION_NOT_FOUND", "Session not found", 401);
+      }
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to query active user session:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to validate active session",
+        500,
+      );
+    }
+  }
+
+  public async ensureHasNoActiveSession(userId: string): Promise<void> {
+    try {
+      const existingSessions =
+        await this.databaseService.executeWithUserContext(
+          userId,
+          (tx) => {
+            return tx
+              .select({ userId: userSessionsTable.userId })
+              .from(userSessionsTable)
+              .where(
+                and(
+                  eq(userSessionsTable.userId, userId),
+                  sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
+                ),
+              )
+              .limit(1);
+          },
+        );
+
+      if (existingSessions.length > 0) {
+        throw new ServerError(
+          "USER_ALREADY_SIGNED_IN",
+          "Please disconnect from other devices before signing in.",
+          409,
+        );
+      }
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to query user sessions:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to check for existing sessions",
+        500,
+      );
+    }
+  }
 
   public async create(
     userId: string,
