@@ -306,6 +306,45 @@ export class UserModerationService {
     }
   }
 
+  public async throwIfBanned(
+    tx: NodePgDatabase,
+    userId: string,
+  ): Promise<void> {
+    const userBans = await tx
+      .select({ expiresAt: userBansTable.expiresAt })
+      .from(userBansTable)
+      .where(eq(userBansTable.userId, userId))
+      .orderBy(desc(userBansTable.createdAt))
+      .limit(1);
+
+    if (userBans.length === 0) return;
+
+    const latestBan = userBans[0];
+    const now = new Date();
+
+    if (!latestBan.expiresAt) {
+      throw new ServerError(
+        "USER_BANNED_PERMANENTLY",
+        "Your account has been permanently banned",
+        403,
+      );
+    }
+
+    if (latestBan.expiresAt > now) {
+      const formattedDate = latestBan.expiresAt.toLocaleString("en-US", {
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        dateStyle: "medium",
+        timeStyle: "long",
+      });
+
+      throw new ServerError(
+        "USER_BANNED_TEMPORARILY",
+        `Your account is temporarily banned until ${formattedDate}.`,
+        403,
+      );
+    }
+  }
+
   private async checkUserExists(
     tx: NodePgDatabase,
     userId: string,
