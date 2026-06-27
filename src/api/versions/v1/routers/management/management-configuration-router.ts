@@ -48,7 +48,7 @@ export class ManagementConfigurationRouter {
         },
       }),
       async (c) => {
-        const response = await this.configurationService.getData();
+        const response = await this.configurationService.get();
 
         return c.json(response, 200);
       },
@@ -81,7 +81,7 @@ export class ManagementConfigurationRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        await this.configurationService.setData(validated);
+        await this.configurationService.set(validated);
 
         return c.body(null, 204);
       },
