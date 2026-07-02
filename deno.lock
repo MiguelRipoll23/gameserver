@@ -3,7 +3,7 @@
   "specifiers": {
     "jsr:@needle-di/core@^1.1.2": "1.1.2",
     "jsr:@simplewebauthn/server@^13.3.2": "13.3.2",
-    "jsr:@std/encoding@^1.0.10": "1.0.10",
+    "jsr:@std/encoding@^1.0.11": "1.0.11",
     "npm:@hexagon/base64@^1.1.27": "1.1.28",
     "npm:@hono/zod-openapi@^1.4.0": "1.4.0_hono@4.12.27_zod@4.4.3",
     "npm:@levischuck/tiny-cbor@~0.2.2": "0.2.11",
@@ -13,7 +13,7 @@
     "npm:@peculiar/asn1-schema@^2.6.0": "2.8.0",
     "npm:@peculiar/asn1-x509@^2.6.1": "2.8.0",
     "npm:@peculiar/x509@^1.14.3": "1.14.3",
-    "npm:@scalar/hono-api-reference@~0.11.6": "0.11.6_hono@4.12.27",
+    "npm:@scalar/hono-api-reference@~0.11.7": "0.11.7_hono@4.12.27",
     "npm:@types/pg@^8.20.0": "8.20.0",
     "npm:drizzle-kit@*": "0.31.10",
     "npm:drizzle-kit@beta": "1.0.0-beta.22",
@@ -40,8 +40,8 @@
         "npm:@peculiar/x509"
       ]
     },
-    "@std/encoding@1.0.10": {
-      "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
+    "@std/encoding@1.0.11": {
+      "integrity": "e7cef2f0b3153bccc17431e7c864a1de03a4b6d9647389c43e08aaa775d37385"
     }
   },
   "npm": {
@@ -599,8 +599,8 @@
         "tsyringe"
       ]
     },
-    "@scalar/client-side-rendering@0.2.6": {
-      "integrity": "sha512-wvnyBtNdYob6CdmpFqLSQoGM5q5Ra8bXyq713T/u8Nq1NXbULk1znz/LyR78u8g++0G8bkxnVzhvOf7s9FwHFw==",
+    "@scalar/client-side-rendering@0.3.0": {
+      "integrity": "sha512-FFpLokNEyKvpKAJesa+eDh+2e+4qdhoexAJp6alhhxUA6SGqhDfTIV4P+0nZBMdMD6WPu4YeVJHa1hRrGKUVMA==",
       "dependencies": [
         "@scalar/schemas",
         "@scalar/types",
@@ -610,8 +610,8 @@
     "@scalar/helpers@0.9.0": {
       "integrity": "sha512-M34CLRCttqC1bXthI/QSzQj0s5C6nrU2PFWf/vOT3RpycbiGDGQbqR+5RfFzpOIQvRqbHfNdcRbeiZBw+vCbkQ=="
     },
-    "@scalar/hono-api-reference@0.11.6_hono@4.12.27": {
-      "integrity": "sha512-fq75HkPnM6YKBURAcpIFnf6gC4LNo58qerkje0FUlOYyCiIJ6/QIW9/Sbz58BoYuJKaqltWsOvjv6KarH1BicA==",
+    "@scalar/hono-api-reference@0.11.7_hono@4.12.27": {
+      "integrity": "sha512-XhQbhhHP9R2CknVIjuqKie7+fkbLWuZzKoXMKPefYGkL+tji7CfametAwvzyb/WzaPktZBl7ZxqpC3pAve0Y7A==",
       "dependencies": [
         "@scalar/client-side-rendering",
         "hono"
@@ -971,9 +971,9 @@
     "dependencies": [
       "jsr:@needle-di/core@^1.1.2",
       "jsr:@simplewebauthn/server@^13.3.2",
-      "jsr:@std/encoding@^1.0.10",
+      "jsr:@std/encoding@^1.0.11",
       "npm:@hono/zod-openapi@^1.4.0",
-      "npm:@scalar/hono-api-reference@~0.11.6",
+      "npm:@scalar/hono-api-reference@~0.11.7",
       "npm:@types/pg@^8.20.0",
       "npm:drizzle-kit@beta",
       "npm:drizzle-orm@beta",
