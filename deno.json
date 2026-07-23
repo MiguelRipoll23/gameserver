@@ -1,15 +1,15 @@
 {
   "imports": {
     "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.5.1",
-    "@needle-di/core": "jsr:@needle-di/core@^1.1.2",
-    "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.11.9",
+    "@needle-di/core": "jsr:@needle-di/core@^1.1.3",
+    "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.11.11",
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.3.2",
     "@std/encoding": "jsr:@std/encoding@^1.0.11",
     "@types/pg": "npm:@types/pg@^8.20.0",
     "drizzle-kit": "npm:drizzle-kit@beta",
     "drizzle-orm": "npm:drizzle-orm@beta",
     "pg": "npm:pg@^8.22.0",
-    "hono": "npm:hono@^4.12.30",
+    "hono": "npm:hono@^4.12.31",
     "zod": "npm:zod@^4.4.3"
   },
   "permissions": {
