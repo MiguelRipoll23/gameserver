@@ -15,6 +15,7 @@ export { gameConfigurationTable } from "./tables/game-configuration-table.ts";
 export { authenticationChallengesTable } from "./tables/authentication-challenges-table.ts";
 export { userEncryptionKeysTable } from "./tables/user-encryption-keys-table.ts";
 export { refreshTokensTable } from "./tables/refresh-tokens-table.ts";
+export { deviceAuthorizationCodesTable } from "./tables/device-authorization-codes-table.ts";
 
 // Export RLS roles and helpers
 export * from "./rls.ts";

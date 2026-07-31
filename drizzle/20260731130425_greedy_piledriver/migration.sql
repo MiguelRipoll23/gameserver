@@ -1,0 +1,2 @@
+ALTER TABLE "device_authorization_codes" ALTER COLUMN "encrypted_tokens" DROP NOT NULL;--> statement-breakpoint
+CREATE POLICY "device_authorization_codes_all_update" ON "device_authorization_codes" AS PERMISSIVE FOR UPDATE TO "authenticated_user" USING (true) WITH CHECK (true);
