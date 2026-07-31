@@ -4,6 +4,7 @@ import {
   text,
   timestamp,
   pgPolicy,
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { authenticatedUserRole } from "../rls.ts";
@@ -19,6 +20,15 @@ export const deviceAuthorizationCodesTable = pgTable.withRLS(
       .notNull(),
   },
   (table) => [
+    check(
+      "device_authorization_codes_code_format",
+      sql`code ~ '^[A-Z0-9]{16}$'`,
+    ),
+    pgPolicy("device_authorization_codes_all_select", {
+      for: "select",
+      to: authenticatedUserRole,
+      using: sql`true`,
+    }),
     pgPolicy("device_authorization_codes_all_insert", {
       for: "insert",
       to: authenticatedUserRole,

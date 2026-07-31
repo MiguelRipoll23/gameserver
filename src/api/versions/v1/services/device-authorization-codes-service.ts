@@ -1,15 +1,16 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { and, eq, gt, isNotNull, sql } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
 import { deviceAuthorizationCodesTable } from "../../../../db/schema.ts";
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { ServerError } from "../models/server-error.ts";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
+import { ENV_JWT_SECRET } from "../constants/environment-constants.ts";
 import { DEVICE_AUTHORIZATION_CODE_EXPIRATION_MS } from "../constants/authentication-constants.ts";
 
 const ENCRYPTION_IV_LENGTH = 12;
 const CODE_LENGTH = 16;
-const CODE_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+const CODE_ALPHABET = "ACDEFGHJKMNPQRTUVWXYZ234679";
 const REQUIRED_ROLE = "manager";
 
 export interface DeviceAuthorizationTokenPair {
@@ -87,6 +88,7 @@ export class DeviceAuthorizationCodesService {
         and(
           eq(deviceAuthorizationCodesTable.code, code),
           gt(deviceAuthorizationCodesTable.expiresAt, sql`now()`),
+          isNull(deviceAuthorizationCodesTable.encryptedTokens),
         ),
       )
       .returning({ code: deviceAuthorizationCodesTable.code });
@@ -103,43 +105,29 @@ export class DeviceAuthorizationCodesService {
   public async consume(
     code: string,
   ): Promise<DeviceAuthorizationTokenPair | null> {
-    const rows = await this.databaseService
-      .get()
-      .delete(deviceAuthorizationCodesTable)
-      .where(
-        and(
-          eq(deviceAuthorizationCodesTable.code, code),
-          gt(deviceAuthorizationCodesTable.expiresAt, sql`now()`),
-          isNotNull(deviceAuthorizationCodesTable.encryptedTokens),
-        ),
-      )
-      .returning({
-        encryptedTokens: deviceAuthorizationCodesTable.encryptedTokens,
-        expiresAt: deviceAuthorizationCodesTable.expiresAt,
-      });
+    return this.databaseService.get().transaction(async (tx) => {
+      const rows = await tx
+        .delete(deviceAuthorizationCodesTable)
+        .where(
+          and(
+            eq(deviceAuthorizationCodesTable.code, code),
+            gt(deviceAuthorizationCodesTable.expiresAt, sql`now()`),
+            isNotNull(deviceAuthorizationCodesTable.encryptedTokens),
+          ),
+        )
+        .returning({
+          encryptedTokens: deviceAuthorizationCodesTable.encryptedTokens,
+        });
 
-    if (rows.length === 0) return null;
+      if (rows.length === 0) return null;
 
-    const encryptedTokens = rows[0].encryptedTokens;
+      const encryptedTokens = rows[0].encryptedTokens;
 
-    if (encryptedTokens === null) return null;
+      if (encryptedTokens === null) return null;
 
-    try {
+      // Throwing rolls back the delete so a failed decrypt does not burn the code
       return await this.decryptTokens(encryptedTokens);
-    } catch (error) {
-      // Restore the row so a failed decrypt does not permanently burn the code
-      await this.databaseService
-        .get()
-        .insert(deviceAuthorizationCodesTable)
-        .values({
-          code,
-          encryptedTokens,
-          expiresAt: rows[0].expiresAt,
-        })
-        .onConflictDoNothing();
-
-      throw error;
-    }
+    });
   }
 
   private normalizeRoles(roles: unknown): string[] {
@@ -172,7 +160,7 @@ export class DeviceAuthorizationCodesService {
   private async getEncryptionKey(): Promise<CryptoKey> {
     if (this.encryptionKey !== null) return this.encryptionKey;
 
-    const jwtSecret = Deno.env.get("JWT_SECRET");
+    const jwtSecret = Deno.env.get(ENV_JWT_SECRET);
 
     if (jwtSecret === undefined) {
       throw new ServerError(
@@ -229,21 +217,21 @@ export class DeviceAuthorizationCodesService {
   private async decryptTokens(
     encoded: string,
   ): Promise<DeviceAuthorizationTokenPair> {
-    const key = await this.getEncryptionKey();
-    const data = decodeBase64(encoded);
-
-    if (data.byteLength <= ENCRYPTION_IV_LENGTH) {
-      throw new ServerError(
-        "INVALID_PAYLOAD",
-        "Encrypted payload too short",
-        400,
-      );
-    }
-
-    const iv = data.subarray(0, ENCRYPTION_IV_LENGTH);
-    const ciphertext = data.subarray(ENCRYPTION_IV_LENGTH);
-
     try {
+      const key = await this.getEncryptionKey();
+      const data = decodeBase64(encoded);
+
+      if (data.byteLength <= ENCRYPTION_IV_LENGTH) {
+        throw new ServerError(
+          "INVALID_PAYLOAD",
+          "Encrypted payload too short",
+          400,
+        );
+      }
+
+      const iv = data.subarray(0, ENCRYPTION_IV_LENGTH);
+      const ciphertext = data.subarray(ENCRYPTION_IV_LENGTH);
+
       const plaintext = await crypto.subtle.decrypt(
         { name: "AES-GCM", iv },
         key,
@@ -253,7 +241,9 @@ export class DeviceAuthorizationCodesService {
       return JSON.parse(
         new TextDecoder().decode(plaintext),
       ) as DeviceAuthorizationTokenPair;
-    } catch {
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+
       throw new ServerError(
         "DECRYPT_FAILED",
         "Invalid or corrupted encrypted payload",

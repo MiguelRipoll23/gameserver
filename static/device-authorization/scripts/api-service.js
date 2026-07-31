@@ -5,6 +5,7 @@ export class APIService {
   static AUTHENTICATION_OPTIONS_ENDPOINT = `${this.AUTHENTICATION_ENDPOINT}/options`;
   static VERIFY_AUTHENTICATION_RESPONSE_ENDPOINT = `${this.AUTHENTICATION_ENDPOINT}/response`;
   static DEVICE_AUTHORIZATION_COMPLETE_ENDPOINT = `${this.AUTHENTICATION_ENDPOINT}/device-authorization/complete`;
+  static REQUEST_TIMEOUT_MS = 10000;
 
   constructor() {
     this.baseURL = APIService.getBaseURL();
@@ -16,64 +17,61 @@ export class APIService {
   }
 
   static async throwAPIError(response) {
-    const errorResponse = await response.json();
-    const error = new Error(errorResponse.message);
-    error.code = errorResponse.code;
+    let errorResponse = null;
+
+    try {
+      errorResponse = await response.json();
+    } catch {
+      errorResponse = null;
+    }
+
+    const error = new Error(
+      errorResponse?.message ?? `Request failed with status ${response.status}`
+    );
+    error.code = errorResponse?.code ?? "UNKNOWN_ERROR";
+    error.status = response.status;
     throw error;
   }
 
-  async getAuthenticationOptions(authenticationOptionsRequest) {
-    const response = await fetch(
-      this.baseURL + APIService.AUTHENTICATION_OPTIONS_ENDPOINT,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(authenticationOptionsRequest),
-      }
-    );
+  async postJSON(endpoint, body) {
+    const response = await fetch(this.baseURL + endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(APIService.REQUEST_TIMEOUT_MS),
+    });
 
     if (response.ok === false) {
       await APIService.throwAPIError(response);
     }
+
+    return response;
+  }
+
+  async getAuthenticationOptions(authenticationOptionsRequest) {
+    const response = await this.postJSON(
+      APIService.AUTHENTICATION_OPTIONS_ENDPOINT,
+      authenticationOptionsRequest
+    );
 
     return response.json();
   }
 
   async verifyAuthenticationResponse(verifyAuthenticationRequest) {
-    const response = await fetch(
-      this.baseURL + APIService.VERIFY_AUTHENTICATION_RESPONSE_ENDPOINT,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(verifyAuthenticationRequest),
-      }
+    const response = await this.postJSON(
+      APIService.VERIFY_AUTHENTICATION_RESPONSE_ENDPOINT,
+      verifyAuthenticationRequest
     );
-
-    if (response.ok === false) {
-      await APIService.throwAPIError(response);
-    }
 
     return response.json();
   }
 
   async completeDeviceAuthorization(deviceAuthorizationRequest) {
-    const response = await fetch(
-      this.baseURL + APIService.DEVICE_AUTHORIZATION_COMPLETE_ENDPOINT,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(deviceAuthorizationRequest),
-      }
+    await this.postJSON(
+      APIService.DEVICE_AUTHORIZATION_COMPLETE_ENDPOINT,
+      deviceAuthorizationRequest
     );
-
-    if (response.ok === false) {
-      await APIService.throwAPIError(response);
-    }
   }
 }

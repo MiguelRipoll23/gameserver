@@ -130,14 +130,16 @@ export const DeviceAuthorizationCodeSchema = z
   )
   .describe(
     "Short-lived 16-character code printed by the bot for the pending authorization",
-  );
+  )
+  .openapi({ example: "A1B2C3D4E5F6G7H8" });
 
 export const DeviceAuthorizationMintResponseSchema = z.object({
   code: DeviceAuthorizationCodeSchema,
   expiresAt: z
     .string()
     .datetime()
-    .describe("Expiry timestamp (ISO 8601) of the issued code"),
+    .describe("Expiry timestamp (ISO 8601) of the issued code")
+    .openapi({ example: "2026-07-31T12:49:05.000Z" }),
 });
 
 export type DeviceAuthorizationMintResponse = z.infer<

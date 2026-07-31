@@ -42,6 +42,11 @@ export class CredentialService {
       throw error;
     }
 
+    if (credential === null || credential === undefined) {
+      console.log("No credential returned");
+      return null;
+    }
+
     const verifyAuthenticationRequest = {
       transactionId,
       authenticationResponse: this.serializeCredential(credential),

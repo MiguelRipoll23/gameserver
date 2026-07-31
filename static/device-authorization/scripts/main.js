@@ -15,7 +15,7 @@ document.addEventListener("authentication-success", handleAuthenticationSuccess)
 dialogElement.showModal();
 
 async function handleSignIn() {
-  const code = codeInputElement.value.trim();
+  const code = codeInputElement.value.trim().toUpperCase();
   if (!code) {
     statusElement.textContent = "Enter the authorization code.";
     return;
@@ -38,7 +38,7 @@ async function handleSignIn() {
 }
 
 async function handleAuthenticationSuccess(event) {
-  const code = codeInputElement.value.trim();
+  const code = codeInputElement.value.trim().toUpperCase();
   statusElement.textContent = "Verifying…";
 
   try {

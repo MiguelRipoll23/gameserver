@@ -225,6 +225,7 @@ export class PublicAuthenticationRouter {
         responses: {
           ...ServerResponse.NoContent,
           ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
           ...ServerResponse.NotFound,
           ...ServerResponse.Forbidden,
         },
