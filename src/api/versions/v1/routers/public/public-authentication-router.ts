@@ -3,6 +3,10 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { AuthenticationService } from "../../services/authentication-service.ts";
 import { getConnInfo } from "hono/deno";
 import {
+  DeviceAuthorizationCompleteRequestSchema,
+  DeviceAuthorizationMintResponseSchema,
+  DeviceAuthorizationPollRequestSchema,
+  DeviceAuthorizationPollResponseSchema,
   GetAuthenticationOptionsRequestSchema,
   GetAuthenticationOptionsResponseSchema,
   RefreshTokenRequestSchema,
@@ -11,13 +15,19 @@ import {
   VerifyAuthenticationResponseSchema,
 } from "../../schemas/authentication-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import { ServerError } from "../../models/server-error.ts";
 import { extractAndValidateOrigin } from "../../utils/origin-utils.ts";
+import { DeviceAuthorizationCodesService } from "../../services/device-authorization-codes-service.ts";
+import { WebAuthnUtils } from "../../../../../core/utils/webauthn-utils.ts";
 
 @injectable()
 export class PublicAuthenticationRouter {
   private app: OpenAPIHono;
 
-  constructor(private authenticationService = inject(AuthenticationService)) {
+  constructor(
+    private authenticationService = inject(AuthenticationService),
+    private deviceAuthorizationCodesService = inject(DeviceAuthorizationCodesService),
+  ) {
     this.app = new OpenAPIHono();
     this.setRoutes();
   }
@@ -30,6 +40,9 @@ export class PublicAuthenticationRouter {
     this.registerGetAuthenticationOptionsRoute();
     this.registerVerifyAuthenticationResponseRoute();
     this.registerRefreshTokenRoute();
+    this.registerDeviceAuthorizationMintRoute();
+    this.registerDeviceAuthorizationCompleteRoute();
+    this.registerDeviceAuthorizationPollRoute();
   }
 
   private registerGetAuthenticationOptionsRoute(): void {
@@ -157,6 +170,133 @@ export class PublicAuthenticationRouter {
         const response = await this.authenticationService.refreshTokens(validated);
 
         return c.json(response, 200);
+      },
+    );
+  }
+
+  private registerDeviceAuthorizationMintRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "post",
+        path: "/device-authorization",
+        summary: "Create a device authorization code",
+        description:
+          "Issues a new short-lived code the bot shows to the user to authorize a device",
+        tags: ["Device authentication"],
+        responses: {
+          200: {
+            description: "Responds with the issued code and its expiry",
+            content: {
+              "application/json": {
+                schema: DeviceAuthorizationMintResponseSchema,
+              },
+            },
+          },
+          ...ServerResponse.BadRequest,
+        },
+      }),
+      async (c) => {
+        const { code, expiresAt } =
+          await this.deviceAuthorizationCodesService.create();
+
+        return c.json({ code, expiresAt: expiresAt.toISOString() }, 200);
+      },
+    );
+  }
+
+  private registerDeviceAuthorizationCompleteRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "post",
+        path: "/device-authorization/complete",
+        summary: "Store device authorization tokens",
+        description:
+          "Stores the token pair issued to a browser against a device authorization code",
+        tags: ["Device authentication"],
+        request: {
+          body: {
+            content: {
+              "application/json": {
+                schema: DeviceAuthorizationCompleteRequestSchema,
+              },
+            },
+          },
+        },
+        responses: {
+          ...ServerResponse.NoContent,
+          ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
+          ...ServerResponse.NotFound,
+          ...ServerResponse.Forbidden,
+        },
+      }),
+      async (c) => {
+        const validated = c.req.valid("json");
+        const origin = extractAndValidateOrigin(c);
+
+        if (!WebAuthnUtils.isOriginAllowed(origin)) {
+          throw new ServerError(
+            "ORIGIN_NOT_ALLOWED",
+            "Origin is not in the allowed list",
+            403,
+          );
+        }
+
+        await this.deviceAuthorizationCodesService.save(
+          validated.code,
+          validated.accessToken,
+          validated.refreshToken,
+        );
+
+        return c.body(null, 204);
+      },
+    );
+  }
+
+  private registerDeviceAuthorizationPollRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "post",
+        path: "/device-authorization/poll",
+        summary: "Retrieve device authorization tokens",
+        description:
+          "Returns and consumes the token pair stored for a device authorization code",
+        tags: ["Device authentication"],
+        request: {
+          body: {
+            content: {
+              "application/json": {
+                schema: DeviceAuthorizationPollRequestSchema,
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: "Responds with the token pair",
+            content: {
+              "application/json": {
+                schema: DeviceAuthorizationPollResponseSchema,
+              },
+            },
+          },
+          ...ServerResponse.NotFound,
+        },
+      }),
+      async (c) => {
+        const { code } = c.req.valid("json");
+
+        const tokenPair = await this.deviceAuthorizationCodesService.consume(code);
+
+        if (tokenPair === null) {
+          throw new ServerError(
+            "DEVICE_AUTHORIZATION_CODE_NOT_FOUND",
+            "Device authorization code not found or expired",
+            404,
+          );
+        }
+
+        return c.json(tokenPair, 200);
       },
     );
   }

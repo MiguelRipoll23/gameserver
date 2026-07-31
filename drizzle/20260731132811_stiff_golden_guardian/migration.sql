@@ -1,0 +1,2 @@
+ALTER TABLE "device_authorization_codes" ADD CONSTRAINT "device_authorization_codes_code_format" CHECK (code ~ '^[A-Z0-9]{16}$');--> statement-breakpoint
+CREATE POLICY "device_authorization_codes_all_select" ON "device_authorization_codes" AS PERMISSIVE FOR SELECT TO "authenticated_user" USING (true);
