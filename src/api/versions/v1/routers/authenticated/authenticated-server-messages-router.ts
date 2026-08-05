@@ -32,7 +32,7 @@ export class AuthenticatedServerMessagesRouter {
         summary: "Get server messages",
         description:
           "Server messages shown to the player after connecting to server",
-        tags: ["Server message"],
+        tags: ["Server messages"],
         request: {
           query: GetServerMessagesQuerySchema,
         },

@@ -4,7 +4,6 @@ import { DatabaseService } from "./core/services/database-service.ts";
 import { registerCleanupAuthenticationChallengesCron } from "../crons/cleanup-authentication-challenges-cron.ts";
 import { registerCleanupRefreshTokensCron } from "../crons/cleanup-refresh-tokens-cron.ts";
 import { registerCleanupUserSessionsCron } from "../crons/cleanup-user-sessions-cron.ts";
-import { registerCleanupDeviceAuthorizationCodesCron } from "../crons/cleanup-device-authorization-codes-cron.ts";
 
 const container = new Container();
 
@@ -14,7 +13,6 @@ databaseService.init();
 registerCleanupAuthenticationChallengesCron(databaseService);
 registerCleanupRefreshTokensCron(databaseService);
 registerCleanupUserSessionsCron(databaseService);
-registerCleanupDeviceAuthorizationCodesCron(databaseService);
 
 const httpService = container.get(HTTPService);
 await httpService.listen();

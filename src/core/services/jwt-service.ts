@@ -16,14 +16,18 @@ export class JWTService {
 
   public async sign(
     payload: Record<string, unknown>,
-    expiresInSeconds = JWTService.EXPIRATION_SECONDS,
+    expiresInSeconds: number | null = JWTService.EXPIRATION_SECONDS,
   ): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     const finalPayload: Record<string, unknown> = {
       iat: now,
-      exp: now + expiresInSeconds,
-      ...payload, // caller-supplied exp/iat wins if present
+      ...payload, // caller-supplied iat wins if present
     };
+
+    // A null expiry produces a token with no `exp` claim (never expires)
+    if (expiresInSeconds !== null) {
+      finalPayload.exp = now + expiresInSeconds;
+    }
 
     return await sign(finalPayload, this.secret, "HS256");
   }
