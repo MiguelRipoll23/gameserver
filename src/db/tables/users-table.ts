@@ -17,6 +17,7 @@ export const usersTable = pgTable.withRLS(
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }),
   },
   (table) => [
     // Users can read their own user record

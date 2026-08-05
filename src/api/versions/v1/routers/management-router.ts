@@ -10,6 +10,7 @@ import { ManagementVersionRouter } from "./management/management-version-router.
 import { ManagementTextModerationRouter } from "./management/management-text-moderation-router.ts";
 import { ManagementUserRolesRouter } from "./management/management-user-roles-router.ts";
 import { ManagementBotRouter } from "./management/management-bot-router.ts";
+import { ManagementUsersRouter } from "./management/management-users-router.ts";
 
 @injectable()
 export class V1ManagementRouter {
@@ -27,6 +28,7 @@ export class V1ManagementRouter {
     private textModerationRouter = inject(ManagementTextModerationRouter),
     private userRolesRouter = inject(ManagementUserRolesRouter),
     private botRouter = inject(ManagementBotRouter),
+    private usersRouter = inject(ManagementUsersRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();
@@ -52,11 +54,12 @@ export class V1ManagementRouter {
 
   private setRoutes(): void {
     this.app.route("/game-version", this.versionRouter.getRouter());
-    this.app.route("/user-roles", this.userRolesRouter.getRouter());
-    this.app.route("/text-moderation", this.textModerationRouter.getRouter());
     this.app.route("/game-configuration", this.configurationRouter.getRouter());
     this.app.route("/server-messages", this.serverMessagesRouter.getRouter());
     this.app.route("/server-notification", this.notificationRouter.getRouter());
+    this.app.route("/users", this.usersRouter.getRouter());
+    this.app.route("/user-roles", this.userRolesRouter.getRouter());
     this.app.route("/bots", this.botRouter.getRouter());
+    this.app.route("/text-moderation", this.textModerationRouter.getRouter());
   }
 }

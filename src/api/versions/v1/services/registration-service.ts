@@ -240,6 +240,7 @@ export class RegistrationService {
       displayName: registrationOptions.user.name,
       tokenVersion: 0,
       createdAt: new Date(),
+      updatedAt: null,
     };
   }
 
