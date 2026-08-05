@@ -10,9 +10,9 @@ import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import {
   buildAuthenticationResponsePayload,
   buildNotificationPayload,
-  buildPlayerRelayPayload,
-  buildPlayerKickedPayload,
   buildOnlinePlayersPayload,
+  buildPlayerKickedPayload,
+  buildPlayerRelayPayload,
 } from "../models/websocket-payloads.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
 import { EventHandler } from "../decorators/event-handler.ts";
@@ -214,7 +214,9 @@ export class WebSocketService implements WebSocketServer {
 
     if (this.rejectWhenUnauthenticated(user, commandId)) {
       console.warn(
-        `Rejected command ${WebSocketType[commandId]} from unauthenticated user ${user.getPublicIp()}`,
+        `Rejected command ${
+          WebSocketType[commandId]
+        } from unauthenticated user ${user.getPublicIp()}`,
       );
       return;
     }
@@ -299,7 +301,9 @@ export class WebSocketService implements WebSocketServer {
     }
 
     console.log(
-      `Sent notification to all users on channel ${NotificationChannelType[channelId]}`,
+      `Sent notification to all users on channel ${
+        NotificationChannelType[channelId]
+      }`,
     );
   }
 
@@ -312,7 +316,9 @@ export class WebSocketService implements WebSocketServer {
 
     this.sendMessage(user, payload);
     console.log(
-      `Sent notification to user ${user.getName()} on channel ${NotificationChannelType[channelId]}`,
+      `Sent notification to user ${user.getName()} on channel ${
+        NotificationChannelType[channelId]
+      }`,
     );
   }
 
@@ -330,8 +336,9 @@ export class WebSocketService implements WebSocketServer {
     let hostUserId: string | null = null;
 
     try {
-      hostUserId =
-        await this.matchesService.getMatchHostIdByUserId(bannedUserId);
+      hostUserId = await this.matchesService.getMatchHostIdByUserId(
+        bannedUserId,
+      );
     } catch (error) {
       console.error(
         `Error obtaining match host for banned user ${bannedUserId}:`,
@@ -431,8 +438,9 @@ export class WebSocketService implements WebSocketServer {
       );
 
       // Send authentication response
-      const authenticationResponsePayload =
-        buildAuthenticationResponsePayload(userSignature);
+      const authenticationResponsePayload = buildAuthenticationResponsePayload(
+        userSignature,
+      );
 
       this.sendMessage(originUser, authenticationResponsePayload);
 

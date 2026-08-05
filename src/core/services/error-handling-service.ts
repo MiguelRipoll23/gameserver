@@ -5,7 +5,7 @@ import { HonoVariables } from "../types/hono-variables-type.ts";
 
 export class ErrorHandlingService {
   public static configure(
-    app: OpenAPIHono<{ Variables: HonoVariables }>
+    app: OpenAPIHono<{ Variables: HonoVariables }>,
   ): void {
     app.onError((error, c) => {
       console.error(error);
@@ -13,12 +13,12 @@ export class ErrorHandlingService {
       if (error instanceof HTTPException) {
         return c.json(
           this.createResponse("HTTP_ERROR", error.message),
-          error.status
+          error.status,
         );
       } else if (error instanceof ServerError) {
         const response = this.createResponse(
           error.getCode(),
-          error.getMessage()
+          error.getMessage(),
         );
 
         return c.json(response, error.getStatusCode());
@@ -26,7 +26,7 @@ export class ErrorHandlingService {
 
       return c.json(
         this.createResponse("FATAL_ERROR", "Internal server error"),
-        500
+        500,
       );
     });
   }

@@ -14,7 +14,7 @@ export class DatabaseService {
       throw new ServerError(
         "BAD_SERVER_CONFIGURATION",
         "Database URL is not set in environment variables",
-        500
+        500,
       );
     }
 
@@ -27,7 +27,7 @@ export class DatabaseService {
       throw new ServerError(
         "DATABASE_NOT_INITIALIZED",
         "Database has not been initialized",
-        500
+        500,
       );
     }
 
@@ -37,7 +37,7 @@ export class DatabaseService {
   public executeWithCredentialAndUserContext<T>(
     credentialId: string,
     userId: string,
-    fn: (tx: NodePgDatabase) => Promise<T>
+    fn: (tx: NodePgDatabase) => Promise<T>,
   ): Promise<T> {
     return this.get().transaction(async (tx) => {
       await tx.execute(sql.raw(`SET app.credential_id = '${credentialId}'`));
@@ -49,7 +49,7 @@ export class DatabaseService {
 
   public executeWithCredentialContext<T>(
     credentialId: string,
-    fn: (tx: NodePgDatabase) => Promise<T>
+    fn: (tx: NodePgDatabase) => Promise<T>,
   ): Promise<T> {
     return this.get().transaction(async (tx) => {
       await tx.execute(sql.raw(`SET app.credential_id = '${credentialId}'`));
@@ -60,7 +60,7 @@ export class DatabaseService {
 
   public executeWithUserContext<T>(
     userId: string,
-    fn: (tx: NodePgDatabase) => Promise<T>
+    fn: (tx: NodePgDatabase) => Promise<T>,
   ): Promise<T> {
     return this.get().transaction(async (tx) => {
       await tx.execute(sql.raw(`SET app.user_id = '${userId}'`));

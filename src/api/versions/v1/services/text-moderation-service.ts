@@ -1,7 +1,7 @@
 import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import { eq, like, gt, asc, and } from "drizzle-orm";
+import { and, asc, eq, gt, like } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { blockedWordsTable } from "../../../../db/schema.ts";
 import {
@@ -11,8 +11,8 @@ import {
 import {
   BlockWordRequest,
   GetBlockedWordsRequest,
-  UpdateWordRequest,
   GetBlockedWordsResponse,
+  UpdateWordRequest,
 } from "../schemas/text-moderation-schemas.ts";
 import { EventsService } from "./events-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
@@ -56,7 +56,7 @@ export class TextModerationService {
   }
 
   public async getBlockedWords(
-    body: GetBlockedWordsRequest
+    body: GetBlockedWordsRequest,
   ): Promise<GetBlockedWordsResponse> {
     const { cursor, limit = 20, word } = body;
     const db = this.databaseService.get();
@@ -83,20 +83,20 @@ export class TextModerationService {
         .orderBy(asc(blockedWordsTable.id));
 
       // Apply conditions if any exist
-      const finalQuery =
-        conditions.length > 0
-          ? query.where(
-              conditions.length === 1 ? conditions[0] : and(...conditions)
-            )
-          : query;
+      const finalQuery = conditions.length > 0
+        ? query.where(
+          conditions.length === 1 ? conditions[0] : and(...conditions),
+        )
+        : query;
 
       // Get one extra item to check if there are more results
       const results = await finalQuery.limit(limit + 1);
 
       const hasMore = results.length > limit;
       const data = hasMore ? results.slice(0, limit) : results;
-      const nextCursor =
-        hasMore && data.length > 0 ? data[data.length - 1].id : undefined;
+      const nextCursor = hasMore && data.length > 0
+        ? data[data.length - 1].id
+        : undefined;
 
       return {
         results: data.map((item) => ({
@@ -114,7 +114,7 @@ export class TextModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch blocked words",
-        500
+        500,
       );
     }
   }
@@ -192,7 +192,7 @@ export class TextModerationService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch blocked words",
-        500
+        500,
       );
     }
   }
@@ -204,7 +204,7 @@ export class TextModerationService {
   private async checkWordIsBlocked(
     tx: NodePgDatabase,
     normalizedWord: string,
-    originalWord: string
+    originalWord: string,
   ): Promise<void> {
     const existingWord = await tx
       .select()
@@ -216,7 +216,7 @@ export class TextModerationService {
       throw new ServerError(
         "WORD_NOT_BLOCKED",
         `Word "${originalWord}" is not currently blocked`,
-        404
+        404,
       );
     }
   }
@@ -224,7 +224,7 @@ export class TextModerationService {
   private async checkWordNotBlocked(
     tx: NodePgDatabase,
     normalizedWord: string,
-    originalWord: string
+    originalWord: string,
   ): Promise<void> {
     const existingWord = await tx
       .select()
@@ -236,7 +236,7 @@ export class TextModerationService {
       throw new ServerError(
         "WORD_ALREADY_BLOCKED",
         `Word "${originalWord}" is already blocked`,
-        409
+        409,
       );
     }
   }

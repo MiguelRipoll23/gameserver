@@ -11,8 +11,8 @@ export class CredentialsService {
 
   public async getByIdOrThrow(id: string): Promise<UserCredentialEntity> {
     try {
-      const credentials =
-        await this.databaseService.executeWithCredentialContext(id, (tx) => {
+      const credentials = await this.databaseService
+        .executeWithCredentialContext(id, (tx) => {
           return tx
             .select()
             .from(userCredentialsTable)
@@ -46,22 +46,23 @@ export class CredentialsService {
     newCounter: number,
   ): Promise<void> {
     try {
-      const result = await this.databaseService.executeWithCredentialAndUserContext(
-        id,
-        userId,
-        (tx) => {
-          return tx
-            .update(userCredentialsTable)
-            .set({ counter: newCounter })
-            .where(
-              and(
-                eq(userCredentialsTable.id, id),
-                lt(userCredentialsTable.counter, newCounter),
-              ),
-            )
-            .returning({ id: userCredentialsTable.id });
-        },
-      );
+      const result = await this.databaseService
+        .executeWithCredentialAndUserContext(
+          id,
+          userId,
+          (tx) => {
+            return tx
+              .update(userCredentialsTable)
+              .set({ counter: newCounter })
+              .where(
+                and(
+                  eq(userCredentialsTable.id, id),
+                  lt(userCredentialsTable.counter, newCounter),
+                ),
+              )
+              .returning({ id: userCredentialsTable.id });
+          },
+        );
 
       if (result.length === 0 && newCounter > 0) {
         console.warn(

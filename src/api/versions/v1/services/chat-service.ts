@@ -36,8 +36,8 @@ export class ChatService {
     console.log("Refreshing blocked words cache...");
 
     try {
-      const blockedWords =
-        await this.textModerationService.getAllBlockedWords();
+      const blockedWords = await this.textModerationService
+        .getAllBlockedWords();
       this.blockedWords = this.validateBlockedWordsFromDatabase(blockedWords);
       this.cacheInitialized = true;
       console.log(
@@ -132,9 +132,7 @@ export class ChatService {
   private isWithinMaxLength(message: string, user: WebSocketUser): boolean {
     if (message.length > ChatService.MAX_CHAT_MESSAGE_LENGTH) {
       console.warn(
-        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${
-          ChatService.MAX_CHAT_MESSAGE_LENGTH
-        } characters`,
+        `Rejected chat message from ${user.getName()} because it exceeds the limit of ${ChatService.MAX_CHAT_MESSAGE_LENGTH} characters`,
       );
       return false;
     }
@@ -154,11 +152,9 @@ export class ChatService {
         if (foundIndex === -1) break;
 
         // Check word boundaries manually for safety
-        const isWordStart =
-          foundIndex === 0 ||
+        const isWordStart = foundIndex === 0 ||
           this.isWordBoundary(textLower.charAt(foundIndex - 1));
-        const isWordEnd =
-          foundIndex + wordLower.length >= textLower.length ||
+        const isWordEnd = foundIndex + wordLower.length >= textLower.length ||
           this.isWordBoundary(textLower.charAt(foundIndex + wordLower.length));
 
         if (isWordStart && isWordEnd) {
@@ -232,8 +228,9 @@ export class ChatService {
     let signedPayload: ArrayBuffer | null = null;
 
     try {
-      signedPayload =
-        await this.signatureService.signArrayBuffer(signaturePayload);
+      signedPayload = await this.signatureService.signArrayBuffer(
+        signaturePayload,
+      );
     } catch (error) {
       console.error(error);
     }
@@ -242,8 +239,9 @@ export class ChatService {
   }
 
   private toAsciiLowerCase(text: string): string {
-    return text.replace(/[A-Z]/g, (char) =>
-      String.fromCharCode(char.charCodeAt(0) + 32),
+    return text.replace(
+      /[A-Z]/g,
+      (char) => String.fromCharCode(char.charCodeAt(0) + 32),
     );
   }
 }

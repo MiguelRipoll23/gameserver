@@ -4,23 +4,23 @@ import { ServerError } from "../models/server-error.ts";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
   AddUserRoleRequest,
-  RemoveUserRoleRequest,
   GetUserRolesRequest,
   GetUserRolesResponse,
+  RemoveUserRoleRequest,
 } from "../schemas/user-roles-schemas.ts";
 import {
-  usersTable,
-  userRolesTable,
   rolesTable,
+  userRolesTable,
+  usersTable,
 } from "../../../../db/schema.ts";
-import { eq, and, gt } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 
 @injectable()
 export class UserRolesService {
   constructor(private databaseService = inject(DatabaseService)) {}
 
   public async getUserRoles(
-    request: GetUserRolesRequest
+    request: GetUserRolesRequest,
   ): Promise<GetUserRolesResponse> {
     const { userId, cursor, limit = 20 } = request;
     const db = this.databaseService.get();
@@ -61,10 +61,9 @@ export class UserRolesService {
             roleName: userRole.roleName,
             createdAt: userRole.createdAt.toISOString(),
           })),
-          nextCursor:
-            hasNextPage && results.length > 0
-              ? results[results.length - 1].id
-              : undefined,
+          nextCursor: hasNextPage && results.length > 0
+            ? results[results.length - 1].id
+            : undefined,
           hasMore: hasNextPage,
         };
       });
@@ -76,7 +75,7 @@ export class UserRolesService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch user roles",
-        500
+        500,
       );
     }
   }
@@ -109,7 +108,7 @@ export class UserRolesService {
           throw new ServerError(
             "ROLE_ALREADY_EXISTS",
             "User already has this role",
-            409
+            409,
           );
         }
       });
@@ -140,8 +139,8 @@ export class UserRolesService {
           .where(
             and(
               eq(userRolesTable.userId, userId),
-              eq(userRolesTable.roleId, roleId)
-            )
+              eq(userRolesTable.roleId, roleId),
+            ),
           )
           .returning({ userId: userRolesTable.userId });
 
@@ -149,7 +148,7 @@ export class UserRolesService {
           throw new ServerError(
             "ROLE_NOT_FOUND",
             "User does not have this role",
-            404
+            404,
           );
         }
       });
@@ -161,14 +160,14 @@ export class UserRolesService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to remove user role",
-        500
+        500,
       );
     }
   }
 
   private async checkUserExists(
     tx: NodePgDatabase,
-    userId: string
+    userId: string,
   ): Promise<void> {
     try {
       const users = await tx
@@ -189,14 +188,14 @@ export class UserRolesService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to verify user existence",
-        500
+        500,
       );
     }
   }
 
   private async getRoleIdByName(
     tx: NodePgDatabase,
-    roleName: string
+    roleName: string,
   ): Promise<number> {
     try {
       const roles = await tx
@@ -219,14 +218,14 @@ export class UserRolesService {
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to verify role existence",
-        500
+        500,
       );
     }
   }
 
   private async getOrCreateRoleByName(
     tx: NodePgDatabase,
-    roleName: string
+    roleName: string,
   ): Promise<number> {
     try {
       // First, try to find the existing role
@@ -252,12 +251,12 @@ export class UserRolesService {
     } catch (error) {
       console.error(
         "Database error while getting or creating role by name:",
-        error
+        error,
       );
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to get or create role",
-        500
+        500,
       );
     }
   }

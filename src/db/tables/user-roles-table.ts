@@ -1,10 +1,10 @@
 import {
   integer,
+  pgPolicy,
   pgTable,
   timestamp,
-  uuid,
   unique,
-  pgPolicy,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 import { rolesTable } from "./roles-table.ts";
@@ -32,7 +32,7 @@ export const userRolesTable = pgTable.withRLS(
       to: authenticatedUserRole,
       using: isCurrentUser(table.userId),
     }),
-  ]
+  ],
 );
 
 export type UserRoleEntity = typeof userRolesTable.$inferSelect;

@@ -5,11 +5,11 @@ import { JWTService } from "../../../../core/services/jwt-service.ts";
 import { ConnInfo } from "hono/conninfo";
 import { WebAuthnUtils } from "../../../../core/utils/webauthn-utils.ts";
 import {
-  generateAuthenticationOptions,
-  verifyAuthenticationResponse,
   type AuthenticationResponseJSON,
+  generateAuthenticationOptions,
   type PublicKeyCredentialRequestOptionsJSON,
   type VerifiedAuthenticationResponse,
+  verifyAuthenticationResponse,
 } from "@simplewebauthn/server";
 import { ServerError } from "../models/server-error.ts";
 import { ICEService } from "./ice-service.ts";
@@ -40,7 +40,9 @@ import { AuthenticationUtils } from "../utils/authentication-utils.ts";
 @injectable()
 export class AuthenticationService {
   constructor(
-    private authenticationChallengesService = inject(AuthenticationChallengesService),
+    private authenticationChallengesService = inject(
+      AuthenticationChallengesService,
+    ),
     private refreshTokensService = inject(RefreshTokensService),
     private userEncryptionKeysService = inject(UserEncryptionKeysService),
     private databaseService = inject(DatabaseService),
@@ -88,8 +90,8 @@ export class AuthenticationService {
     origin: string,
   ): Promise<AuthenticationResponse> {
     const { transactionId } = authenticationRequest;
-    const authenticationResponse =
-      authenticationRequest.authenticationResponse as object as AuthenticationResponseJSON;
+    const authenticationResponse = authenticationRequest
+      .authenticationResponse as object as AuthenticationResponseJSON;
 
     if (!WebAuthnUtils.isOriginAllowed(origin)) {
       throw new ServerError(
@@ -99,8 +101,9 @@ export class AuthenticationService {
       );
     }
 
-    const authenticationOptions =
-      await this.getAuthenticationOptionsOrThrow(transactionId);
+    const authenticationOptions = await this.getAuthenticationOptionsOrThrow(
+      transactionId,
+    );
 
     const credential = await this.credentialsService.getByIdOrThrow(
       authenticationResponse.id,
@@ -147,8 +150,8 @@ export class AuthenticationService {
     await this.userEncryptionKeysService.save(userId, userSymmetricKey);
 
     // Server configuration
-    const serverSignaturePublicKey =
-      await this.signatureService.getEncodedPublicKey();
+    const serverSignaturePublicKey = await this.signatureService
+      .getEncodedPublicKey();
     const rtcIceServers = await this.iceService.getServers();
 
     return {
@@ -168,10 +171,8 @@ export class AuthenticationService {
     refreshRequest: RefreshTokenRequest,
   ): Promise<RefreshTokenResponse> {
     const { refreshToken } = refreshRequest;
-    const refreshTokenHash =
-      await AuthenticationUtils.hashToken(refreshToken);
-    const tokenData =
-      await this.refreshTokensService.consume(refreshTokenHash);
+    const refreshTokenHash = await AuthenticationUtils.hashToken(refreshToken);
+    const tokenData = await this.refreshTokensService.consume(refreshTokenHash);
 
     if (tokenData === null || tokenData.expiresAt <= Date.now()) {
       throw new ServerError(
@@ -191,10 +192,9 @@ export class AuthenticationService {
     );
 
     try {
-      const currentTokenVersion =
-        await this.refreshTokensService.getVersion(
-          tokenData.userId,
-        );
+      const currentTokenVersion = await this.refreshTokensService.getVersion(
+        tokenData.userId,
+      );
 
       if (tokenData.tokenVersion !== currentTokenVersion) {
         throw new ServerError(
@@ -222,12 +222,12 @@ export class AuthenticationService {
         event: "refresh_token_validation_failed",
         refreshTokenHash,
         userId: tokenData.userId,
-        errorCode:
-          error instanceof ServerError ? error.getCode() : "UNKNOWN_ERROR",
-        errorStatus:
-          error instanceof ServerError
-            ? error.getStatusCode()
-            : "UNKNOWN_STATUS",
+        errorCode: error instanceof ServerError
+          ? error.getCode()
+          : "UNKNOWN_ERROR",
+        errorStatus: error instanceof ServerError
+          ? error.getStatusCode()
+          : "UNKNOWN_STATUS",
         errorMessage: error instanceof Error ? error.message : String(error),
       });
 
@@ -276,8 +276,7 @@ export class AuthenticationService {
     const refreshToken = encodeBase64(
       crypto.getRandomValues(new Uint8Array(64)).buffer,
     );
-    const refreshTokenHash =
-      await AuthenticationUtils.hashToken(refreshToken);
+    const refreshTokenHash = await AuthenticationUtils.hashToken(refreshToken);
     const expiresAt = Date.now() + REFRESH_TOKEN_EXPIRATION_SECONDS * 1000;
     const tokenVersion = await this.refreshTokensService.getVersion(userId);
 
@@ -299,7 +298,9 @@ export class AuthenticationService {
   private async getAuthenticationOptionsOrThrow(
     transactionId: string,
   ): Promise<PublicKeyCredentialRequestOptionsJSON> {
-    const challenge = await this.authenticationChallengesService.consume<PublicKeyCredentialRequestOptionsJSON>(
+    const challenge = await this.authenticationChallengesService.consume<
+      PublicKeyCredentialRequestOptionsJSON
+    >(
       transactionId,
       "authentication",
     );
@@ -336,7 +337,9 @@ export class AuthenticationService {
         expectedChallenge: authenticationOptions.challenge,
         expectedOrigin: origin,
         expectedRPID: rpID,
-        credential: AuthenticationUtils.transformCredentialForWebAuthn(credential),
+        credential: AuthenticationUtils.transformCredentialForWebAuthn(
+          credential,
+        ),
       });
 
       if (!verification.verified) {

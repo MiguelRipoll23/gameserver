@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import {
-  StringPaginationSchema,
   StringPaginatedResponseSchema,
+  StringPaginationSchema,
 } from "./pagination-schemas.ts";
 
 export const SaveScoresRequestSchema = z.array(
@@ -12,7 +12,7 @@ export const SaveScoresRequestSchema = z.array(
       .min(0)
       .describe("The total score of the user")
       .openapi({ example: 4 }),
-  })
+  }),
 );
 
 export type SaveScoresRequest = z.infer<typeof SaveScoresRequestSchema>;
@@ -36,7 +36,7 @@ export const UserScoreResponseSchema = z.object({
 export type UserScoreResponse = z.infer<typeof UserScoreResponseSchema>;
 
 export const GetScoresResponseSchema = StringPaginatedResponseSchema(
-  UserScoreResponseSchema
+  UserScoreResponseSchema,
 );
 
 export type GetScoresResponse = z.infer<typeof GetScoresResponseSchema>;

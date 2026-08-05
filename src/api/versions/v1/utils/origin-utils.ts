@@ -18,10 +18,10 @@ export function extractOrigin(c: Context): string | null {
  */
 export function extractAndValidateOrigin(c: Context): string {
   const origin = extractOrigin(c);
-  
+
   if (!origin) {
     throw new ServerError("MISSING_ORIGIN", "Missing Origin header", 400);
   }
-  
+
   return origin;
 }

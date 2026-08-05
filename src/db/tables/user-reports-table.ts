@@ -1,10 +1,10 @@
 import {
-  pgTable,
-  varchar,
-  integer,
   boolean,
-  uuid,
+  integer,
+  pgTable,
   timestamp,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 

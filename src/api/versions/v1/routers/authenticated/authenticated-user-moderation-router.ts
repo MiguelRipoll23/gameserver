@@ -51,7 +51,7 @@ export class AuthenticatedUserModerationRouter {
         const validated = c.req.valid("json");
         await this.userModerationService.reportUser(reporterId, validated);
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

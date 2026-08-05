@@ -45,7 +45,7 @@ export class AuthenticatedStatsRouter {
         const response = await this.serverStatsService.get();
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 }

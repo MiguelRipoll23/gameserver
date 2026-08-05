@@ -57,11 +57,11 @@ export class ManagementNotificationRouter {
         const { channelName, text } = c.req.valid("json");
         this.notificationService.notify(
           NotificationChannelNameToType[channelName],
-          text
+          text,
         );
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -96,11 +96,11 @@ export class ManagementNotificationRouter {
         this.notificationService.notifyUser(
           NotificationChannelNameToType[channelName],
           userId,
-          text
+          text,
         );
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

@@ -54,7 +54,7 @@ export class AuthenticatedConfigurationRouter {
         return c.body(response, 200, {
           "Content-Type": "octet/stream",
         });
-      }
+      },
     );
   }
 }

@@ -38,7 +38,7 @@ export const BanDurationSchema = z
     },
     {
       message: "Duration value exceeds allowed range for unit",
-    }
+    },
   );
 
 export type BanDuration = z.infer<typeof BanDurationSchema>;
@@ -53,7 +53,7 @@ export const BanUserRequestSchema = z.object({
     example: "Toxic behaviour",
   }),
   duration: BanDurationSchema.optional().describe(
-    "Duration of the ban. If omitted the ban is permanent"
+    "Duration of the ban. If omitted the ban is permanent",
   ),
 });
 
@@ -113,7 +113,7 @@ export const UserBanResponseSchema = z.object({
 export type UserBanResponse = z.infer<typeof UserBanResponseSchema>;
 
 export const GetUserBansResponseSchema = PaginatedResponseSchema(
-  UserBanResponseSchema
+  UserBanResponseSchema,
 );
 
 export type GetUserBansResponse = z.infer<typeof GetUserBansResponseSchema>;
@@ -141,7 +141,7 @@ export const UserReportResponseSchema = z.object({
 export type UserReportResponse = z.infer<typeof UserReportResponseSchema>;
 
 export const GetUserReportsResponseSchema = PaginatedResponseSchema(
-  UserReportResponseSchema
+  UserReportResponseSchema,
 );
 
 export type GetUserReportsResponse = z.infer<

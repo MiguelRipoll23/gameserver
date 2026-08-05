@@ -1,9 +1,9 @@
 import {
+  integer,
   pgTable,
-  varchar,
   text,
   timestamp,
-  integer,
+  varchar,
 } from "drizzle-orm/pg-core";
 
 export const serverMessagesTable = pgTable("server_messages", {

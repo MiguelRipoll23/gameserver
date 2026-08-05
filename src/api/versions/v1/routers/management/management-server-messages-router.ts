@@ -35,7 +35,7 @@ export class ManagementServerMessagesRouter {
         summary: "Create server message",
         description:
           "Server messages shown to the player after connecting to server",
-        tags: ["Server message"],
+        tags: ["Server messages"],
         request: {
           body: {
             content: {
@@ -57,7 +57,7 @@ export class ManagementServerMessagesRouter {
         await this.serverMessagesService.create(validated);
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -69,7 +69,7 @@ export class ManagementServerMessagesRouter {
         summary: "Update server message",
         description:
           "Update existing server message shown to the player after connecting to server",
-        tags: ["Server message"],
+        tags: ["Server messages"],
         request: {
           params: DeleteServerMessageRequestSchema,
           body: {
@@ -97,7 +97,7 @@ export class ManagementServerMessagesRouter {
         });
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -109,7 +109,7 @@ export class ManagementServerMessagesRouter {
         summary: "Delete server message",
         description:
           "Server messages shown to the player after connecting to server",
-        tags: ["Server message"],
+        tags: ["Server messages"],
         request: {
           params: DeleteServerMessageRequestSchema,
         },
@@ -127,13 +127,13 @@ export class ManagementServerMessagesRouter {
             {
               message: "Invalid message ID format",
             },
-            400
+            400,
           );
         }
 
         await this.serverMessagesService.delete(id);
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

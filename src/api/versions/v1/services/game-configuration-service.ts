@@ -20,7 +20,10 @@ export class GameConfigurationService {
     return rows[0].value as Record<string, unknown>;
   }
 
-  public async save(key: string, value: Record<string, unknown>): Promise<void> {
+  public async save(
+    key: string,
+    value: Record<string, unknown>,
+  ): Promise<void> {
     await this.databaseService
       .get()
       .insert(gameConfigurationTable)

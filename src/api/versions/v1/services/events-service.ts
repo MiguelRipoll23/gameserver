@@ -44,8 +44,9 @@ export class EventsService {
       (handler) => handler.target === proto,
     );
 
-    let registeredHandlers =
-      this.registeredHandlersByInstance.get(instanceObject);
+    let registeredHandlers = this.registeredHandlersByInstance.get(
+      instanceObject,
+    );
     if (!registeredHandlers) {
       registeredHandlers = new Set<string>();
       this.registeredHandlersByInstance.set(instanceObject, registeredHandlers);

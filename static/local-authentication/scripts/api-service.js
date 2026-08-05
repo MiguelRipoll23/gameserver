@@ -2,11 +2,15 @@ export class APIService {
   static API_PATH = "/api";
   static API_VERSION = "/v1";
   static REGISTRATION_ENDPOINT = `/registration`;
-  static REGISTRATION_OPTIONS_ENDPOINT = `${this.REGISTRATION_ENDPOINT}/options`;
-  static VERIFY_REGISTRATION_RESPONSE_ENDPOINT = `${this.REGISTRATION_ENDPOINT}/response`;
+  static REGISTRATION_OPTIONS_ENDPOINT =
+    `${this.REGISTRATION_ENDPOINT}/options`;
+  static VERIFY_REGISTRATION_RESPONSE_ENDPOINT =
+    `${this.REGISTRATION_ENDPOINT}/response`;
   static AUTHENTICATION_ENDPOINT = `/authentication`;
-  static AUTHENTICATION_OPTIONS_ENDPOINT = `${this.AUTHENTICATION_ENDPOINT}/options`;
-  static VERIFY_AUTHENTICATION_RESPONSE_ENDPOINT = `${this.AUTHENTICATION_ENDPOINT}/response`;
+  static AUTHENTICATION_OPTIONS_ENDPOINT =
+    `${this.AUTHENTICATION_ENDPOINT}/options`;
+  static VERIFY_AUTHENTICATION_RESPONSE_ENDPOINT =
+    `${this.AUTHENTICATION_ENDPOINT}/response`;
 
   constructor() {
     this.baseURL = APIService.getBaseURL();
@@ -33,7 +37,7 @@ export class APIService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(registrationOptionsRequest),
-      }
+      },
     );
 
     if (response.ok === false) {
@@ -55,7 +59,7 @@ export class APIService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(verifyRegistrationRequest),
-      }
+      },
     );
 
     if (response.ok === false) {
@@ -77,7 +81,7 @@ export class APIService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(authenticationOptionsRequest),
-      }
+      },
     );
 
     if (response.ok === false) {
@@ -99,7 +103,7 @@ export class APIService {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(verifyAuthenticationRequest),
-      }
+      },
     );
 
     if (response.ok === false) {

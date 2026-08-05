@@ -1,10 +1,10 @@
 import {
   integer,
   pgTable,
-  timestamp,
-  varchar,
   text,
+  timestamp,
   uniqueIndex,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
@@ -22,9 +22,9 @@ export const blockedWordsTable = pgTable(
   (table) => ({
     // Create a unique index on lower(word) for case-insensitive uniqueness
     uniqueLowerWord: uniqueIndex("unique_lower_word").on(
-      sql`lower(${table.word})`
+      sql`lower(${table.word})`,
     ),
-  })
+  }),
 );
 
 export type BlockedWordEntity = typeof blockedWordsTable.$inferSelect;

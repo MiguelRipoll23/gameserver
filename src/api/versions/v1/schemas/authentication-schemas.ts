@@ -71,7 +71,9 @@ export const VerifyAuthenticationResponseSchema = z.object({
     .describe("Short-lived JWT used to authenticate requests"),
   refreshToken: z
     .string()
-    .describe("Long-lived opaque token used to rotate and issue new access tokens"),
+    .describe(
+      "Long-lived opaque token used to rotate and issue new access tokens",
+    ),
   userId: z
     .string()
     .length(36)
@@ -93,17 +95,17 @@ export const VerifyAuthenticationResponseSchema = z.object({
   userSymmetricKey: z
     .string()
     .describe(
-      "Symmetric key generated for encrypting and decrypting the user's game session data"
+      "Symmetric key generated for encrypting and decrypting the user's game session data",
     ),
   serverSignaturePublicKey: z
     .string()
     .describe(
-      "Public key used to verify digital signatures from connected peers"
+      "Public key used to verify digital signatures from connected peers",
     ),
   rtcIceServers: z
     .array(RTCIceServerSchema)
     .describe(
-      "List of ICE servers (STUN/TURN) to facilitate WebRTC connectivity for the user"
+      "List of ICE servers (STUN/TURN) to facilitate WebRTC connectivity for the user",
     ),
 });
 
@@ -121,66 +123,3 @@ export const RefreshTokenResponseSchema = z.object({
 });
 
 export type RefreshTokenResponse = z.infer<typeof RefreshTokenResponseSchema>;
-
-export const DeviceAuthorizationCodeSchema = z
-  .string()
-  .regex(
-    /^[A-Z0-9]{16}$/,
-    "Code must be exactly 16 uppercase alphanumeric characters",
-  )
-  .describe(
-    "Short-lived 16-character code printed by the bot for the pending authorization",
-  )
-  .openapi({ example: "A1B2C3D4E5F6G7H8" });
-
-export const DeviceAuthorizationMintResponseSchema = z.object({
-  code: DeviceAuthorizationCodeSchema,
-  expiresAt: z
-    .string()
-    .datetime()
-    .describe("Expiry timestamp (ISO 8601) of the issued code")
-    .openapi({ example: "2026-07-31T12:49:05.000Z" }),
-});
-
-export type DeviceAuthorizationMintResponse = z.infer<
-  typeof DeviceAuthorizationMintResponseSchema
->;
-
-export const DeviceAuthorizationCompleteRequestSchema = z.object({
-  code: DeviceAuthorizationCodeSchema,
-  accessToken: z
-    .string()
-    .min(1)
-    .describe("Short-lived JWT used to authenticate requests"),
-  refreshToken: z
-    .string()
-    .min(1)
-    .describe("Long-lived opaque token used to rotate and issue new access tokens"),
-});
-
-export type DeviceAuthorizationCompleteRequest = z.infer<
-  typeof DeviceAuthorizationCompleteRequestSchema
->;
-
-export const DeviceAuthorizationPollRequestSchema = z.object({
-  code: DeviceAuthorizationCodeSchema,
-});
-
-export type DeviceAuthorizationPollRequest = z.infer<
-  typeof DeviceAuthorizationPollRequestSchema
->;
-
-export const DeviceAuthorizationPollResponseSchema = z.object({
-  accessToken: z
-    .string()
-    .min(1)
-    .describe("Short-lived JWT used to authenticate requests"),
-  refreshToken: z
-    .string()
-    .min(1)
-    .describe("Long-lived opaque token used to rotate and issue new access tokens"),
-});
-
-export type DeviceAuthorizationPollResponse = z.infer<
-  typeof DeviceAuthorizationPollResponseSchema
->;

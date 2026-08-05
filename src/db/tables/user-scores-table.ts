@@ -1,4 +1,4 @@
-import { pgTable, integer, uuid } from "drizzle-orm/pg-core";
+import { integer, pgTable, uuid } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 
 export const userScoresTable = pgTable("user_scores", {

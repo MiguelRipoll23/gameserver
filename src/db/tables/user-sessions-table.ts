@@ -1,10 +1,10 @@
 import {
-  pgTable,
-  varchar,
-  timestamp,
-  uuid,
   inet,
   pgPolicy,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
@@ -51,7 +51,7 @@ export const userSessionsTable = pgTable.withRLS(
       to: authenticatedUserRole,
       using: isCurrentUser(table.userId),
     }),
-  ]
+  ],
 );
 
 export type UserSessionEntity = typeof userSessionsTable.$inferSelect;

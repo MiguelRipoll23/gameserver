@@ -19,7 +19,7 @@ export class SignatureService {
 
   constructor(
     private serverSignatureKeysService = inject(ServerSignatureKeysService),
-  ) { }
+  ) {}
 
   public async getEncodedPublicKey(): Promise<string> {
     await this.ensureInitialized();
@@ -95,9 +95,14 @@ export class SignatureService {
     });
   }
 
-  private async importKey(jwk: JsonWebKey, usage: "sign" | "verify"): Promise<CryptoKey> {
+  private async importKey(
+    jwk: JsonWebKey,
+    usage: "sign" | "verify",
+  ): Promise<CryptoKey> {
     try {
-      return await crypto.subtle.importKey("jwk", jwk, this.ALGORITHM, true, [usage]);
+      return await crypto.subtle.importKey("jwk", jwk, this.ALGORITHM, true, [
+        usage,
+      ]);
     } catch (cause) {
       throw new ServerError(
         "INVALID_SERVER_CONFIGURATION",

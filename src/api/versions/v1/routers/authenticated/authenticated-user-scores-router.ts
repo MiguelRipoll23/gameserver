@@ -3,8 +3,8 @@ import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { UserScoresService } from "../../services/user-scores-service.ts";
 import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 import {
-  GetScoresResponseSchema,
   GetScoresQuerySchema,
+  GetScoresResponseSchema,
 } from "../../schemas/scores-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -54,7 +54,7 @@ export class AuthenticatedUserScoresRouter {
         const response = await this.userScoresService.list(query);
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 
@@ -90,7 +90,7 @@ export class AuthenticatedUserScoresRouter {
         await this.userScoresService.save(userId, validated);
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

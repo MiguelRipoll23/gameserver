@@ -12,7 +12,7 @@ import {
   userSessionsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, sql, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { SessionsService } from "./sessions-service.ts";
 
@@ -108,9 +108,11 @@ export class MatchesService {
     if (body.attributes) {
       // Ensure the match contains all requested attributes with matching values
       conditions.push(
-        sql`${matchesTable.attributes} @> ${JSON.stringify(
-          body.attributes,
-        )}::jsonb`,
+        sql`${matchesTable.attributes} @> ${
+          JSON.stringify(
+            body.attributes,
+          )
+        }::jsonb`,
       );
     }
 

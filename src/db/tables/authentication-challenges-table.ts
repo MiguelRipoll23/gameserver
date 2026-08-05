@@ -1,12 +1,12 @@
 import {
+  jsonb,
+  pgPolicy,
   pgTable,
   serial,
-  uuid,
-  varchar,
-  jsonb,
   timestamp,
   unique,
-  pgPolicy,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { authenticatedUserRole } from "../rls.ts";

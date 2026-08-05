@@ -9,6 +9,3 @@ export const SESSION_LIFETIME_SECONDS = REFRESH_TOKEN_EXPIRATION_SECONDS;
 
 // Authentication/registration WebAuthn options TTL (ms)
 export const OPTIONS_EXPIRATION_TIME = 1 * 60 * 1000;
-
-// Device authorization code lifetime (ms)
-export const DEVICE_AUTHORIZATION_CODE_EXPIRATION_MS = 10 * 60 * 1000; // 10 minutes

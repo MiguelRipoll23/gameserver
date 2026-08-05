@@ -45,7 +45,6 @@ export function hasEventHandler(
   );
 }
 
-
 export function clearEventHandlers(): void {
   eventHandlers.length = 0;
 }

@@ -17,7 +17,12 @@ export const AdvertiseMatchRequestSchema = z.object({
   usersList: z
     .array(z.string().uuid())
     .describe("List of user identifiers (UUID) participating in the match")
-    .openapi({ example: ["550e8400-e29b-41d4-a716-446655440000", "6ba7b810-9dad-11d1-80b4-00c04fd430c8"] }),
+    .openapi({
+      example: [
+        "550e8400-e29b-41d4-a716-446655440000",
+        "6ba7b810-9dad-11d1-80b4-00c04fd430c8",
+      ],
+    }),
   pingMedianMilliseconds: z
     .number()
     .min(0)
