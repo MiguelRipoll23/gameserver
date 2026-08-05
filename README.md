@@ -31,8 +31,7 @@ Follow the steps below after using the `Deploy` button above this section:
 
 ### Database configuration
 
-Provision a database and create the `authenticated_user` role in your production
-branch of your database so the migrations can be automatically applied when
+Provision a database and create the `authenticated_user` role so the migrations can be automatically applied when
 being deployed.
 
 ## Contributing
