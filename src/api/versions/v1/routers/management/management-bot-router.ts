@@ -213,7 +213,7 @@ export class ManagementBotRouter {
   private registerGetBotTokenRoute(): void {
     this.app.openapi(
       createRoute({
-        method: "post",
+method: "post",
         path: "/token",
         summary: "Get token",
         description:
