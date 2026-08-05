@@ -1,19 +1,19 @@
 import { sql } from "drizzle-orm";
 import {
-  pgTable,
-  varchar,
-  integer,
   boolean,
+  integer,
   jsonb,
+  pgPolicy,
+  pgTable,
   text,
   uuid,
-  pgPolicy,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 import {
   authenticatedUserRole,
-  isCurrentUser,
   isCurrentCredential,
+  isCurrentUser,
 } from "../rls.ts";
 
 export const userCredentialsTable = pgTable.withRLS(
@@ -60,9 +60,11 @@ export const userCredentialsTable = pgTable.withRLS(
       for: "update",
       to: authenticatedUserRole,
       using: isCurrentCredential(table.id),
-      withCheck: sql`${isCurrentCredential(table.id)} AND ${isCurrentUser(
-        table.userId
-      )}`,
+      withCheck: sql`${isCurrentCredential(table.id)} AND ${
+        isCurrentUser(
+          table.userId,
+        )
+      }`,
     }),
     // Users can delete their own credentials
     pgPolicy("user_credentials_delete_own", {
@@ -70,7 +72,7 @@ export const userCredentialsTable = pgTable.withRLS(
       to: authenticatedUserRole,
       using: isCurrentUser(table.userId),
     }),
-  ]
+  ],
 );
 
 export type UserCredentialEntity = typeof userCredentialsTable.$inferSelect;

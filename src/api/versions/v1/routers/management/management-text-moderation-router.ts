@@ -4,9 +4,9 @@ import { TextModerationService } from "../../services/text-moderation-service.ts
 import {
   BlockWordRequestSchema,
   GetBlockedWordsRequestSchema,
+  GetBlockedWordsResponseSchema,
   UnblockWordParamSchema,
   UpdateWordRequestSchema,
-  GetBlockedWordsResponseSchema,
 } from "../../schemas/text-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -59,10 +59,10 @@ export class ManagementTextModerationRouter {
       async (c) => {
         const validated = c.req.valid("query");
         const result = await this.textModerationService.getBlockedWords(
-          validated
+          validated,
         );
         return c.json(result, 200);
-      }
+      },
     );
   }
 
@@ -95,7 +95,7 @@ export class ManagementTextModerationRouter {
         const validated = c.req.valid("json");
         await this.textModerationService.blockWord(validated);
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -129,7 +129,7 @@ export class ManagementTextModerationRouter {
         const validated = c.req.valid("json");
         await this.textModerationService.updateWord(validated);
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -156,7 +156,7 @@ export class ManagementTextModerationRouter {
         const word = c.req.param("word");
         await this.textModerationService.unblockWord({ word });
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

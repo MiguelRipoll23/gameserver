@@ -7,7 +7,7 @@ export function CommandHandler(commandId: WebSocketType) {
   return function (
     target: object,
     propertyKey: string,
-    propertyDescriptor: PropertyDescriptor
+    propertyDescriptor: PropertyDescriptor,
   ) {
     // Validate method signature if possible
     if (typeof propertyDescriptor.value !== "function") {
@@ -17,7 +17,7 @@ export function CommandHandler(commandId: WebSocketType) {
     // Prevent duplicate registrations
     if (hasCommandHandler(target, propertyKey, commandId)) {
       console.warn(
-        `Duplicate @CommandHandler registration for ${propertyKey} with command ${commandId}`
+        `Duplicate @CommandHandler registration for ${propertyKey} with command ${commandId}`,
       );
       return;
     }
@@ -41,12 +41,12 @@ export function clearCommandHandlers(): void {
 export function hasCommandHandler(
   target: object,
   methodName: string,
-  commandId: WebSocketType
+  commandId: WebSocketType,
 ): boolean {
   return commandHandlers.some(
     (h) =>
       h.target === target &&
       h.methodName === methodName &&
-      h.commandId === commandId
+      h.commandId === commandId,
   );
 }

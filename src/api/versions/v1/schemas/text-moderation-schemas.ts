@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import {
-  PaginationSchema,
   PaginatedResponseSchema,
+  PaginationSchema,
 } from "./pagination-schemas.ts";
 
 export const BlockWordRequestSchema = z.object({
@@ -77,8 +77,9 @@ export const BlockedWordSchema = z.object({
 
 export type BlockedWord = z.infer<typeof BlockedWordSchema>;
 
-export const GetBlockedWordsResponseSchema =
-  PaginatedResponseSchema(BlockedWordSchema);
+export const GetBlockedWordsResponseSchema = PaginatedResponseSchema(
+  BlockedWordSchema,
+);
 
 export type GetBlockedWordsResponse = z.infer<
   typeof GetBlockedWordsResponseSchema

@@ -2,11 +2,7 @@ import { inject, injectable } from "@needle-di/core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import {
-  botsTable,
-  botRolesTable,
-  rolesTable,
-} from "../../../../db/schema.ts";
+import { botRolesTable, botsTable, rolesTable } from "../../../../db/schema.ts";
 import { and, eq, gt } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -16,8 +12,8 @@ import {
   CreateBotRequest,
   CreateBotResponse,
   GetBotRolesResponse,
-  GetBotTokenResponse,
   GetBotsResponse,
+  GetBotTokenResponse,
   RemoveBotRoleRequest,
   UpdateBotRequest,
   UpdateBotResponse,
@@ -29,6 +25,14 @@ export class BotManagementService {
     private databaseService = inject(DatabaseService),
     private jwtService = inject(JWTService),
   ) {}
+
+  private isDuplicateNameError(error: unknown): boolean {
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      (error as { code?: unknown }).code === "23505"
+    );
+  }
 
   public async createBot(
     request: CreateBotRequest,
@@ -52,6 +56,13 @@ export class BotManagementService {
       );
     } catch (error) {
       if (error instanceof ServerError) throw error;
+      if (this.isDuplicateNameError(error)) {
+        throw new ServerError(
+          "BOT_NAME_TAKEN",
+          "A bot with this name already exists",
+          409,
+        );
+      }
       console.error("Failed to create bot:", error);
       throw new ServerError(
         "BOT_CREATION_FAILED",
@@ -182,10 +193,9 @@ export class BotManagementService {
           createdBy: bot.createdBy,
           createdAt: bot.createdAt.toISOString(),
         })),
-        nextCursor:
-          hasNextPage && results.length > 0
-            ? this.encodeCursor(results[results.length - 1].id)
-            : undefined,
+        nextCursor: hasNextPage && results.length > 0
+          ? this.encodeCursor(results[results.length - 1].id)
+          : undefined,
         hasMore: hasNextPage,
       };
     } catch (error) {

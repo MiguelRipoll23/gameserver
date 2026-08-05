@@ -8,8 +8,10 @@ export class V1ModerationRouter {
   private app: OpenAPIHono;
 
   constructor(
-    private moderatorAuthorizationMiddleware = inject(ModeratorAuthorizationMiddleware),
-    private userModerationRouter = inject(ManagementUserModerationRouter)
+    private moderatorAuthorizationMiddleware = inject(
+      ModeratorAuthorizationMiddleware,
+    ),
+    private userModerationRouter = inject(ManagementUserModerationRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();

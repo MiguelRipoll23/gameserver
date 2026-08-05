@@ -1,4 +1,4 @@
-import { integer, pgTable, uuid, index } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, uuid } from "drizzle-orm/pg-core";
 import { matchesTable } from "./matches-table.ts";
 import { usersTable } from "./users-table.ts";
 
@@ -16,7 +16,7 @@ export const matchUsersTable = pgTable(
   (table) => ({
     matchUsersMatchIdUserIdIdx: index("match_users_match_id_user_id_idx").on(
       table.matchId,
-      table.userId
+      table.userId,
     ),
     matchUsersUserIdIdx: index("match_users_user_id_idx").on(table.userId),
     matchUsersMatchIdUserIdUnique: {
@@ -24,7 +24,7 @@ export const matchUsersTable = pgTable(
       columns: [table.matchId, table.userId],
       name: "match_users_match_id_user_id_unique",
     },
-  })
+  }),
 );
 
 export type MatchUserEntity = typeof matchUsersTable.$inferSelect;

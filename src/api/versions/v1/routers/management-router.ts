@@ -18,7 +18,7 @@ export class V1ManagementRouter {
   constructor(
     private authenticationMiddleware = inject(AuthenticationMiddleware),
     private managementAuthorizationMiddleware = inject(
-      ManagementAuthorizationMiddleware
+      ManagementAuthorizationMiddleware,
     ),
     private versionRouter = inject(ManagementVersionRouter),
     private configurationRouter = inject(ManagementConfigurationRouter),
@@ -26,7 +26,7 @@ export class V1ManagementRouter {
     private notificationRouter = inject(ManagementNotificationRouter),
     private textModerationRouter = inject(ManagementTextModerationRouter),
     private userRolesRouter = inject(ManagementUserRolesRouter),
-    private botRouter = inject(ManagementBotRouter)
+    private botRouter = inject(ManagementBotRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();

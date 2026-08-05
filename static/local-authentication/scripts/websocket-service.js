@@ -82,13 +82,15 @@ export class WebSocketService {
     this.webSocket.addEventListener(
       "open",
       () => this.sendAuthenticationResponse(authenticationResponse),
-      { once: true }
+      { once: true },
     );
   }
 
   sendAuthenticationResponse(authenticationResponse) {
     if (!this.isConnected()) {
-      this.dispatchConnectionEvent("error", { error: new Error("WebSocket is not open") });
+      this.dispatchConnectionEvent("error", {
+        error: new Error("WebSocket is not open"),
+      });
       return;
     }
     try {
@@ -116,7 +118,9 @@ export class WebSocketService {
 
   dispatchConnectionEvent(status, detail = {}) {
     document.dispatchEvent(
-      new CustomEvent("websocket-connection", { detail: { status, ...detail } })
+      new CustomEvent("websocket-connection", {
+        detail: { status, ...detail },
+      }),
     );
   }
 }

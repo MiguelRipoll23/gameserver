@@ -9,9 +9,9 @@ export class CredentialService {
     const transactionId = crypto.randomUUID();
     const authenticationOptionsRequest = { transactionId };
 
-    const authenticationOptions =
-      await this.apiService.getAuthenticationOptions(
-        authenticationOptionsRequest
+    const authenticationOptions = await this.apiService
+      .getAuthenticationOptions(
+        authenticationOptionsRequest,
       );
 
     const publicKey = {
@@ -21,7 +21,7 @@ export class CredentialService {
         (credential) => ({
           ...credential,
           id: this.base64UrlToArrayBuffer(credential.id),
-        })
+        }),
       ),
     };
 
@@ -49,7 +49,7 @@ export class CredentialService {
 
     try {
       const response = await this.apiService.verifyAuthenticationResponse(
-        verifyAuthenticationRequest
+        verifyAuthenticationRequest,
       );
 
       this.handleAuthenticationResponse(response);
@@ -57,7 +57,7 @@ export class CredentialService {
       if (this.isCredentialNotFoundError(error)) {
         await this.signalUnknownCredential(
           authenticationOptions.rpId,
-          credential.id
+          credential.id,
         );
       }
       throw error;
@@ -67,7 +67,7 @@ export class CredentialService {
   async createCredential(name, displayName) {
     if (self.PublicKeyCredential === undefined) {
       throw new Error(
-        "It looks like your browser or device doesn't support passkeys, which are required to play the game. Please try using a different browser or device."
+        "It looks like your browser or device doesn't support passkeys, which are required to play the game. Please try using a different browser or device.",
       );
     }
 
@@ -75,7 +75,7 @@ export class CredentialService {
     const registrationOptionsRequest = { transactionId, displayName };
 
     const registrationOptions = await this.apiService.getRegistrationOptions(
-      registrationOptionsRequest
+      registrationOptionsRequest,
     );
 
     const challenge = registrationOptions.challenge;
@@ -121,7 +121,7 @@ export class CredentialService {
     };
 
     const response = await this.apiService.verifyRegistration(
-      verifyRegistrationRequest
+      verifyRegistrationRequest,
     );
 
     this.handleAuthenticationResponse(response);
@@ -186,7 +186,7 @@ export class CredentialService {
     if (PublicKeyCredential.signalUnknownCredential) {
       await PublicKeyCredential.signalUnknownCredential({ rpId, credentialId });
       console.log(
-        `Signaled unknown credential for credential (${credentialId})`
+        `Signaled unknown credential for credential (${credentialId})`,
       );
     }
   }

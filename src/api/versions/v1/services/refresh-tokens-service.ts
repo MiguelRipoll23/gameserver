@@ -46,15 +46,18 @@ export class RefreshTokensService {
   }
 
   public async getVersion(userId: string): Promise<number> {
-    return await this.databaseService.executeWithUserContext(userId, async (tx) => {
-      const rows = await tx
-        .select({ tokenVersion: usersTable.tokenVersion })
-        .from(usersTable)
-        .where(eq(usersTable.id, userId))
-        .limit(1);
+    return await this.databaseService.executeWithUserContext(
+      userId,
+      async (tx) => {
+        const rows = await tx
+          .select({ tokenVersion: usersTable.tokenVersion })
+          .from(usersTable)
+          .where(eq(usersTable.id, userId))
+          .limit(1);
 
-      return rows.length === 0 ? 0 : rows[0].tokenVersion;
-    });
+        return rows.length === 0 ? 0 : rows[0].tokenVersion;
+      },
+    );
   }
 
   public async incrementVersion(userId: string): Promise<void> {

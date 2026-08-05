@@ -1,10 +1,10 @@
 import {
   integer,
+  pgPolicy,
   pgTable,
   timestamp,
   uuid,
   varchar,
-  pgPolicy,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";
@@ -30,7 +30,7 @@ export const userBansTable = pgTable.withRLS(
       to: authenticatedUserRole,
       using: isCurrentUser(table.userId),
     }),
-  ]
+  ],
 );
 
 export type UserBanEntity = typeof userBansTable.$inferSelect;

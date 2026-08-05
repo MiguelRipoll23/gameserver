@@ -57,7 +57,7 @@ export class ManagementServerMessagesRouter {
         await this.serverMessagesService.create(validated);
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -97,7 +97,7 @@ export class ManagementServerMessagesRouter {
         });
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -127,13 +127,13 @@ export class ManagementServerMessagesRouter {
             {
               message: "Invalid message ID format",
             },
-            400
+            400,
           );
         }
 
         await this.serverMessagesService.delete(id);
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

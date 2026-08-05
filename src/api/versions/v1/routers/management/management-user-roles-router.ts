@@ -3,9 +3,9 @@ import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { UserRolesService } from "../../services/user-roles-service.ts";
 import {
   AddUserRoleRequestSchema,
-  RemoveUserRoleRequestSchema,
-  GetUserRolesResponseSchema,
   GetUserRolesQuerySchema,
+  GetUserRolesResponseSchema,
+  RemoveUserRoleRequestSchema,
 } from "../../schemas/user-roles-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -72,7 +72,7 @@ export class ManagementUserRolesRouter {
         });
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 
@@ -110,7 +110,7 @@ export class ManagementUserRolesRouter {
         await this.userRolesService.addUserRole(body);
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 
@@ -147,7 +147,7 @@ export class ManagementUserRolesRouter {
         await this.userRolesService.removeUserRole(body);
 
         return c.body(null, 204);
-      }
+      },
     );
   }
 }

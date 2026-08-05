@@ -11,12 +11,12 @@ import {
 } from "../schemas/scores-schemas.ts";
 import { StringPaginationParams } from "../schemas/pagination-schemas.ts";
 import {
-  userScoresTable,
-  usersTable,
   matchesTable,
   matchUsersTable,
+  userScoresTable,
+  usersTable,
 } from "../../../../db/schema.ts";
-import { eq, desc, sql, gt, or, and, lt } from "drizzle-orm";
+import { and, desc, eq, gt, lt, or, sql } from "drizzle-orm";
 import { NodePgDatabase } from "drizzle-orm/node-postgres";
 
 @injectable()
@@ -24,11 +24,11 @@ export class UserScoresService {
   constructor(
     private cryptoService = inject(CryptoService),
     private databaseService = inject(DatabaseService),
-    private notificationService = inject(NotificationService)
+    private notificationService = inject(NotificationService),
   ) {}
 
   public async list(
-    params: Partial<StringPaginationParams> = {}
+    params: Partial<StringPaginationParams> = {},
   ): Promise<GetScoresResponse> {
     const { cursor, limit = 20 } = params;
     const db = this.databaseService.get();
@@ -46,9 +46,9 @@ export class UserScoresService {
           lt(userScoresTable.totalScore, totalScore),
           and(
             eq(userScoresTable.totalScore, totalScore),
-            gt(userScoresTable.id, id)
-          )
-        )
+            gt(userScoresTable.id, id),
+          ),
+        ),
       );
     }
 
@@ -76,9 +76,9 @@ export class UserScoresService {
       })),
       nextCursor: hasNextPage
         ? this.encodeCursor(
-            results[results.length - 1].totalScore,
-            results[results.length - 1].id
-          )
+          results[results.length - 1].totalScore,
+          results[results.length - 1].id,
+        )
         : undefined,
       hasMore: hasNextPage,
     };
@@ -105,7 +105,7 @@ export class UserScoresService {
           const message = await this.updateWithTransaction(
             tx,
             playerScore.userId,
-            playerScore.totalScore
+            playerScore.totalScore,
           );
           if (message) {
             notification = message;
@@ -117,7 +117,7 @@ export class UserScoresService {
       if (notification) {
         this.notificationService.notify(
           NotificationChannelType.Global,
-          notification
+          notification,
         );
       }
     } catch (error) {
@@ -126,7 +126,7 @@ export class UserScoresService {
       throw new ServerError(
         "SCORE_UPDATE_FAILED",
         "Failed to update player scores",
-        500
+        500,
       );
     }
   }
@@ -150,7 +150,7 @@ export class UserScoresService {
       throw new ServerError(
         "NOT_HOSTING_MATCH",
         "Only match hosts can save scores",
-        400
+        400,
       );
     }
 
@@ -159,7 +159,7 @@ export class UserScoresService {
 
   private async parseAndValidateSaveRequest(
     userId: string,
-    body: ArrayBuffer
+    body: ArrayBuffer,
   ): Promise<SaveScoresRequest> {
     try {
       const decrypted = await this.cryptoService.decryptForUser(userId, body);
@@ -175,7 +175,7 @@ export class UserScoresService {
   private async updateWithTransaction(
     tx: NodePgDatabase,
     userId: string,
-    totalScore: number
+    totalScore: number,
   ): Promise<string | null> {
     // Get current highest score before update
     const currentHighestScore = await this.getCurrentHighestScore(tx);
@@ -198,7 +198,7 @@ export class UserScoresService {
     return await this.checkAndPrepareLeaderboardNotification(
       tx,
       userId,
-      currentHighestScore
+      currentHighestScore,
     );
   }
 
@@ -227,7 +227,7 @@ export class UserScoresService {
   private async checkAndPrepareLeaderboardNotification(
     tx: NodePgDatabase,
     userId: string,
-    previousHighestScore: number
+    previousHighestScore: number,
   ): Promise<string | null> {
     // Get the user's current score after the update
     const userScore = await tx
@@ -287,7 +287,7 @@ export class UserScoresService {
       const decoded = atob(cursor);
       const decoder = new TextDecoder();
       const bytes = new Uint8Array(
-        decoded.split("").map((char) => char.charCodeAt(0))
+        decoded.split("").map((char) => char.charCodeAt(0)),
       );
       const jsonString = decoder.decode(bytes);
       const cursorData = JSON.parse(jsonString);
@@ -304,7 +304,7 @@ export class UserScoresService {
       throw new ServerError(
         "INVALID_CURSOR",
         "Invalid pagination cursor format",
-        400
+        400,
       );
     }
   }
@@ -320,7 +320,7 @@ export class UserScoresService {
     tx: NodePgDatabase,
     hostUserId: string,
     matchId: number,
-    request: SaveScoresRequest
+    request: SaveScoresRequest,
   ): Promise<void> {
     // Get all user IDs from match_users table for this match
     const matchUsers = await tx
@@ -342,7 +342,7 @@ export class UserScoresService {
         throw new ServerError(
           "PLAYER_NOT_IN_MATCH",
           `Player ${playerScore.userId} is not part of the match`,
-          400
+          400,
         );
       }
     }

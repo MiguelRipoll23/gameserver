@@ -1,10 +1,4 @@
-import {
-  pgTable,
-  jsonb,
-  timestamp,
-  integer,
-  check,
-} from "drizzle-orm/pg-core";
+import { check, integer, jsonb, pgTable, timestamp } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const serverSignatureKeysTable = pgTable(

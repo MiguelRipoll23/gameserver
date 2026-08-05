@@ -68,10 +68,13 @@ export class PublicAuthenticationRouter {
         const validated = c.req.valid("json");
         const origin = extractAndValidateOrigin(c);
 
-        const response = await this.authenticationService.getOptions(validated, origin);
+        const response = await this.authenticationService.getOptions(
+          validated,
+          origin,
+        );
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 
@@ -115,11 +118,11 @@ export class PublicAuthenticationRouter {
         const response = await this.authenticationService.verifyResponse(
           connInfo,
           validated,
-          origin
+          origin,
         );
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 
@@ -129,7 +132,8 @@ export class PublicAuthenticationRouter {
         method: "post",
         path: "/refresh",
         summary: "Refresh access token",
-        description: "Rotates a refresh token and returns a new access token pair",
+        description:
+          "Rotates a refresh token and returns a new access token pair",
         tags: ["User authentication"],
         request: {
           body: {
@@ -156,7 +160,9 @@ export class PublicAuthenticationRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        const response = await this.authenticationService.refreshTokens(validated);
+        const response = await this.authenticationService.refreshTokens(
+          validated,
+        );
 
         return c.json(response, 200);
       },

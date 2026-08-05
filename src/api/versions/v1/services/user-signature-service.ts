@@ -19,8 +19,9 @@ export class UserSignatureService {
       .fixedLengthString(userName, 16)
       .toArrayBuffer();
 
-    const signedPayload =
-      await this.signatureService.signArrayBuffer(signaturePayload);
+    const signedPayload = await this.signatureService.signArrayBuffer(
+      signaturePayload,
+    );
 
     return signedPayload;
   }

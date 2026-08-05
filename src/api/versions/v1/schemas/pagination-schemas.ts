@@ -33,7 +33,7 @@ export type PaginationParams = z.infer<typeof PaginationSchema>;
 export type StringPaginationParams = z.infer<typeof StringPaginationSchema>;
 
 export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(
-  dataSchema: T
+  dataSchema: T,
 ) =>
   z.object({
     results: z.array(dataSchema),
@@ -48,7 +48,7 @@ export const PaginatedResponseSchema = <T extends z.ZodTypeAny>(
 
 // Response schema for string-based cursors
 export const StringPaginatedResponseSchema = <T extends z.ZodTypeAny>(
-  dataSchema: T
+  dataSchema: T,
 ) =>
   z.object({
     results: z.array(dataSchema),

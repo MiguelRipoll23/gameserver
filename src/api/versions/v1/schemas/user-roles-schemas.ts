@@ -58,7 +58,7 @@ export const UserRoleResponseSchema = z.object({
 export type UserRoleResponse = z.infer<typeof UserRoleResponseSchema>;
 
 export const GetUserRolesResponseSchema = PaginatedResponseSchema(
-  UserRoleResponseSchema
+  UserRoleResponseSchema,
 );
 
 export type GetUserRolesResponse = z.infer<typeof GetUserRolesResponseSchema>;

@@ -73,10 +73,13 @@ export class PublicRegistrationRouter {
         const validated = c.req.valid("json");
         const origin = extractAndValidateOrigin(c);
 
-        const response = await this.registrationService.getOptions(validated, origin);
+        const response = await this.registrationService.getOptions(
+          validated,
+          origin,
+        );
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 
@@ -118,11 +121,11 @@ export class PublicRegistrationRouter {
         const response = await this.registrationService.verifyResponse(
           connInfo,
           validated,
-          origin
+          origin,
         );
 
         return c.json(response, 200);
-      }
+      },
     );
   }
 }

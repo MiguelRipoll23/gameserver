@@ -1,9 +1,9 @@
 import {
-  pgTable,
-  varchar,
-  uuid,
-  timestamp,
   pgPolicy,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { usersTable } from "./users-table.ts";
 import { authenticatedUserRole, isCurrentUser } from "../rls.ts";

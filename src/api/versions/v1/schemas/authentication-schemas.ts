@@ -71,7 +71,9 @@ export const VerifyAuthenticationResponseSchema = z.object({
     .describe("Short-lived JWT used to authenticate requests"),
   refreshToken: z
     .string()
-    .describe("Long-lived opaque token used to rotate and issue new access tokens"),
+    .describe(
+      "Long-lived opaque token used to rotate and issue new access tokens",
+    ),
   userId: z
     .string()
     .length(36)
@@ -93,17 +95,17 @@ export const VerifyAuthenticationResponseSchema = z.object({
   userSymmetricKey: z
     .string()
     .describe(
-      "Symmetric key generated for encrypting and decrypting the user's game session data"
+      "Symmetric key generated for encrypting and decrypting the user's game session data",
     ),
   serverSignaturePublicKey: z
     .string()
     .describe(
-      "Public key used to verify digital signatures from connected peers"
+      "Public key used to verify digital signatures from connected peers",
     ),
   rtcIceServers: z
     .array(RTCIceServerSchema)
     .describe(
-      "List of ICE servers (STUN/TURN) to facilitate WebRTC connectivity for the user"
+      "List of ICE servers (STUN/TURN) to facilitate WebRTC connectivity for the user",
     ),
 });
 

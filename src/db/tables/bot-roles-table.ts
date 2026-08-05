@@ -1,10 +1,10 @@
 import {
   integer,
+  pgPolicy,
   pgTable,
   timestamp,
-  uuid,
   unique,
-  pgPolicy,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { botsTable } from "./bots-table.ts";
@@ -31,7 +31,22 @@ export const botRolesTable = pgTable.withRLS(
     pgPolicy("bot_roles_select_own", {
       for: "select",
       to: authenticatedUserRole,
-      using: sql`(current_setting('app.user_id', true)::uuid = (SELECT ${botsTable.createdBy} FROM ${botsTable} WHERE ${botsTable.id} = ${table.botId}))`,
+      using:
+        sql`(current_setting('app.user_id', true)::uuid = (SELECT ${botsTable.createdBy} FROM ${botsTable} WHERE ${botsTable.id} = ${table.botId}))`,
+    }),
+    // Bot creators can add roles only to bots they created
+    pgPolicy("bot_roles_insert_own", {
+      for: "insert",
+      to: authenticatedUserRole,
+      withCheck:
+        sql`(current_setting('app.user_id', true)::uuid = (SELECT ${botsTable.createdBy} FROM ${botsTable} WHERE ${botsTable.id} = ${table.botId}))`,
+    }),
+    // Bot creators can remove roles only from bots they created
+    pgPolicy("bot_roles_delete_own", {
+      for: "delete",
+      to: authenticatedUserRole,
+      using:
+        sql`(current_setting('app.user_id', true)::uuid = (SELECT ${botsTable.createdBy} FROM ${botsTable} WHERE ${botsTable.id} = ${table.botId}))`,
     }),
   ],
 );

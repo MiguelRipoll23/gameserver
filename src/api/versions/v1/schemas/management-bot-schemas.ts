@@ -1,7 +1,7 @@
 import { z } from "@hono/zod-openapi";
 import {
-  StringPaginationSchema,
   StringPaginatedResponseSchema,
+  StringPaginationSchema,
 } from "./pagination-schemas.ts";
 
 export const CreateBotRequestSchema = z.object({
@@ -54,7 +54,9 @@ export const UpdateBotResponseSchema = z.object({
   id: z.string().uuid().describe("Unique identifier for the bot"),
   name: z.string().describe("Display name of the bot"),
   description: z.string().nullable().describe("Description of the bot"),
-  createdBy: z.string().uuid().describe("User ID of the manager who created the bot"),
+  createdBy: z.string().uuid().describe(
+    "User ID of the manager who created the bot",
+  ),
   createdAt: z.string().describe("Creation date of the bot"),
 });
 
@@ -66,7 +68,9 @@ export const BotResponseSchema = z.object({
   id: z.string().uuid().describe("Unique identifier for the bot"),
   name: z.string().describe("Display name of the bot"),
   description: z.string().nullable().describe("Description of the bot"),
-  createdBy: z.string().uuid().describe("User ID of the manager who created the bot"),
+  createdBy: z.string().uuid().describe(
+    "User ID of the manager who created the bot",
+  ),
   createdAt: z.string().describe("Creation date of the bot"),
 });
 

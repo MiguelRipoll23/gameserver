@@ -16,7 +16,7 @@ displayNameInputElement.addEventListener("input", handleDisplayNameInput);
 document.addEventListener("websocket-connection", handleWebSocketConnection);
 document.addEventListener(
   "authentication-success",
-  handleAuthenticationSuccess
+  handleAuthenticationSuccess,
 );
 
 playerIdDialogElement.showModal();

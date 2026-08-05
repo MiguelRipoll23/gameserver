@@ -3,10 +3,10 @@ import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
   generateRegistrationOptions,
-  verifyRegistrationResponse,
   type PublicKeyCredentialCreationOptionsJSON,
   type RegistrationResponseJSON,
   type VerifiedRegistrationResponse,
+  verifyRegistrationResponse,
 } from "@simplewebauthn/server";
 import { AuthenticationService } from "./authentication-service.ts";
 import { ConnInfo } from "hono/conninfo";
@@ -28,14 +28,16 @@ import { AuthenticationChallengesService } from "./authentication-challenges-ser
 export class RegistrationService {
   private static readonly emojiRegex = /[\p{Extended_Pictographic}]/u;
   constructor(
-    private authenticationChallengesService = inject(AuthenticationChallengesService),
+    private authenticationChallengesService = inject(
+      AuthenticationChallengesService,
+    ),
     private databaseService = inject(DatabaseService),
-    private authenticationService = inject(AuthenticationService)
+    private authenticationService = inject(AuthenticationService),
   ) {}
 
   public async getOptions(
     registrationOptionsRequest: GetRegistrationOptionsRequest,
-    origin: string
+    origin: string,
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
     console.log("Registration options for display name", displayName);
@@ -49,7 +51,7 @@ export class RegistrationService {
       throw new ServerError(
         "ORIGIN_NOT_ALLOWED",
         "Origin is not in the allowed list",
-        403
+        403,
       );
     }
 
@@ -80,28 +82,28 @@ export class RegistrationService {
   public async verifyResponse(
     connectionInfo: ConnInfo,
     registrationRequest: VerifyRegistrationRequest,
-    origin: string
+    origin: string,
   ): Promise<AuthenticationResponse> {
     const { transactionId } = registrationRequest;
     const registrationOptions = await this.consumeRegistrationOptionsOrThrow(
-      transactionId
+      transactionId,
     );
 
     if (!WebAuthnUtils.isOriginAllowed(origin)) {
       throw new ServerError(
         "ORIGIN_NOT_ALLOWED",
         "Origin is not in the allowed list",
-        403
+        403,
       );
     }
 
-    const registrationResponse =
-      registrationRequest.registrationResponse as object as RegistrationResponseJSON;
+    const registrationResponse = registrationRequest
+      .registrationResponse as object as RegistrationResponseJSON;
 
     const verification = await this.verifyRegistrationResponse(
       registrationResponse,
       registrationOptions,
-      origin
+      origin,
     );
 
     const credential = this.createCredential(registrationOptions, verification);
@@ -117,7 +119,7 @@ export class RegistrationService {
       throw new ServerError(
         "DISPLAY_NAME_CONTAINS_EMOJI",
         "Display name cannot include an emoji",
-        400
+        400,
       );
     }
   }
@@ -134,15 +136,17 @@ export class RegistrationService {
       throw new ServerError(
         "DISPLAY_NAME_TAKEN",
         "Display name is already taken",
-        409
+        409,
       );
     }
   }
 
   private async consumeRegistrationOptionsOrThrow(
-    transactionId: string
+    transactionId: string,
   ): Promise<PublicKeyCredentialCreationOptionsJSON> {
-    const challenge = await this.authenticationChallengesService.consume<PublicKeyCredentialCreationOptionsJSON>(
+    const challenge = await this.authenticationChallengesService.consume<
+      PublicKeyCredentialCreationOptionsJSON
+    >(
       transactionId,
       "registration",
     );
@@ -151,7 +155,7 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_OPTIONS_NOT_FOUND",
         "Registration options not found",
-        400
+        400,
       );
     }
 
@@ -159,7 +163,7 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_OPTIONS_EXPIRED",
         "Registration options expired",
-        400
+        400,
       );
     }
 
@@ -169,7 +173,7 @@ export class RegistrationService {
   private async verifyRegistrationResponse(
     registrationResponse: RegistrationResponseJSON,
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
-    origin: string
+    origin: string,
   ): Promise<VerifiedRegistrationResponse> {
     try {
       const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
@@ -194,14 +198,14 @@ export class RegistrationService {
       throw new ServerError(
         "REGISTRATION_VERIFICATION_FAILED",
         "Registration verification failed",
-        400
+        400,
       );
     }
   }
 
   private createCredential(
     registrationOptions: PublicKeyCredentialCreationOptionsJSON,
-    verification: VerifiedRegistrationResponse
+    verification: VerifiedRegistrationResponse,
   ): UserCredentialEntity {
     const { registrationInfo } = verification;
 
@@ -211,7 +215,7 @@ export class RegistrationService {
 
     const userId = Base64Utils.base64UrlToString(registrationOptions.user.id);
     const publicKey = Base64Utils.arrayBufferToBase64Url(
-      registrationInfo.credential.publicKey.buffer
+      registrationInfo.credential.publicKey.buffer,
     );
 
     return {
@@ -227,7 +231,7 @@ export class RegistrationService {
 
   private createUser(
     credential: UserCredentialEntity,
-    registrationOptions: PublicKeyCredentialCreationOptionsJSON
+    registrationOptions: PublicKeyCredentialCreationOptionsJSON,
   ): UserEntity {
     const { userId } = credential;
 
@@ -241,7 +245,7 @@ export class RegistrationService {
 
   private async addCredentialAndUserOrThrow(
     credential: UserCredentialEntity,
-    user: UserEntity
+    user: UserEntity,
   ): Promise<void> {
     const db = this.databaseService.get();
 
@@ -270,7 +274,7 @@ export class RegistrationService {
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
         "Failed to add credential and user",
-        500
+        500,
       );
     }
   }

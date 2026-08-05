@@ -13,7 +13,7 @@ const CLOUD_CONFIGURATION_KEY = "cloud_configuration";
 export class ConfigurationService {
   constructor(
     private gameConfigurationService = inject(GameConfigurationService),
-    private cryptoService = inject(CryptoService)
+    private cryptoService = inject(CryptoService),
   ) {}
 
   public async getData(): Promise<GetConfigurationResponse> {
@@ -25,7 +25,7 @@ export class ConfigurationService {
       throw new ServerError(
         "CONFIGURATION_NOT_FOUND",
         "Configuration not found",
-        404
+        404,
       );
     }
 
@@ -33,7 +33,7 @@ export class ConfigurationService {
   }
 
   public async setData(
-    configurationRequest: UpdateConfigurationRequest
+    configurationRequest: UpdateConfigurationRequest,
   ): Promise<void> {
     await this.gameConfigurationService.save(
       CLOUD_CONFIGURATION_KEY,
@@ -50,7 +50,7 @@ export class ConfigurationService {
       throw new ServerError(
         "CONFIGURATION_NOT_FOUND",
         "Configuration not found",
-        404
+        404,
       );
     }
 
@@ -59,7 +59,7 @@ export class ConfigurationService {
     const rawData = encoded.slice().buffer;
     const encryptedData = await this.cryptoService.encryptForUser(
       userId,
-      rawData
+      rawData,
     );
 
     return encryptedData;

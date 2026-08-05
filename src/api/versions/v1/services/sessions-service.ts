@@ -22,7 +22,9 @@ export class SessionsService {
             .where(
               and(
                 eq(userSessionsTable.userId, userId),
-                sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
+                sql`${userSessionsTable.updatedAt} >= NOW() - (${
+                  sql.raw(String(SESSION_LIFETIME_SECONDS))
+                } * INTERVAL '1 second')`,
               ),
             )
             .limit(1);
@@ -45,8 +47,8 @@ export class SessionsService {
 
   public async ensureHasNoActiveSession(userId: string): Promise<void> {
     try {
-      const existingSessions =
-        await this.databaseService.executeWithUserContext(
+      const existingSessions = await this.databaseService
+        .executeWithUserContext(
           userId,
           (tx) => {
             return tx
@@ -55,7 +57,9 @@ export class SessionsService {
               .where(
                 and(
                   eq(userSessionsTable.userId, userId),
-                  sql`${userSessionsTable.updatedAt} >= NOW() - (${sql.raw(String(SESSION_LIFETIME_SECONDS))} * INTERVAL '1 second')`,
+                  sql`${userSessionsTable.updatedAt} >= NOW() - (${
+                    sql.raw(String(SESSION_LIFETIME_SECONDS))
+                  } * INTERVAL '1 second')`,
                 ),
               )
               .limit(1);
