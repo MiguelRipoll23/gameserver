@@ -9,11 +9,18 @@
   </head>
   <body>
     <dialog id="device-authorization-dialog">
-      <h1>Sign in to the bot</h1>
-      <p>Use a passkey with the <code>manager</code> role to authorize the bot.</p>
-      <label for="code-input">Authorization code</label>
-      <input id="code-input" type="text" placeholder="XXXXXXXXXXXXXXXX" autocomplete="off" autocapitalize="characters" inputmode="text" maxlength="16" />
-      <button id="sign-in-button">Sign in with passkey</button>
+      <h1>Player ID</h1>
+      <input
+        id="code-input"
+        type="text"
+        placeholder="Enter authorization code..."
+        autocomplete="off"
+        autocapitalize="characters"
+        inputmode="text"
+        maxlength="16"
+        autofocus
+      />
+      <button id="sign-in-button">Authorize device</button>
       <p id="status" role="status" aria-live="polite"></p>
     </dialog>
   </body>

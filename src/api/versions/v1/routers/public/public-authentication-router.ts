@@ -182,7 +182,7 @@ export class PublicAuthenticationRouter {
         summary: "Create a device authorization code",
         description:
           "Issues a new short-lived code the bot shows to the user to authorize a device",
-        tags: ["Device authentication"],
+        tags: ["Device authorization"],
         responses: {
           200: {
             description: "Responds with the issued code and its expiry",
@@ -212,7 +212,7 @@ export class PublicAuthenticationRouter {
         summary: "Store device authorization tokens",
         description:
           "Stores the token pair issued to a browser against a device authorization code",
-        tags: ["Device authentication"],
+        tags: ["Device authorization"],
         request: {
           body: {
             content: {
@@ -261,7 +261,7 @@ export class PublicAuthenticationRouter {
         summary: "Retrieve device authorization tokens",
         description:
           "Returns and consumes the token pair stored for a device authorization code",
-        tags: ["Device authentication"],
+        tags: ["Device authorization"],
         request: {
           body: {
             content: {

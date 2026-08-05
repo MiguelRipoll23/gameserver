@@ -4,14 +4,12 @@ import { and, eq, gt, isNotNull, isNull, sql } from "drizzle-orm";
 import { deviceAuthorizationCodesTable } from "../../../../db/schema.ts";
 import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
 import { ServerError } from "../models/server-error.ts";
-import { JWTService } from "../../../../core/services/jwt-service.ts";
 import { ENV_JWT_SECRET } from "../constants/environment-constants.ts";
 import { DEVICE_AUTHORIZATION_CODE_EXPIRATION_MS } from "../constants/authentication-constants.ts";
 
 const ENCRYPTION_IV_LENGTH = 12;
 const CODE_LENGTH = 16;
 const CODE_ALPHABET = "ACDEFGHJKMNPQRTUVWXYZ234679";
-const REQUIRED_ROLE = "manager";
 
 export interface DeviceAuthorizationTokenPair {
   accessToken: string;
@@ -29,7 +27,6 @@ export class DeviceAuthorizationCodesService {
 
   constructor(
     private databaseService = inject(DatabaseService),
-    private jwtService = inject(JWTService),
   ) {}
 
   public async create(): Promise<DeviceAuthorizationCode> {
@@ -64,17 +61,6 @@ export class DeviceAuthorizationCodesService {
     accessToken: string,
     refreshToken: string,
   ): Promise<void> {
-    const payload = await this.jwtService.verify(accessToken);
-    const roles = this.normalizeRoles(payload.roles);
-
-    if (!roles.includes(REQUIRED_ROLE)) {
-      throw new ServerError(
-        "NO_MANAGER_ROLE",
-        "Missing manager role",
-        403,
-      );
-    }
-
     const encryptedTokens = await this.encryptTokens({
       accessToken,
       refreshToken,
@@ -128,12 +114,6 @@ export class DeviceAuthorizationCodesService {
       // Throwing rolls back the delete so a failed decrypt does not burn the code
       return await this.decryptTokens(encryptedTokens);
     });
-  }
-
-  private normalizeRoles(roles: unknown): string[] {
-    if (!Array.isArray(roles)) return [];
-
-    return roles.filter((role): role is string => typeof role === "string");
   }
 
   private generateCode(): string {

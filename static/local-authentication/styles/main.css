@@ -18,7 +18,6 @@ dialog {
   padding: 20px;
   border-radius: 6px;
   text-align: center;
-  top: -170px;
   background: #fff;
   opacity: 0;
   transform: scale(0.9);
