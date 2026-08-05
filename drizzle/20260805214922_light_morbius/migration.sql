@@ -1,3 +1,1 @@
-ALTER TABLE "users" ADD COLUMN "updated_at" timestamp with time zone;--> statement-breakpoint
-CREATE POLICY "bot_roles_insert_own" ON "bot_roles" AS PERMISSIVE FOR INSERT TO "authenticated_user" WITH CHECK ((current_setting('app.user_id', true)::uuid = (SELECT "bots"."created_by" FROM "bots" WHERE "bots"."id" = "bot_roles"."bot_id")));--> statement-breakpoint
-CREATE POLICY "bot_roles_delete_own" ON "bot_roles" AS PERMISSIVE FOR DELETE TO "authenticated_user" USING ((current_setting('app.user_id', true)::uuid = (SELECT "bots"."created_by" FROM "bots" WHERE "bots"."id" = "bot_roles"."bot_id")));
+ALTER TABLE "users" ADD COLUMN "updated_at" timestamp with time zone;
