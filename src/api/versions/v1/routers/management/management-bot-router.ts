@@ -9,6 +9,7 @@ import {
   GetBotRolesResponseSchema,
   GetBotsQuerySchema,
   GetBotsResponseSchema,
+  GetBotTokenRequestSchema,
   GetBotTokenResponseSchema,
   RemoveBotRoleRequestSchema,
   UpdateBotRequestSchema,
@@ -212,19 +213,20 @@ export class ManagementBotRouter {
   private registerGetBotTokenRoute(): void {
     this.app.openapi(
       createRoute({
-        method: "get",
-        path: "/:botId/token",
-        summary: "Get bot token",
+method: "post",
+        path: "/token",
+        summary: "Get token",
         description:
           "Mints a long-lived JWT for the bot reflecting its current roles",
         tags: ["Bots"],
         request: {
-          params: z.object({
-            botId: z
-              .string()
-              .uuid()
-              .describe("The bot ID to mint a token for"),
-          }),
+          body: {
+            content: {
+              "application/json": {
+                schema: GetBotTokenRequestSchema,
+              },
+            },
+          },
         },
         responses: {
           200: {
@@ -242,7 +244,7 @@ export class ManagementBotRouter {
         },
       }),
       async (c) => {
-        const botId = c.req.param("botId");
+        const { botId } = c.req.valid("json");
         const requesterUserId = c.get("userId") as string;
 
         const response = await this.botManagementService.getBotToken(

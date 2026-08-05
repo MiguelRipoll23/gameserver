@@ -90,6 +90,16 @@ export const GetBotTokenResponseSchema = z.object({
 
 export type GetBotTokenResponse = z.infer<typeof GetBotTokenResponseSchema>;
 
+export const GetBotTokenRequestSchema = z.object({
+  botId: z
+    .string()
+    .uuid()
+    .describe("The bot ID to mint a token for")
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
+});
+
+export type GetBotTokenRequest = z.infer<typeof GetBotTokenRequestSchema>;
+
 export const AddBotRoleRequestSchema = z.object({
   roleName: z
     .string()
