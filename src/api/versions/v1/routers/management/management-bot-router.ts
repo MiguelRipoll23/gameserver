@@ -215,7 +215,7 @@ export class ManagementBotRouter {
       createRoute({
 method: "post",
         path: "/token",
-        summary: "Get token",
+        summary: "Get bot token",
         description:
           "Mints a long-lived JWT for the bot reflecting its current roles",
         tags: ["Bots"],

@@ -35,6 +35,7 @@ import { SessionsService } from "./sessions-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { EventDispatchMode } from "../constants/event-constants.ts";
 import { UserSignatureService } from "./user-signature-service.ts";
+import { AuthenticationRejectedError } from "../models/authentication-rejected-error.ts";
 
 @injectable()
 export class WebSocketService implements WebSocketServer {
@@ -236,28 +237,22 @@ export class WebSocketService implements WebSocketServer {
     return false;
   }
 
-  private async handleAuthentication(
-    webSocketUser: WebSocketUser,
-  ): Promise<void> {
-    const userId = webSocketUser.getId();
-    const userName = webSocketUser.getName();
-
-    if (await this.userModerationService.isBanned(userId)) {
-      this.closeConnection(webSocketUser, 1008, "User has been banned");
-      throw new Error(`Banned user ${userName} attempted to connect to server`);
+  private async handleAuthentication(user: WebSocketUser): Promise<void> {
+    if (await this.userModerationService.isBanned(user.getId())) {
+      this.closeConnection(user, 1008, "User has been banned");
+      throw new AuthenticationRejectedError(
+        `Banned user ${user.getName()} attempted to connect to server`,
+      );
     }
 
-    const userToken = webSocketUser.getToken();
-    const userPublicIp = webSocketUser.getPublicIp();
-
     await this.sessionsService.create(
-      userId,
-      userName,
-      userToken,
-      userPublicIp,
+      user.getId(),
+      user.getName(),
+      user.getToken(),
+      user.getPublicIp(),
     );
 
-    this.userRegistry.add(webSocketUser);
+    this.userRegistry.add(user);
   }
 
   private sendPlayerRelayToToken(
@@ -411,7 +406,6 @@ export class WebSocketService implements WebSocketServer {
     originUser: WebSocketUser,
     binaryReader: BinaryReader,
   ): Promise<void> {
-    // Prevent repeated authentication attempts
     if (originUser.isAuthenticated()) {
       console.info("Duplicate authentication received; ignoring");
       return;
@@ -421,44 +415,52 @@ export class WebSocketService implements WebSocketServer {
 
     try {
       const payload = await this.jwtService.verify(accessToken);
-
-      // Apply identity from JWT
-      originUser.setId(payload.sub as string);
-      originUser.setName(payload.name as string);
-      originUser.setClaims(payload as Record<string, unknown>);
-      originUser.setAuthenticated(true);
+      this.applyIdentity(originUser, payload);
 
       await this.handleAuthentication(originUser);
-
-      // Generate signature and send auth response within guarded block
-      const userSignature = await this.userSignatureService.get(
-        originUser.getToken(),
-        originUser.getNetworkId(),
-        originUser.getName(),
-      );
-
-      // Send authentication response
-      const authenticationResponsePayload = buildAuthenticationResponsePayload(
-        userSignature,
-      );
-
-      this.sendMessage(originUser, authenticationResponsePayload);
-
-      // Notify all users about the updated online count after authentication
-      try {
-        await this.getAndSendOnlinePlayers();
-      } catch (error) {
-        console.error(
-          "Failed to notify users count after authentication:",
-          error,
-        );
-      }
+      await this.sendAuthenticationResponse(originUser);
     } catch (error) {
-      console.error("Authentication failed:", error);
+      if (error instanceof AuthenticationRejectedError) {
+        console.info(error.message);
+      } else {
+        console.error("Authentication failed:", error);
+      }
       this.userRegistry.remove(originUser);
       this.closeConnection(originUser, 1008, "Authentication failed");
       return;
     }
+
+    // Not part of the auth contract — failure here shouldn't fail auth
+    this.notifyOnlineCount();
+  }
+
+  private applyIdentity(
+    user: WebSocketUser,
+    payload: Record<string, unknown>,
+  ): void {
+    user.setId(payload.sub as string);
+    user.setName(payload.name as string);
+    user.setClaims(payload);
+    user.setAuthenticated(true);
+  }
+
+  private async sendAuthenticationResponse(
+    user: WebSocketUser,
+  ): Promise<void> {
+    const userSignature = await this.userSignatureService.get(
+      user.getToken(),
+      user.getNetworkId(),
+      user.getName(),
+    );
+
+    const payload = buildAuthenticationResponsePayload(userSignature);
+    this.sendMessage(user, payload);
+  }
+
+  private notifyOnlineCount(): void {
+    this.getAndSendOnlinePlayers().catch((error) => {
+      console.error("Failed to notify users count after authentication:", error);
+    });
   }
 
   @CommandHandler(WebSocketType.PlayerRelay)
