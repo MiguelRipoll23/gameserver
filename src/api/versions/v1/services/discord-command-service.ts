@@ -8,6 +8,7 @@ import {
 } from "../enums/notification-channel-enum.ts";
 import { EMBED_COLORS } from "../constants/discord-command-constants.ts";
 import { ENV_DISCORD_ALLOWED_ROLE_NAMES } from "../constants/environment-constants.ts";
+import { ServerError } from "../models/server-error.ts";
 import {
   DiscordCommandOptionType,
 } from "../enums/discord-command-option-enum.ts";
@@ -148,7 +149,7 @@ export class DiscordCommandService {
         }
         try {
           await this.serverMessagesService.create({ title, content });
-          return this.successResponse("News created", undefined, [
+          return this.embedResponse("News created", undefined, [
             {
               name: "Title",
               value: this.truncate(title, 1024),
@@ -181,7 +182,7 @@ export class DiscordCommandService {
         }
         try {
           await this.serverMessagesService.update({ id, title, content });
-          return this.successResponse(
+          return this.embedResponse(
             "News updated",
             `Updated **#${id}**`,
             [
@@ -201,6 +202,48 @@ export class DiscordCommandService {
           console.error("discord news update failed:", e);
           return this.errorResponse(
             "Update news failed",
+            DiscordCommandService.GENERIC_ERROR_MESSAGE,
+          );
+        }
+      }
+
+      case "view": {
+        const id = Number(values.get("id"));
+        if (!Number.isInteger(id) || id <= 0) {
+          return this.errorResponse(
+            "View news",
+            "A valid news ID is required.",
+          );
+        }
+        try {
+          const message = await this.serverMessagesService.get(id);
+          return this.embedResponse(`News #${message.id}`, undefined, [
+            {
+              name: "Title",
+              value: this.truncate(message.title, 1024),
+              inline: false,
+            },
+            {
+              name: "Content",
+              value: this.truncate(message.content, 1024),
+              inline: false,
+            },
+            {
+              name: "Updated",
+              value: this.formatTimestamp(message.updatedAt),
+              inline: true,
+            },
+          ]);
+        } catch (e) {
+          if (e instanceof ServerError && e.getStatusCode() === 404) {
+            return this.errorResponse(
+              "View news",
+              `News **#${id}** not found.`,
+            );
+          }
+          console.error("discord news view failed:", e);
+          return this.errorResponse(
+            "View news failed",
             DiscordCommandService.GENERIC_ERROR_MESSAGE,
           );
         }
@@ -235,14 +278,20 @@ export class DiscordCommandService {
           if (list.results.length === 0) {
             return this.infoResponse("News", "No news items yet.");
           }
-          return this.infoResponse(
-            `News (${list.results.length})`,
-            undefined,
-            list.results.map((item) => ({
-              name: this.truncate(`#${item.id} — ${item.title}`, 256),
-              value: this.contentSnippet(item.content),
-              inline: false,
-            })),
+          const items = list.results
+            .map(
+              (item) =>
+                `**#${item.id} — ${this.truncate(item.title, 256)}**\n` +
+                `Created ${this.formatTimestamp(item.createdAt)} · Updated ${
+                  this.formatTimestamp(item.updatedAt)
+                }`,
+            )
+            .join("\n\n");
+          return this.textResponse(
+            this.truncate(
+              `**News (${list.results.length})**\n\n${items}`,
+              2000,
+            ),
           );
         } catch (e) {
           console.error("discord news list failed:", e);
@@ -301,11 +350,36 @@ export class DiscordCommandService {
       : singleLine;
   }
 
+  private formatTimestamp(ms: number): string {
+    return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
+  }
+
   private truncate(value: string, max: number): string {
     return value.length > max ? value.slice(0, max) : value;
   }
 
   private successResponse(
+    heading: string,
+    description?: string,
+  ): DiscordInteractionResponse {
+    return this.textResponse(this.withHeading(heading, description));
+  }
+
+  private infoResponse(
+    heading: string,
+    description?: string,
+  ): DiscordInteractionResponse {
+    return this.textResponse(this.withHeading(heading, description));
+  }
+
+  private errorResponse(
+    heading: string,
+    description?: string,
+  ): DiscordInteractionResponse {
+    return this.textResponse(this.withHeading(heading, description));
+  }
+
+  private embedResponse(
     heading: string,
     description?: string,
     fields?: DiscordEmbed["fields"],
@@ -317,30 +391,18 @@ export class DiscordCommandService {
     });
   }
 
-  private infoResponse(
-    heading: string,
-    description?: string,
-    fields?: DiscordEmbed["fields"],
-  ): DiscordInteractionResponse {
-    return this.embed({
-      description: this.withHeading(heading, description),
-      color: EMBED_COLORS.info,
-      fields,
-    });
-  }
-
-  private errorResponse(
-    heading: string,
-    description?: string,
-  ): DiscordInteractionResponse {
-    return this.embed({
-      description: this.withHeading(heading, description),
-      color: EMBED_COLORS.error,
-    });
-  }
-
   private withHeading(heading: string, description?: string): string {
     return description ? `**${heading}**\n\n${description}` : `**${heading}**`;
+  }
+
+  private textResponse(content: string): DiscordInteractionResponse {
+    return {
+      type: DiscordInteractionResponseType.ChannelMessageWithSource,
+      data: {
+        content,
+        flags: 64,
+      },
+    };
   }
 
   private embed(embed: DiscordEmbed): DiscordInteractionResponse {

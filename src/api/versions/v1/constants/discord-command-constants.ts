@@ -85,6 +85,19 @@ export const DISCORD_SLASH_COMMANDS: DiscordSlashCommandPayload[] = [
       },
       {
         type: SUB_COMMAND,
+        name: "view",
+        description: "View a news item's full details",
+        options: [
+          {
+            name: "id",
+            description: "News ID",
+            type: INTEGER,
+            required: true,
+          },
+        ],
+      },
+      {
+        type: SUB_COMMAND,
         name: "delete",
         description: "Delete a news item",
         options: [
