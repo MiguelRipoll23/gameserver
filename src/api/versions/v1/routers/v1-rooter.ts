@@ -4,7 +4,6 @@ import { V1AuthenticatedRouter } from "./authenticated-router.ts";
 import { inject, injectable } from "@needle-di/core";
 import { V1ManagementRouter } from "./management-router.ts";
 import { V1ModerationRouter } from "./moderation-router.ts";
-import { DiscordInteractionsRouter } from "./discord/discord-interactions-router.ts";
 
 @injectable()
 export class V1Router {
@@ -15,7 +14,6 @@ export class V1Router {
     private authenticatedRouter = inject(V1AuthenticatedRouter),
     private managementRouter = inject(V1ManagementRouter),
     private moderationRouter = inject(V1ModerationRouter),
-    private discordInteractionsRouter = inject(DiscordInteractionsRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setRoutes();
@@ -30,6 +28,5 @@ export class V1Router {
     this.app.route("/", this.authenticatedRouter.getRouter());
     this.app.route("/", this.moderationRouter.getRouter());
     this.app.route("/", this.managementRouter.getRouter());
-    this.app.route("/discord", this.discordInteractionsRouter.getRouter());
   }
 }

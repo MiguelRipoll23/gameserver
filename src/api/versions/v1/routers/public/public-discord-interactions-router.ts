@@ -14,7 +14,7 @@ import type { DiscordInteractionPayload } from "../../types/discord-interaction-
 import type { DiscordInteractionResponse } from "../../types/discord-interaction-response-type.ts";
 
 @injectable()
-export class DiscordInteractionsRouter {
+export class PublicDiscordInteractionsRouter {
   private app: OpenAPIHono<{
     Variables: { discordInteraction: DiscordInteractionPayload };
   }>;
