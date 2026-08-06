@@ -34,9 +34,12 @@ export class DiscordSignatureVerificationMiddleware {
         );
       }
 
-      const parsedTimestamp = Date.parse(timestamp);
+      const timestampSeconds = Number(timestamp);
+      const parsedTimestamp = Number.isFinite(timestampSeconds)
+        ? timestampSeconds * 1000
+        : Date.parse(timestamp);
       if (
-        Number.isNaN(parsedTimestamp) ||
+        !Number.isFinite(parsedTimestamp) ||
         Math.abs(Date.now() - parsedTimestamp) > TIMESTAMP_FRESHNESS_MS
       ) {
         throw new ServerError(
