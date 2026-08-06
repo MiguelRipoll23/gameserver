@@ -3,5 +3,5 @@ import type { DiscordEmbed } from "./discord-embed-type.ts";
 
 export type DiscordInteractionResponse = {
   type: DiscordInteractionResponseType;
-  data?: { embeds?: DiscordEmbed[]; flags?: number };
+  data?: { content?: string; embeds?: DiscordEmbed[]; flags?: number };
 };

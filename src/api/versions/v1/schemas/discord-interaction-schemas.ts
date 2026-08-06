@@ -61,6 +61,7 @@ export const DiscordInteractionResponseSchema = z.object({
     .describe("The interaction response type"),
   data: z
     .object({
+      content: z.string().optional().describe("The message content"),
       embeds: z
         .array(
           z.object({

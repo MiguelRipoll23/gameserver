@@ -31,19 +31,35 @@ export class ServerMessagesService {
       .limit(limit + 1);
 
     const hasNextPage = messages.length > limit;
-    const results = messages.slice(0, limit).map((message) => ({
-      id: message.id,
-      title: message.title,
-      content: message.content,
-      createdAt: message.createdAt.getTime(),
-      updatedAt: message.updatedAt.getTime(),
-    }));
+    const results = messages.slice(0, limit).map((message) =>
+      this.toResponse(message),
+    );
 
     return {
       results,
       nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
       hasMore: hasNextPage,
     };
+  }
+
+  public async get(id: number): Promise<ServerMessageResponse> {
+    const db = this.databaseService.get();
+
+    const [message] = await db
+      .select()
+      .from(serverMessagesTable)
+      .where(eq(serverMessagesTable.id, id))
+      .limit(1);
+
+    if (!message) {
+      throw new ServerError(
+        "MESSAGE_NOT_FOUND",
+        `Message with id ${id} does not exist`,
+        404,
+      );
+    }
+
+    return this.toResponse(message);
   }
 
   public async create(
@@ -95,13 +111,18 @@ export class ServerMessagesService {
       );
     }
 
-    const msg = updated[0];
+    return this.toResponse(updated[0]);
+  }
+
+  private toResponse(
+    message: typeof serverMessagesTable.$inferSelect,
+  ): ServerMessageResponse {
     return {
-      id: msg.id,
-      title: msg.title,
-      content: msg.content,
-      createdAt: msg.createdAt.getTime(),
-      updatedAt: msg.updatedAt.getTime(),
+      id: message.id,
+      title: message.title,
+      content: message.content,
+      createdAt: message.createdAt.getTime(),
+      updatedAt: message.updatedAt.getTime(),
     };
   }
 }
