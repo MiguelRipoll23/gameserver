@@ -1,20 +1,27 @@
 import { z } from "@hono/zod-openapi";
 import { DiscordInteractionResponseType } from "../enums/discord-interaction-response-enum.ts";
-import type { DiscordInteractionOption } from "../types/discord-interaction-option-type.ts";
 
-const DiscordInteractionOptionSchema: z.ZodType<DiscordInteractionOption> = z
-  .object({
-    name: z.string().describe("The option name"),
-    type: z.number().describe("The option type"),
-    value: z
-      .union([z.string(), z.number()])
-      .optional()
-      .describe("The option value"),
-    options: z
-      .array(z.lazy(() => DiscordInteractionOptionSchema))
-      .optional()
-      .describe("Nested options"),
-  });
+const DiscordInteractionOptionSchema = z.object({
+  name: z.string().describe("The option name"),
+  type: z.number().describe("The option type"),
+  value: z
+    .union([z.string(), z.number()])
+    .optional()
+    .describe("The option value"),
+  options: z
+    .array(
+      z.object({
+        name: z.string().describe("The option name"),
+        type: z.number().describe("The option type"),
+        value: z
+          .union([z.string(), z.number()])
+          .optional()
+          .describe("The option value"),
+      }),
+    )
+    .optional()
+    .describe("Nested options"),
+});
 
 export const DiscordInteractionPayloadSchema = z.object({
   id: z.string().describe("The interaction identifier"),
