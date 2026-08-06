@@ -1,6 +1,7 @@
 {
   "imports": {
     "@hono/zod-openapi": "npm:@hono/zod-openapi@^1.5.1",
+    "discordeno": "npm:discordeno@18.0.1",
     "@needle-di/core": "jsr:@needle-di/core@^1.1.3",
     "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.11.12",
     "@simplewebauthn/server": "jsr:@simplewebauthn/server@^13.3.2",
@@ -37,13 +38,18 @@
     "check": "deno check src/main.ts",
     "studio": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit@beta studio",
     "generate": "deno run --permission-set=database --node-modules-dir npm:drizzle-kit@beta generate",
-    "migrate": "deno run --permission-set=database --env scripts/migrate.ts"
+    "migrate": "deno run --permission-set=database --env scripts/migrate.ts",
+    "register-discord-commands": "deno run --env --allow-env --allow-net scripts/register-discord-commands.ts"
   },
   "deploy": {
     "predeploy": "deno task migrate",
     "runtime": {
       "entrypoint": "src/main.ts",
-      "args": ["--unstable-kv", "--unstable-broadcast-channel", "--unstable-cron"]
+      "args": [
+        "--unstable-kv",
+        "--unstable-broadcast-channel",
+        "--unstable-cron"
+      ]
     }
   }
 }
