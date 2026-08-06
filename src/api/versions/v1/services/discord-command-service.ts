@@ -56,8 +56,8 @@ export class DiscordCommandService {
 
     try {
       switch (name) {
-        case "alert":
-          return this.handleAlert(interaction);
+        case "notification":
+          return this.handleNotification(interaction);
         case "news":
           return await this.handleNews(interaction);
         default:
@@ -97,7 +97,7 @@ export class DiscordCommandService {
     ).split(",").map((name) => name.trim()).filter(Boolean);
   }
 
-  private handleAlert(
+  private handleNotification(
     interaction: DiscordInteractionPayload,
   ): DiscordInteractionResponse {
     const values = this.optionValues(interaction.data?.options);
@@ -107,7 +107,10 @@ export class DiscordCommandService {
     );
 
     if (!text) {
-      return this.errorResponse("Alert", "The alert text cannot be empty.");
+      return this.errorResponse(
+        "Notification",
+        "The notification text cannot be empty.",
+      );
     }
 
     try {
@@ -116,13 +119,13 @@ export class DiscordCommandService {
         text,
       );
       return this.successResponse(
-        "Alert sent",
-        `Flash news pushed to **${channel}** players.\n\n${text}`,
+        "Notification sent",
+        `Notification pushed to **${channel}** players.\n\n${text}`,
       );
     } catch (e) {
-      console.error("discord alert failed:", e);
+      console.error("discord notification failed:", e);
       return this.errorResponse(
-        "Alert failed",
+        "Notification failed",
         DiscordCommandService.GENERIC_ERROR_MESSAGE,
       );
     }
@@ -303,40 +306,41 @@ export class DiscordCommandService {
   }
 
   private successResponse(
-    title: string,
+    heading: string,
     description?: string,
     fields?: DiscordEmbed["fields"],
   ): DiscordInteractionResponse {
     return this.embed({
-      title,
-      description,
+      description: this.withHeading(heading, description),
       color: EMBED_COLORS.success,
       fields,
     });
   }
 
   private infoResponse(
-    title: string,
+    heading: string,
     description?: string,
     fields?: DiscordEmbed["fields"],
   ): DiscordInteractionResponse {
     return this.embed({
-      title,
-      description,
+      description: this.withHeading(heading, description),
       color: EMBED_COLORS.info,
       fields,
     });
   }
 
   private errorResponse(
-    title: string,
+    heading: string,
     description?: string,
   ): DiscordInteractionResponse {
     return this.embed({
-      title,
-      description,
+      description: this.withHeading(heading, description),
       color: EMBED_COLORS.error,
     });
+  }
+
+  private withHeading(heading: string, description?: string): string {
+    return description ? `**${heading}**\n\n${description}` : `**${heading}**`;
   }
 
   private embed(embed: DiscordEmbed): DiscordInteractionResponse {

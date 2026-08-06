@@ -13,12 +13,12 @@ const INTEGER = DiscordCommandOptionType.Integer;
 
 export const DISCORD_SLASH_COMMANDS: DiscordSlashCommandPayload[] = [
   {
-    name: "alert",
-    description: "Send a flash news alert to players in-game",
+    name: "notification",
+    description: "Send a notification to players in-game",
     options: [
       {
         name: "text",
-        description: "The alert message to broadcast",
+        description: "The notification message to broadcast",
         type: STRING,
         required: true,
       },
