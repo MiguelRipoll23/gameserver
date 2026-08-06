@@ -19,6 +19,9 @@ import type { DiscordInteractionResponse } from "../types/discord-interaction-re
 
 @injectable()
 export class DiscordCommandService {
+  private static readonly GENERIC_ERROR_MESSAGE =
+    "Something went wrong while processing your request.";
+
   constructor(
     private serverMessagesService = inject(ServerMessagesService),
     private notificationService = inject(NotificationService),
@@ -29,15 +32,15 @@ export class DiscordCommandService {
     interaction: DiscordInteractionPayload,
   ): Promise<DiscordInteractionResponse> {
     const name = interaction.data?.name;
-    if (!name) return this.errorResponse("Unknown Command");
+    if (!name) return this.errorResponse("Unknown command");
 
     const authorized = await this.isAuthorized(interaction);
     if (!authorized) {
       return this.errorResponse(
-        "No Permission",
-        `You need the ${
+        "Not authorized",
+        `You are not authorized to use this command. Only members with one of the following roles can use it: ${
           this.getAllowedRoleNames().join(", ")
-        } role to use this command.`,
+        }.`,
       );
     }
 
@@ -48,11 +51,14 @@ export class DiscordCommandService {
         case "news":
           return await this.handleNews(interaction);
         default:
-          return this.errorResponse("Unknown Command");
+          return this.errorResponse("Unknown command");
       }
     } catch (e) {
       console.error(`discord interaction error /${name}:`, e);
-      return this.errorResponse("Error", this.errorMessage(e));
+      return this.errorResponse(
+        "Error",
+        DiscordCommandService.GENERIC_ERROR_MESSAGE,
+      );
     }
   }
 
@@ -65,7 +71,7 @@ export class DiscordCommandService {
     const guildId = interaction.guildId;
     const memberRoleIds = interaction.member?.roles;
     if (!guildId || !memberRoleIds || memberRoleIds.length === 0) {
-      return await Promise.resolve(false);
+      return false;
     }
 
     return await this.discordRestService.hasAllowedRole(
@@ -100,11 +106,15 @@ export class DiscordCommandService {
         text,
       );
       return this.successResponse(
-        "Alert Sent",
+        "Alert sent",
         `Flash news pushed to **${channel}** players.\n\n${text}`,
       );
     } catch (e) {
-      return this.errorResponse("Alert Failed", this.errorMessage(e));
+      console.error("discord alert failed:", e);
+      return this.errorResponse(
+        "Alert failed",
+        DiscordCommandService.GENERIC_ERROR_MESSAGE,
+      );
     }
   }
 
@@ -119,14 +129,18 @@ export class DiscordCommandService {
         const content = String(values.get("content") ?? "").trim();
         if (!title || !content) {
           return this.errorResponse(
-            "Create News",
+            "Create news",
             "Title and content are required.",
           );
         }
         try {
           await this.serverMessagesService.create({ title, content });
-          return this.successResponse("News Created", undefined, [
-            { name: "Title", value: title, inline: false },
+          return this.successResponse("News created", undefined, [
+            {
+              name: "Title",
+              value: this.truncate(title, 1024),
+              inline: false,
+            },
             {
               name: "Content",
               value: this.contentSnippet(content),
@@ -134,7 +148,11 @@ export class DiscordCommandService {
             },
           ]);
         } catch (e) {
-          return this.errorResponse("Create News Failed", this.errorMessage(e));
+          console.error("discord news create failed:", e);
+          return this.errorResponse(
+            "Create news failed",
+            DiscordCommandService.GENERIC_ERROR_MESSAGE,
+          );
         }
       }
 
@@ -144,17 +162,21 @@ export class DiscordCommandService {
         const content = String(values.get("content") ?? "").trim();
         if (!Number.isInteger(id) || id <= 0 || !title || !content) {
           return this.errorResponse(
-            "Update News",
+            "Update news",
             "A valid ID, title, and content are required.",
           );
         }
         try {
           await this.serverMessagesService.update({ id, title, content });
           return this.successResponse(
-            "News Updated",
+            "News updated",
             `Updated **#${id}**`,
             [
-              { name: "Title", value: title, inline: false },
+              {
+                name: "Title",
+                value: this.truncate(title, 1024),
+                inline: false,
+              },
               {
                 name: "Content",
                 value: this.contentSnippet(content),
@@ -163,7 +185,11 @@ export class DiscordCommandService {
             ],
           );
         } catch (e) {
-          return this.errorResponse("Update News Failed", this.errorMessage(e));
+          console.error("discord news update failed:", e);
+          return this.errorResponse(
+            "Update news failed",
+            DiscordCommandService.GENERIC_ERROR_MESSAGE,
+          );
         }
       }
 
@@ -171,18 +197,22 @@ export class DiscordCommandService {
         const id = Number(values.get("id"));
         if (!Number.isInteger(id) || id <= 0) {
           return this.errorResponse(
-            "Delete News",
+            "Delete news",
             "A valid news ID is required.",
           );
         }
         try {
           await this.serverMessagesService.delete(id);
           return this.successResponse(
-            "News Deleted",
+            "News deleted",
             `Deleted **#${id}**`,
           );
         } catch (e) {
-          return this.errorResponse("Delete News Failed", this.errorMessage(e));
+          console.error("discord news delete failed:", e);
+          return this.errorResponse(
+            "Delete news failed",
+            DiscordCommandService.GENERIC_ERROR_MESSAGE,
+          );
         }
       }
 
@@ -196,13 +226,17 @@ export class DiscordCommandService {
             `News (${list.results.length})`,
             undefined,
             list.results.map((item) => ({
-              name: `#${item.id} — ${item.title}`,
+              name: this.truncate(`#${item.id} — ${item.title}`, 256),
               value: this.contentSnippet(item.content),
               inline: false,
             })),
           );
         } catch (e) {
-          return this.errorResponse("List News Failed", this.errorMessage(e));
+          console.error("discord news list failed:", e);
+          return this.errorResponse(
+            "List news failed",
+            DiscordCommandService.GENERIC_ERROR_MESSAGE,
+          );
         }
       }
 
@@ -254,9 +288,8 @@ export class DiscordCommandService {
       : singleLine;
   }
 
-  private errorMessage(e: unknown): string {
-    if (e instanceof Error) return e.message.slice(0, 1500);
-    return String(e).slice(0, 1500);
+  private truncate(value: string, max: number): string {
+    return value.length > max ? value.slice(0, max) : value;
   }
 
   private successResponse(

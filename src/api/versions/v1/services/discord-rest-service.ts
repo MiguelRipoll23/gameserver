@@ -1,5 +1,5 @@
 import { injectable } from "@needle-di/core";
-import { ENV_DISCORD_BOT_TOKEN } from "../../../versions/v1/constants/environment-constants.ts";
+import { ENV_DISCORD_BOT_TOKEN } from "../constants/environment-constants.ts";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 const ROLE_CACHE_TTL_MS = 60_000;
@@ -28,12 +28,17 @@ export class DiscordRestService {
   ): Promise<boolean> {
     if (allowedRoleNames.length === 0) return false;
 
-    const allowed = allowedRoleNames.map((name) => name.toLowerCase());
+    const allowed = allowedRoleNames
+      .map((name) => name.trim().toLowerCase())
+      .filter(Boolean);
+    if (allowed.length === 0) return false;
+
     const guildRoles = await this.getGuildRoles(guildId);
 
-    return memberRoleIds.some(
-      (id) => allowed.includes(guildRoles.get(id) ?? ""),
-    );
+    return memberRoleIds.some((id) => {
+      const roleName = guildRoles.get(id);
+      return roleName !== undefined && allowed.includes(roleName);
+    });
   }
 
   private async getGuildRoles(guildId: string): Promise<Map<string, string>> {
@@ -46,6 +51,7 @@ export class DiscordRestService {
       `${DISCORD_API_BASE}/guilds/${guildId}/roles`,
       {
         headers: { Authorization: `Bot ${this.token}` },
+        signal: AbortSignal.timeout(5000),
       },
     );
 

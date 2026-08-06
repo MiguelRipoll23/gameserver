@@ -18,6 +18,7 @@ Used by these games:
 - Player and host identity verification
 - Chat messages integrity using digital signatures
 - Secure player score management
+- Optional Discord bot to manage server messages and notifications
 
 ## Configuration
 
