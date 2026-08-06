@@ -230,7 +230,9 @@ export class DiscordCommandService {
             },
             {
               name: "Updated",
-              value: this.formatTimestamp(message.updatedAt),
+              value: this.formatTimestamp(
+                message.updatedAt ?? message.createdAt,
+              ),
               inline: true,
             },
           ]);
