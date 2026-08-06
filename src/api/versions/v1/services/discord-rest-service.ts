@@ -56,8 +56,10 @@ export class DiscordRestService {
     );
 
     if (!resp.ok) {
+      const detail = await resp.text().catch(() => "");
       throw new Error(
-        `Failed to fetch Discord roles for guild ${guildId} (HTTP ${resp.status})`,
+        `Failed to fetch Discord roles for guild ${guildId} (HTTP ${resp.status}` +
+          `${detail ? `: ${detail}` : ""})`,
       );
     }
 

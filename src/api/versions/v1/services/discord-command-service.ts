@@ -34,7 +34,17 @@ export class DiscordCommandService {
     const name = interaction.data?.name;
     if (!name) return this.errorResponse("Unknown command");
 
-    const authorized = await this.isAuthorized(interaction);
+    let authorized: boolean;
+    try {
+      authorized = await this.isAuthorized(interaction);
+    } catch (e) {
+      console.error(`discord interaction authorization error /${name}:`, e);
+      return this.errorResponse(
+        "Authorization error",
+        "Unable to verify your permissions right now. Please try again.",
+      );
+    }
+
     if (!authorized) {
       return this.errorResponse(
         "Not authorized",
