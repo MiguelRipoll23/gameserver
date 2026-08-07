@@ -1,13 +1,6 @@
 import { DiscordCommandOptionType } from "../enums/discord-command-option-enum.ts";
 import type { DiscordSlashCommandPayload } from "../types/discord-slash-command-payload-type.ts";
 
-export const EMBED_COLORS = {
-  info: 0x5865F2,
-  success: 0x57F287,
-  error: 0xED4245,
-} as const;
-
-const SUB_COMMAND = DiscordCommandOptionType.SubCommand;
 const STRING = DiscordCommandOptionType.String;
 const INTEGER = DiscordCommandOptionType.Integer;
 
@@ -36,84 +29,42 @@ export const DISCORD_SLASH_COMMANDS: DiscordSlashCommandPayload[] = [
     ],
   },
   {
-    name: "news",
-    description: "Manage server news",
+    name: "ban-player",
+    description: "Temporarily or permanently ban a player",
     options: [
       {
-        type: SUB_COMMAND,
-        name: "create",
-        description: "Create a news item",
-        options: [
-          {
-            name: "title",
-            description: "News title",
-            type: STRING,
-            required: true,
-          },
-          {
-            name: "content",
-            description: "News content",
-            type: STRING,
-            required: true,
-          },
-        ],
+        name: "user-id",
+        description: "The user ID to ban",
+        type: STRING,
+        required: true,
       },
       {
-        type: SUB_COMMAND,
-        name: "update",
-        description: "Update a news item",
-        options: [
-          {
-            name: "id",
-            description: "News ID",
-            type: INTEGER,
-            required: true,
-          },
-          {
-            name: "title",
-            description: "New title",
-            type: STRING,
-            required: true,
-          },
-          {
-            name: "content",
-            description: "New content",
-            type: STRING,
-            required: true,
-          },
-        ],
+        name: "reason",
+        description: "Reason for the ban",
+        type: STRING,
+        required: true,
       },
       {
-        type: SUB_COMMAND,
-        name: "view",
-        description: "View a news item's full details",
-        options: [
-          {
-            name: "id",
-            description: "News ID",
-            type: INTEGER,
-            required: true,
-          },
-        ],
+        name: "duration-value",
+        description:
+          "Duration value. Omit with duration-unit for a permanent ban",
+        type: INTEGER,
+        required: false,
       },
       {
-        type: SUB_COMMAND,
-        name: "delete",
-        description: "Delete a news item",
-        options: [
-          {
-            name: "id",
-            description: "News ID",
-            type: INTEGER,
-            required: true,
-          },
+        name: "duration-unit",
+        description:
+          "Duration unit. Omit with duration-value for a permanent ban",
+        type: STRING,
+        required: false,
+        choices: [
+          { name: "minutes", value: "minutes" },
+          { name: "hours", value: "hours" },
+          { name: "days", value: "days" },
+          { name: "weeks", value: "weeks" },
+          { name: "months", value: "months" },
+          { name: "years", value: "years" },
         ],
-      },
-      {
-        type: SUB_COMMAND,
-        name: "list",
-        description: "List all news items",
-        options: [],
       },
     ],
   },

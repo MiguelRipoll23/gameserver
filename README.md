@@ -2,7 +2,7 @@
 
 A secure game server built for multiplayer games.
 
-[![Deploy on Deno](https://deno.com/button)](https://console.deno.com/new?clone=https://github.com/MiguelRipoll23/gameserver&predeploy=deno%20task%20migrate)
+[![Deploy on Deno](https://deno.com/button)](https://console.deno.com/new?clone=https://github.com/MiguelRipoll23/gameserver&predeploy=deno%20task%20predeploy)
 
 Used by these games:
 
