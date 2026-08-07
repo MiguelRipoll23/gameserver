@@ -132,15 +132,15 @@ export class DiscordCommandService {
     interaction: DiscordInteractionPayload,
   ): Promise<DiscordInteractionResponse> {
     const values = this.optionValues(interaction.data?.options);
-    const userId = String(values.get("user-id") ?? "").trim();
+    const playerName = String(values.get("player-name") ?? "").trim();
     const reason = String(values.get("reason") ?? "").trim();
     const durationValue = values.get("duration-value");
     const durationUnit = values.get("duration-unit");
 
-    if (!userId || !reason) {
+    if (!playerName || !reason) {
       return this.errorResponse(
         "Ban player",
-        "User ID and reason are required.",
+        "Player name and reason are required.",
       );
     }
 
@@ -151,21 +151,30 @@ export class DiscordCommandService {
       );
     }
 
-    const duration = durationValue === undefined
-      ? undefined
-      : {
-        value: Number(durationValue),
-        unit: String(durationUnit) as
-          | "minutes"
-          | "hours"
-          | "days"
-          | "weeks"
-          | "months"
-          | "years",
-      };
+    const duration = durationValue === undefined ? undefined : {
+      value: Number(durationValue),
+      unit: String(durationUnit) as
+        | "minutes"
+        | "hours"
+        | "days"
+        | "weeks"
+        | "months"
+        | "years",
+    };
+
+    const user = await this.userModerationService.getUserByDisplayName(
+      playerName,
+    );
+
+    if (!user) {
+      return this.errorResponse(
+        "Ban player failed",
+        `Player **${playerName}** was not found.`,
+      );
+    }
 
     const banRequest = BanUserRequestSchema.safeParse({
-      userId,
+      userId: user.id,
       reason,
       duration,
     });
@@ -181,7 +190,9 @@ export class DiscordCommandService {
       await this.userModerationService.banUser(banRequest.data);
       return this.successResponse(
         "Player banned",
-        `Banned **${userId}** ${this.describeDuration(duration)} for: ${reason}`,
+        `Banned **${user.displayName}** (${user.id}) ${
+          this.describeDuration(duration)
+        } for: ${reason}`,
       );
     } catch (e) {
       if (e instanceof ServerError) {
