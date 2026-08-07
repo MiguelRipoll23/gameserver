@@ -1,9 +1,0 @@
-{
-  "deno.enablePaths": [
-    "./"
-  ],
-  "editor.inlayHints.enabled": "off",
-  "cSpell.words": [
-    "simplewebauthn"
-  ]
-}
