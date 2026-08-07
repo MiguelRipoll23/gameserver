@@ -1,19 +1,15 @@
 import { inject, injectable } from "@needle-di/core";
 import { NotificationService } from "./notification-service.ts";
-import { ServerMessagesService } from "./server-messages-service.ts";
 import { DiscordRestService } from "./discord-rest-service.ts";
+import { UserModerationService } from "./user-moderation-service.ts";
 import {
   NotificationChannelName,
   NotificationChannelNameToType,
 } from "../enums/notification-channel-enum.ts";
-import { EMBED_COLORS } from "../constants/discord-command-constants.ts";
 import { ENV_DISCORD_ALLOWED_ROLE_NAMES } from "../constants/environment-constants.ts";
-import { ServerError } from "../models/server-error.ts";
-import {
-  DiscordCommandOptionType,
-} from "../enums/discord-command-option-enum.ts";
 import { DiscordInteractionResponseType } from "../enums/discord-interaction-response-enum.ts";
-import type { DiscordEmbed } from "../types/discord-embed-type.ts";
+import { BanUserRequestSchema } from "../schemas/user-moderation-schemas.ts";
+import { ServerError } from "../models/server-error.ts";
 import type { DiscordInteractionOption } from "../types/discord-interaction-option-type.ts";
 import type { DiscordInteractionPayload } from "../types/discord-interaction-payload-type.ts";
 import type { DiscordInteractionResponse } from "../types/discord-interaction-response-type.ts";
@@ -24,8 +20,8 @@ export class DiscordCommandService {
     "Something went wrong while processing your request.";
 
   constructor(
-    private serverMessagesService = inject(ServerMessagesService),
     private notificationService = inject(NotificationService),
+    private userModerationService = inject(UserModerationService),
     private discordRestService = inject(DiscordRestService),
   ) {}
 
@@ -59,8 +55,8 @@ export class DiscordCommandService {
       switch (name) {
         case "notification":
           return this.handleNotification(interaction);
-        case "news":
-          return await this.handleNews(interaction);
+        case "ban-player":
+          return await this.handleBanPlayer(interaction);
         default:
           return this.errorResponse("Unknown command");
       }
@@ -132,180 +128,71 @@ export class DiscordCommandService {
     }
   }
 
-  private async handleNews(
+  private async handleBanPlayer(
     interaction: DiscordInteractionPayload,
   ): Promise<DiscordInteractionResponse> {
-    const { sub, values } = this.subcommandOptions(interaction);
+    const values = this.optionValues(interaction.data?.options);
+    const userId = String(values.get("user-id") ?? "").trim();
+    const reason = String(values.get("reason") ?? "").trim();
+    const durationValue = values.get("duration-value");
+    const durationUnit = values.get("duration-unit");
 
-    switch (sub) {
-      case "create": {
-        const title = String(values.get("title") ?? "").trim();
-        const content = String(values.get("content") ?? "").trim();
-        if (!title || !content) {
-          return this.errorResponse(
-            "Create news",
-            "Title and content are required.",
-          );
-        }
-        try {
-          await this.serverMessagesService.create({ title, content });
-          return this.embedResponse("News created", undefined, [
-            {
-              name: "Title",
-              value: this.truncate(title, 1024),
-              inline: false,
-            },
-            {
-              name: "Content",
-              value: this.contentSnippet(content),
-              inline: false,
-            },
-          ]);
-        } catch (e) {
-          console.error("discord news create failed:", e);
-          return this.errorResponse(
-            "Create news failed",
-            DiscordCommandService.GENERIC_ERROR_MESSAGE,
-          );
-        }
+    if (!userId || !reason) {
+      return this.errorResponse(
+        "Ban player",
+        "User ID and reason are required.",
+      );
+    }
+
+    if ((durationValue === undefined) !== (durationUnit === undefined)) {
+      return this.errorResponse(
+        "Ban player",
+        "Provide both duration-value and duration-unit, or omit both for a permanent ban.",
+      );
+    }
+
+    const duration = durationValue === undefined
+      ? undefined
+      : {
+        value: Number(durationValue),
+        unit: String(durationUnit) as
+          | "minutes"
+          | "hours"
+          | "days"
+          | "weeks"
+          | "months"
+          | "years",
+      };
+
+    const banRequest = BanUserRequestSchema.safeParse({
+      userId,
+      reason,
+      duration,
+    });
+
+    if (!banRequest.success) {
+      return this.errorResponse(
+        "Ban player",
+        banRequest.error.issues[0]?.message ?? "Invalid ban request.",
+      );
+    }
+
+    try {
+      await this.userModerationService.banUser(banRequest.data);
+      return this.successResponse(
+        "Player banned",
+        `Banned **${userId}** ${this.describeDuration(duration)} for: ${reason}`,
+      );
+    } catch (e) {
+      if (e instanceof ServerError) {
+        return this.errorResponse("Ban player failed", e.message);
       }
 
-      case "update": {
-        const id = Number(values.get("id"));
-        const title = String(values.get("title") ?? "").trim();
-        const content = String(values.get("content") ?? "").trim();
-        if (!Number.isInteger(id) || id <= 0 || !title || !content) {
-          return this.errorResponse(
-            "Update news",
-            "A valid ID, title, and content are required.",
-          );
-        }
-        try {
-          await this.serverMessagesService.update({ id, title, content });
-          return this.embedResponse(
-            "News updated",
-            `Updated **#${id}**`,
-            [
-              {
-                name: "Title",
-                value: this.truncate(title, 1024),
-                inline: false,
-              },
-              {
-                name: "Content",
-                value: this.contentSnippet(content),
-                inline: false,
-              },
-            ],
-          );
-        } catch (e) {
-          console.error("discord news update failed:", e);
-          return this.errorResponse(
-            "Update news failed",
-            DiscordCommandService.GENERIC_ERROR_MESSAGE,
-          );
-        }
-      }
-
-      case "view": {
-        const id = Number(values.get("id"));
-        if (!Number.isInteger(id) || id <= 0) {
-          return this.errorResponse(
-            "View news",
-            "A valid news ID is required.",
-          );
-        }
-        try {
-          const message = await this.serverMessagesService.get(id);
-          return this.embedResponse(`News #${message.id}`, undefined, [
-            {
-              name: "Title",
-              value: this.truncate(message.title, 1024),
-              inline: false,
-            },
-            {
-              name: "Content",
-              value: this.truncate(message.content, 1024),
-              inline: false,
-            },
-            {
-              name: "Updated",
-              value: this.formatTimestamp(
-                message.updatedAt ?? message.createdAt,
-              ),
-              inline: true,
-            },
-          ]);
-        } catch (e) {
-          if (e instanceof ServerError && e.getStatusCode() === 404) {
-            return this.errorResponse(
-              "View news",
-              `News **#${id}** not found.`,
-            );
-          }
-          console.error("discord news view failed:", e);
-          return this.errorResponse(
-            "View news failed",
-            DiscordCommandService.GENERIC_ERROR_MESSAGE,
-          );
-        }
-      }
-
-      case "delete": {
-        const id = Number(values.get("id"));
-        if (!Number.isInteger(id) || id <= 0) {
-          return this.errorResponse(
-            "Delete news",
-            "A valid news ID is required.",
-          );
-        }
-        try {
-          await this.serverMessagesService.delete(id);
-          return this.successResponse(
-            "News deleted",
-            `Deleted **#${id}**`,
-          );
-        } catch (e) {
-          console.error("discord news delete failed:", e);
-          return this.errorResponse(
-            "Delete news failed",
-            DiscordCommandService.GENERIC_ERROR_MESSAGE,
-          );
-        }
-      }
-
-      case "list": {
-        try {
-          const list = await this.serverMessagesService.list({ limit: 25 });
-          if (list.results.length === 0) {
-            return this.infoResponse("News", "No news items yet.");
-          }
-          const items = list.results
-            .map(
-              (item) =>
-                `**#${item.id} — ${this.truncate(item.title, 256)}**\n` +
-                `Created ${this.formatTimestamp(item.createdAt)} · Updated ${
-                  this.formatTimestamp(item.updatedAt)
-                }`,
-            )
-            .join("\n\n");
-          return this.textResponse(
-            this.truncate(
-              `**News (${list.results.length})**\n\n${items}`,
-              2000,
-            ),
-          );
-        } catch (e) {
-          console.error("discord news list failed:", e);
-          return this.errorResponse(
-            "List news failed",
-            DiscordCommandService.GENERIC_ERROR_MESSAGE,
-          );
-        }
-      }
-
-      default:
-        return this.errorResponse("News", "Unknown subcommand.");
+      console.error("discord ban player failed:", e);
+      return this.errorResponse(
+        "Ban player failed",
+        DiscordCommandService.GENERIC_ERROR_MESSAGE,
+      );
     }
   }
 
@@ -321,19 +208,6 @@ export class DiscordCommandService {
     return map;
   }
 
-  private subcommandOptions(
-    interaction: DiscordInteractionPayload,
-  ): { sub: string | undefined; values: Map<string, unknown> } {
-    const options = interaction.data?.options;
-    const sub = options?.find(
-      (option) => option.type === DiscordCommandOptionType.SubCommand,
-    );
-    if (!sub) {
-      return { sub: undefined, values: this.optionValues(options) };
-    }
-    return { sub: sub.name, values: this.optionValues(sub.options) };
-  }
-
   private resolveChannel(value: string): NotificationChannelName {
     switch (value.toUpperCase()) {
       case NotificationChannelName.Menu:
@@ -345,29 +219,20 @@ export class DiscordCommandService {
     }
   }
 
-  private contentSnippet(content: string): string {
-    const singleLine = content.replace(/\s+/g, " ").trim();
-    return singleLine.length > 100
-      ? singleLine.slice(0, 97) + "..."
-      : singleLine;
-  }
+  private describeDuration(
+    duration:
+      | {
+        value: number;
+        unit: "minutes" | "hours" | "days" | "weeks" | "months" | "years";
+      }
+      | undefined,
+  ): string {
+    if (!duration) return "permanently";
 
-  private formatTimestamp(ms: number): string {
-    return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
-  }
-
-  private truncate(value: string, max: number): string {
-    return value.length > max ? value.slice(0, max) : value;
+    return `for ${duration.value} ${duration.unit}`;
   }
 
   private successResponse(
-    heading: string,
-    description?: string,
-  ): DiscordInteractionResponse {
-    return this.textResponse(this.withHeading(heading, description));
-  }
-
-  private infoResponse(
     heading: string,
     description?: string,
   ): DiscordInteractionResponse {
@@ -381,18 +246,6 @@ export class DiscordCommandService {
     return this.textResponse(this.withHeading(heading, description));
   }
 
-  private embedResponse(
-    heading: string,
-    description?: string,
-    fields?: DiscordEmbed["fields"],
-  ): DiscordInteractionResponse {
-    return this.embed({
-      description: this.withHeading(heading, description),
-      color: EMBED_COLORS.success,
-      fields,
-    });
-  }
-
   private withHeading(heading: string, description?: string): string {
     return description ? `**${heading}**\n\n${description}` : `**${heading}**`;
   }
@@ -402,16 +255,6 @@ export class DiscordCommandService {
       type: DiscordInteractionResponseType.ChannelMessageWithSource,
       data: {
         content,
-        flags: 64,
-      },
-    };
-  }
-
-  private embed(embed: DiscordEmbed): DiscordInteractionResponse {
-    return {
-      type: DiscordInteractionResponseType.ChannelMessageWithSource,
-      data: {
-        embeds: [embed],
         flags: 64,
       },
     };

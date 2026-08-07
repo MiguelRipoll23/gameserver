@@ -36,7 +36,7 @@ This is a **Deno-based game server** using:
   ```
 - Use `pgTable` from `drizzle-orm/pg-core`. Column names use `snake_case` in SQL.
 - Foreign keys use `.references()` with `onDelete` cascade where appropriate.
-- For migrations: `deno task generate` (creates SQL), then `deno task migrate` (applies via scripts/migrate.ts).
+- For migrations: `deno task generate` (creates SQL), then `deno task migrate` (applies via scripts/migrate-database.ts).
 - **Row-Level Security (RLS):** Most tables define `pgPolicy` rules using `authenticatedUserRole` and helpers from `src/db/rls.ts` (`isCurrentUser`, `isCurrentCredential`).
 
 ## API Structure
