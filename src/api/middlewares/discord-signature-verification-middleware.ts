@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import { verifySignature } from "discordeno";
+import { verifyKey } from "discord-interactions";
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
 import {
@@ -50,12 +50,12 @@ export class DiscordSignatureVerificationMiddleware {
       }
 
       const body = await context.req.text();
-      const { isValid } = verifySignature({
-        publicKey,
+      const isValid = await verifyKey(
+        body,
         signature,
         timestamp,
-        body,
-      });
+        publicKey,
+      );
       if (!isValid) {
         throw new ServerError(
           "DISCORD_SIGNATURE_INVALID",
