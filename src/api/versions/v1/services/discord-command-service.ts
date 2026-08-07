@@ -7,6 +7,7 @@ import {
   NotificationChannelNameToType,
 } from "../enums/notification-channel-enum.ts";
 import { ENV_DISCORD_ALLOWED_ROLE_NAMES } from "../constants/environment-constants.ts";
+import { env } from "cloudflare:workers";
 import { DiscordInteractionResponseType } from "../enums/discord-interaction-response-enum.ts";
 import { BanUserRequestSchema } from "../schemas/user-moderation-schemas.ts";
 import { ServerError } from "../models/server-error.ts";
@@ -35,7 +36,11 @@ export class DiscordCommandService {
     try {
       authorized = await this.isAuthorized(interaction);
     } catch (e) {
-      console.error(`discord interaction authorization error /${name}:`, e);
+      console.error(
+        `discord interaction authorization error /${name}:`,
+        e instanceof Error ? e.message : String(e),
+        e instanceof Error ? e.stack : undefined,
+      );
       return this.errorResponse(
         "Authorization error",
         "Unable to verify your permissions right now. Please try again.",
@@ -54,14 +59,18 @@ export class DiscordCommandService {
     try {
       switch (name) {
         case "notification":
-          return this.handleNotification(interaction);
+          return await this.handleNotification(interaction);
         case "ban-player":
           return await this.handleBanPlayer(interaction);
         default:
           return this.errorResponse("Unknown command");
       }
     } catch (e) {
-      console.error(`discord interaction error /${name}:`, e);
+      console.error(
+        `discord interaction error /${name}:`,
+        e instanceof Error ? e.message : String(e),
+        e instanceof Error ? e.stack : undefined,
+      );
       return this.errorResponse(
         "Error",
         DiscordCommandService.GENERIC_ERROR_MESSAGE,
@@ -90,13 +99,13 @@ export class DiscordCommandService {
 
   private getAllowedRoleNames(): string[] {
     return (
-      Deno.env.get(ENV_DISCORD_ALLOWED_ROLE_NAMES) || "moderator,manager"
+      env[ENV_DISCORD_ALLOWED_ROLE_NAMES] || "moderator,manager"
     ).split(",").map((name) => name.trim()).filter(Boolean);
   }
 
-  private handleNotification(
+  private async handleNotification(
     interaction: DiscordInteractionPayload,
-  ): DiscordInteractionResponse {
+  ): Promise<DiscordInteractionResponse> {
     const values = this.optionValues(interaction.data?.options);
     const text = String(values.get("text") ?? "").trim();
     const channel = this.resolveChannel(
@@ -111,7 +120,7 @@ export class DiscordCommandService {
     }
 
     try {
-      this.notificationService.notify(
+      await this.notificationService.notify(
         NotificationChannelNameToType[channel],
         text,
       );
@@ -120,7 +129,11 @@ export class DiscordCommandService {
         `Notification pushed to **${channel}** players.\n\n${text}`,
       );
     } catch (e) {
-      console.error("discord notification failed:", e);
+      console.error(
+        "discord notification failed:",
+        e instanceof Error ? e.message : String(e),
+        e instanceof Error ? e.stack : undefined,
+      );
       return this.errorResponse(
         "Notification failed",
         DiscordCommandService.GENERIC_ERROR_MESSAGE,
@@ -199,7 +212,11 @@ export class DiscordCommandService {
         return this.errorResponse("Ban player failed", e.message);
       }
 
-      console.error("discord ban player failed:", e);
+      console.error(
+        "discord ban player failed:",
+        e instanceof Error ? e.message : String(e),
+        e instanceof Error ? e.stack : undefined,
+      );
       return this.errorResponse(
         "Ban player failed",
         DiscordCommandService.GENERIC_ERROR_MESSAGE,

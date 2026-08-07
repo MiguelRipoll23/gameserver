@@ -115,7 +115,7 @@ export class UserScoresService {
 
       // Only dispatch notification if the transaction committed successfully
       if (notification) {
-        this.notificationService.notify(
+        await this.notificationService.notify(
           NotificationChannelType.Global,
           notification,
         );

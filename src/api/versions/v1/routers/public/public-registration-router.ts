@@ -2,7 +2,6 @@ import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { ErrorResponseSchema } from "../../schemas/error-response-schema.ts";
 import { RegistrationService } from "../../services/registration-service.ts";
-import { getConnInfo } from "hono/deno";
 import { VerifyAuthenticationResponseSchema } from "../../schemas/authentication-schemas.ts";
 import {
   GetRegistrationOptionsRequestSchema,
@@ -10,7 +9,7 @@ import {
   VerifyRegistrationRequestSchema,
 } from "../../schemas/registration-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
-import { extractAndValidateOrigin } from "../../utils/origin-utils.ts";
+import { extractAndValidateOrigin, getConnInfo } from "../../utils/origin-utils.ts";
 
 @injectable()
 export class PublicRegistrationRouter {

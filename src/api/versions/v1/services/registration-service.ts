@@ -62,7 +62,7 @@ export class RegistrationService {
       rpID,
       userName: displayName,
       userDisplayName: displayName,
-      userID: new TextEncoder().encode(userId),
+      userID: new TextEncoder().encode(userId) as Uint8Array<ArrayBuffer>,
       authenticatorSelection: {
         authenticatorAttachment: "platform",
         residentKey: "required",

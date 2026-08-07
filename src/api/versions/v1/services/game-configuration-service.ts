@@ -1,36 +1,38 @@
-import { inject, injectable } from "@needle-di/core";
-import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { eq } from "drizzle-orm";
-import { gameConfigurationTable } from "../../../../db/schema.ts";
+import { injectable } from "@needle-di/core";
+import { getKvBinding } from "../../../../core/utils/environment.ts";
 
+/**
+ * Stores game configuration request key/value pairs in Workers KV.
+ *
+ * KV caches reads at the edge for fast lookups. Note that it is eventually
+ * consistent: a management write can take up to ~60 seconds to propagate
+ * globally, which is the accepted trade-off for read-heavy configuration.
+ */
 @injectable()
 export class GameConfigurationService {
-  constructor(private databaseService = inject(DatabaseService)) {}
-
   public async get(key: string): Promise<Record<string, unknown> | null> {
-    const rows = await this.databaseService
-      .get()
-      .select({ value: gameConfigurationTable.value })
-      .from(gameConfigurationTable)
-      .where(eq(gameConfigurationTable.key, key))
-      .limit(1);
+    const raw = await getKvBinding<KVNamespace>(
+      "GAME_CONFIGURATION_V1_KV",
+      "GAME_CONFIGURATION_V1_KV_STAGING",
+      "GAME_CONFIGURATION_V1_KV_PRODUCTION",
+    ).get(key);
+    if (raw === null) return null;
 
-    if (rows.length === 0) return null;
-
-    return rows[0].value as Record<string, unknown>;
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
   }
 
   public async save(
     key: string,
     value: Record<string, unknown>,
   ): Promise<void> {
-    await this.databaseService
-      .get()
-      .insert(gameConfigurationTable)
-      .values({ key, value })
-      .onConflictDoUpdate({
-        target: gameConfigurationTable.key,
-        set: { value, updatedAt: new Date() },
-      });
+    await getKvBinding<KVNamespace>(
+      "GAME_CONFIGURATION_V1_KV",
+      "GAME_CONFIGURATION_V1_KV_STAGING",
+      "GAME_CONFIGURATION_V1_KV_PRODUCTION",
+    ).put(key, JSON.stringify(value));
   }
 }

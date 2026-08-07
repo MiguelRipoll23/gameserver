@@ -1,21 +1,60 @@
 import { createMiddleware } from "hono/factory";
-import { verifyKey } from "discord-interactions";
+import nacl from "tweetnacl";
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
 import {
   ENV_DISCORD_BOT_TOKEN,
   ENV_DISCORD_PUBLIC_KEY,
 } from "../versions/v1/constants/environment-constants.ts";
+import { env } from "cloudflare:workers";
 import type { DiscordInteractionPayload } from "../versions/v1/types/discord-interaction-payload-type.ts";
 
 const TIMESTAMP_FRESHNESS_MS = 300_000;
+
+/**
+ * Verifies a Discord interaction request signature (Ed25519) using tweetnacl.
+ * Discord signs `timestamp + rawBody` with the application's Ed25519 key; both
+ * the signature and the public key are hex-encoded in the interaction request.
+ */
+function isSignatureValid(
+  publicKey: string,
+  signature: string,
+  timestamp: string,
+  body: string,
+): boolean {
+  try {
+    const message = new TextEncoder().encode(timestamp + body);
+    const signatureBytes = hexToBytes(signature, 64);
+    const publicKeyBytes = hexToBytes(publicKey, 32);
+    return nacl.sign.detached.verify(message, signatureBytes, publicKeyBytes);
+  } catch {
+    return false;
+  }
+}
+
+function hexToBytes(hex: string, expectedLength: number): Uint8Array {
+  if (hex.length !== expectedLength * 2) {
+    throw new Error("Invalid hex string length");
+  }
+
+  const bytes = new Uint8Array(expectedLength);
+  for (let i = 0; i < expectedLength; i++) {
+    const byte = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+    if (Number.isNaN(byte)) {
+      throw new Error("Invalid hex string");
+    }
+    bytes[i] = byte;
+  }
+
+  return bytes;
+}
 
 @injectable()
 export class DiscordSignatureVerificationMiddleware {
   public create() {
     return createMiddleware(async (context, next) => {
-      const publicKey = Deno.env.get(ENV_DISCORD_PUBLIC_KEY);
-      const botToken = Deno.env.get(ENV_DISCORD_BOT_TOKEN);
+      const publicKey = env[ENV_DISCORD_PUBLIC_KEY];
+      const botToken = env[ENV_DISCORD_BOT_TOKEN];
       if (!publicKey || !botToken) {
         throw new ServerError(
           "DISCORD_NOT_CONFIGURED",
@@ -50,12 +89,7 @@ export class DiscordSignatureVerificationMiddleware {
       }
 
       const body = await context.req.text();
-      const isValid = await verifyKey(
-        body,
-        signature,
-        timestamp,
-        publicKey,
-      );
+      const isValid = isSignatureValid(publicKey, signature, timestamp, body);
       if (!isValid) {
         throw new ServerError(
           "DISCORD_SIGNATURE_INVALID",

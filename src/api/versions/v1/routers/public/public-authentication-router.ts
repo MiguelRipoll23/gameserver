@@ -1,7 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { AuthenticationService } from "../../services/authentication-service.ts";
-import { getConnInfo } from "hono/deno";
 import {
   GetAuthenticationOptionsRequestSchema,
   GetAuthenticationOptionsResponseSchema,
@@ -11,7 +10,7 @@ import {
   VerifyAuthenticationResponseSchema,
 } from "../../schemas/authentication-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
-import { extractAndValidateOrigin } from "../../utils/origin-utils.ts";
+import { extractAndValidateOrigin, getConnInfo } from "../../utils/origin-utils.ts";
 
 @injectable()
 export class PublicAuthenticationRouter {

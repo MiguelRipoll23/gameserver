@@ -1,24 +1,28 @@
-import { inject, injectable } from "@needle-di/core";
+import { injectable } from "@needle-di/core";
 import { ServerError } from "../models/server-error.ts";
 import {
   GetVersionResponse,
   GetVersionResponseSchema,
   UpdateVersionRequest,
 } from "../schemas/version-schemas.ts";
-import { GameConfigurationService } from "./game-configuration-service.ts";
+import { getKvBinding } from "../../../../core/utils/environment.ts";
 
 const VERSION_KEY = "version";
 
 @injectable()
 export class VersionService {
-  constructor(
-    private gameConfigurationService = inject(GameConfigurationService),
-  ) {}
+  private get versionKv(): KVNamespace {
+    return getKvBinding<KVNamespace>(
+      "GAME_VERSION_V1_KV",
+      "GAME_VERSION_V1_STAGING",
+      "GAME_VERSION_V1_PRODUCTION",
+    );
+  }
 
   public async get(): Promise<GetVersionResponse> {
-    const response = await this.gameConfigurationService.get(VERSION_KEY);
+    const raw = await this.versionKv.get(VERSION_KEY);
 
-    if (response === null) {
+    if (raw === null) {
       throw new ServerError(
         "MISSING_VERSION",
         "Missing version information on the server",
@@ -26,13 +30,18 @@ export class VersionService {
       );
     }
 
-    return GetVersionResponseSchema.parse(response);
+    try {
+      return GetVersionResponseSchema.parse(JSON.parse(raw));
+    } catch {
+      throw new ServerError(
+        "INVALID_VERSION",
+        "Invalid version information on the server",
+        500,
+      );
+    }
   }
 
   public async set(data: UpdateVersionRequest): Promise<void> {
-    await this.gameConfigurationService.save(
-      VERSION_KEY,
-      data,
-    );
+    await this.versionKv.put(VERSION_KEY, JSON.stringify(data));
   }
 }

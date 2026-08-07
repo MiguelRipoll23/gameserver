@@ -1,47 +1,38 @@
-import { inject, injectable } from "@needle-di/core";
-import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { serverSignatureKeysTable } from "../../../../db/schema.ts";
+import { injectable } from "@needle-di/core";
+import { getKvBinding } from "../../../../core/utils/environment.ts";
 import { SignatureKeysData } from "../types/signature-keys-data-type.ts";
+
+const SERVER_SIGNATURE_KEYS_KEY = "server-signature-keys";
 
 @injectable()
 export class ServerSignatureKeysService {
-  constructor(private databaseService = inject(DatabaseService)) {}
-
   public async get(): Promise<SignatureKeysData | null> {
-    const rows = await this.databaseService
-      .get()
-      .select({
-        privateKey: serverSignatureKeysTable.privateKey,
-        publicKey: serverSignatureKeysTable.publicKey,
-      })
-      .from(serverSignatureKeysTable)
-      .limit(1);
+    const raw = await getKvBinding<KVNamespace>(
+      "SERVER_SIGNATURE_KEYS_V1_KV",
+      "SERVER_SIGNATURE_KEYS_V1_KV_STAGING",
+      "SERVER_SIGNATURE_KEYS_V1_KV_PRODUCTION",
+    ).get(SERVER_SIGNATURE_KEYS_KEY);
+    if (raw === null) return null;
 
-    if (rows.length === 0) return null;
-
-    return {
-      privateKey: rows[0].privateKey as JsonWebKey,
-      publicKey: rows[0].publicKey as JsonWebKey,
-    };
+    try {
+      const parsed = JSON.parse(raw) as SignatureKeysData;
+      return {
+        privateKey: parsed.privateKey,
+        publicKey: parsed.publicKey,
+      };
+    } catch {
+      return null;
+    }
   }
 
   public async save(data: SignatureKeysData): Promise<void> {
-    await this.databaseService
-      .get()
-      .insert(serverSignatureKeysTable)
-      .values({
-        id: 1,
-        privateKey: data.privateKey,
-        publicKey: data.publicKey,
-        updatedAt: new Date(),
-      })
-      .onConflictDoUpdate({
-        target: serverSignatureKeysTable.id,
-        set: {
-          privateKey: data.privateKey,
-          publicKey: data.publicKey,
-          updatedAt: new Date(),
-        },
-      });
+    await getKvBinding<KVNamespace>(
+      "SERVER_SIGNATURE_KEYS_V1_KV",
+      "SERVER_SIGNATURE_KEYS_V1_KV_STAGING",
+      "SERVER_SIGNATURE_KEYS_V1_KV_PRODUCTION",
+    ).put(
+      SERVER_SIGNATURE_KEYS_KEY,
+      JSON.stringify(data),
+    );
   }
 }

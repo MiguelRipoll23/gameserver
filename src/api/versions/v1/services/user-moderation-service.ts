@@ -16,16 +16,13 @@ import {
   userReportsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, desc, eq, gt, sql } from "drizzle-orm";
-import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
-import { EventsService } from "./events-service.ts";
-import { EventDispatchMode } from "../constants/event-constants.ts";
+import { and, desc, eq, gt } from "drizzle-orm";
+import { getHubStub } from "../../../../core/utils/environment.ts";
 
 @injectable()
 export class UserModerationService {
   constructor(
     private databaseService = inject(DatabaseService),
-    private eventsService = inject(EventsService),
   ) {}
 
   public async isBanned(userId: string): Promise<boolean> {
@@ -117,13 +114,7 @@ export class UserModerationService {
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
       }`,
     );
-    this.eventsService.dispatch(
-      BroadcastCommandType.KickPlayer,
-      {
-        userId,
-      },
-      EventDispatchMode.LocalAndBroadcast,
-    );
+    await getHubStub().kickPlayer(userId);
   }
 
   public async unbanUser(userId: string): Promise<void> {

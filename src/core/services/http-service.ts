@@ -1,6 +1,5 @@
 import { logger } from "hono/logger";
 import { bodyLimit } from "hono/body-limit";
-import { serveStatic } from "hono/deno";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
 import { OpenAPIService } from "./openapi-service.ts";
@@ -9,16 +8,16 @@ import { RootRouter } from "../routers/root-router.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
 import { HonoVariables } from "../types/hono-variables-type.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
-import { JWTService } from "./jwt-service.ts";
+import { DatabaseService } from "./database-service.ts";
 
 @injectable()
 export class HTTPService {
-  private app: OpenAPIHono<{ Variables: HonoVariables }>;
+  public readonly app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(
     private rootRooter = inject(RootRouter),
     private apiRouter = inject(APIRouter),
-    private jwtService = inject(JWTService),
+    private databaseService = inject(DatabaseService),
   ) {
     this.app = new OpenAPIHono();
     this.configure();
@@ -26,8 +25,15 @@ export class HTTPService {
     this.setRoutes();
   }
 
-  public async listen(): Promise<void> {
-    Deno.serve(this.app.fetch);
+  /**
+   * Handles an incoming request against the configured Hono app.
+   * Static files are served by the Cloudflare Static Assets feature, so no
+   * runtime static file middleware is needed here.
+   */
+  public async fetch(request: Request): Promise<Response> {
+    return await this.databaseService.withConnection(async () =>
+      this.app.fetch(request)
+    );
   }
 
   private configure(): void {
@@ -37,7 +43,6 @@ export class HTTPService {
 
   private setMiddlewares(): void {
     this.app.use("*", logger());
-    this.app.use("*", serveStatic({ root: "./static" }));
     this.setBodyLimitMiddleware();
   }
 

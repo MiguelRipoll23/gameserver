@@ -1,9 +1,8 @@
-import { decodeBase64, encodeBase64 } from "@std/encoding/base64";
+import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { ChatService } from "./chat-service.ts";
 import type { WebSocketServer } from "../interfaces/websocket-server-interface.ts";
-import { WSMessageReceive } from "hono/ws";
 import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
@@ -15,25 +14,17 @@ import {
   buildPlayerRelayPayload,
 } from "../models/websocket-payloads.ts";
 import { CommandHandler } from "../decorators/command-handler.ts";
-import { EventHandler } from "../decorators/event-handler.ts";
 import { WebSocketDispatcherService } from "./websocket-dispatcher-service.ts";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { RefreshTokensService } from "./refresh-tokens-service.ts";
 import { UserEncryptionKeysService } from "./user-encryption-keys-service.ts";
 import { UserModerationService } from "./user-moderation-service.ts";
-import { EventsService } from "./events-service.ts";
-import { WebSocketUserRegistry } from "./websocket-user-registry.ts";
+import { V1WebSocketDurableObject } from "../durable-objects/v1-web-socket-durable-object.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
-import { OnlinePlayersPayload } from "../types/online-players-payload-type.ts";
-import { PlayerRelayPayload } from "../types/player-relay-payload-type.ts";
-import { NotificationPayload } from "../types/notification-payload-type.ts";
-import { PlayerNotificationPayload } from "../types/player-notification-payload-type.ts";
-import { KickPlayerPayload } from "../types/kick-player-payload-type.ts";
-import { PlayerKickedNotificationPayload } from "../types/player-kicked-notification-payload-type.ts";
 import { MatchesService } from "./matches-service.ts";
 import { SessionsService } from "./sessions-service.ts";
 import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
-import { EventDispatchMode } from "../constants/event-constants.ts";
 import { UserSignatureService } from "./user-signature-service.ts";
 import { AuthenticationRejectedError } from "../models/authentication-rejected-error.ts";
 
@@ -49,34 +40,30 @@ export class WebSocketService implements WebSocketServer {
     private matchesService = inject(MatchesService),
     private chatService = inject(ChatService),
     private dispatcher = inject(WebSocketDispatcherService),
-    private eventsService = inject(EventsService),
-    private userRegistry = inject(WebSocketUserRegistry),
+    private webSocketDurableObject = inject(V1WebSocketDurableObject),
+    private databaseService = inject(DatabaseService),
   ) {
-    this.eventsService.registerEventHandlers(this);
     this.dispatcher.registerCommandHandlers(this);
   }
 
-  public handleOpenEvent(_event: Event, user: WebSocketUser): void {
+  public handleOpenEvent(user: WebSocketUser): void {
     console.debug(
       `Unauthenticated WebSocket connection from ${user.getPublicIp()}`,
     );
   }
 
-  public async handleCloseEvent(
-    _event: CloseEvent,
-    user: WebSocketUser,
-  ): Promise<void> {
+  public async handleCloseEvent(user: WebSocketUser): Promise<void> {
     await this.handleDisconnection(user);
   }
 
-  public handleMessageEvent(
-    event: MessageEvent<WSMessageReceive>,
+  public async handleMessageEvent(
     user: WebSocketUser,
-  ): void {
-    if (!(event.data instanceof ArrayBuffer)) return;
+    data: ArrayBuffer,
+  ): Promise<void> {
+    if (!(data instanceof ArrayBuffer)) return;
 
     try {
-      this.handleMessage(user, event.data);
+      await this.handleMessage(user, data);
     } catch (error) {
       console.error(error);
     }
@@ -98,38 +85,24 @@ export class WebSocketService implements WebSocketServer {
         "color: purple",
       );
     } catch (error) {
-      console.error("Failed to send message to user", user.getName(), error);
+      console.error(
+        "Failed to send message to user",
+        user.getName(),
+        error,
+      );
     }
   }
 
-  private withUserById(
+  private async withUserById(
     userId: string,
     command: BroadcastCommandType,
     cb: (user: WebSocketUser) => void,
-  ): boolean {
-    const user = this.userRegistry.getById(userId);
+  ): Promise<boolean> {
+    const user = await this.webSocketDurableObject.getById(userId);
 
     if (!user) {
       console.debug(
         `Ignoring ${command} command for user ${userId} because user is not present on this instance`,
-      );
-      return false;
-    }
-
-    cb(user);
-    return true;
-  }
-
-  private withUserByToken(
-    userToken: string,
-    command: BroadcastCommandType,
-    cb: (user: WebSocketUser) => void,
-  ): boolean {
-    const user = this.userRegistry.getByToken(userToken);
-
-    if (!user) {
-      console.debug(
-        `Ignoring ${command} command for token ${userToken} because user is not present on this instance`,
       );
       return false;
     }
@@ -160,6 +133,7 @@ export class WebSocketService implements WebSocketServer {
       console.debug(
         `Unauthenticated WebSocket connection disconnection from ${user.getPublicIp()}`,
       );
+      await this.webSocketDurableObject.remove(user);
       return;
     }
 
@@ -169,14 +143,26 @@ export class WebSocketService implements WebSocketServer {
     console.log(`User ${userName} disconnected from server`);
 
     try {
-      await this.sessionsService.deleteByUserId(userId, userName);
-      await this.deleteUserTemporaryData(userId, userName);
-      await this.matchesService.deleteIfExists(userId, userName);
-      await this.getAndSendOnlinePlayers();
-    } catch (error) {
-      console.error(`Error during disconnection for user ${userName}:`, error);
+      await this.databaseService.withConnection(async () => {
+        try {
+          await this.sessionsService.deleteByUserId(userId, userName);
+          await this.deleteUserTemporaryData(userId, userName);
+          await this.matchesService.deleteIfExists(userId, userName);
+        } catch (error) {
+          console.error(
+            `Error during disconnection for user ${userName}:`,
+            error,
+          );
+        }
+      });
     } finally {
-      this.userRegistry.remove(user);
+      // Always remove the socket, even if database cleanup fails, so the live
+      // connection count cannot remain stale after a disconnect.
+      try {
+        await this.webSocketDurableObject.remove(user);
+      } finally {
+        await this.getAndSendOnlinePlayers();
+      }
     }
   }
 
@@ -196,7 +182,10 @@ export class WebSocketService implements WebSocketServer {
     }
   }
 
-  private handleMessage(user: WebSocketUser, arrayBuffer: ArrayBuffer): void {
+  private async handleMessage(
+    user: WebSocketUser,
+    arrayBuffer: ArrayBuffer,
+  ): Promise<void> {
     const binaryReader = BinaryReader.fromArrayBuffer(arrayBuffer);
     const commandId = binaryReader.unsignedInt8();
 
@@ -222,7 +211,7 @@ export class WebSocketService implements WebSocketServer {
       return;
     }
 
-    this.dispatcher.dispatchCommand(user, commandId, binaryReader);
+    await this.dispatcher.dispatchCommand(user, commandId, binaryReader);
   }
 
   private rejectWhenUnauthenticated(
@@ -252,20 +241,20 @@ export class WebSocketService implements WebSocketServer {
       user.getPublicIp(),
     );
 
-    this.userRegistry.add(user);
+    // Persist the now-authenticated identity so it survives hub hibernation.
+    await this.webSocketDurableObject.update(user);
   }
 
-  private sendPlayerRelayToToken(
+  private async sendPlayerRelayToToken(
     destinationToken: string,
     payload: ArrayBuffer,
-  ): void {
-    const destinationUser = this.userRegistry.getByToken(destinationToken);
+  ): Promise<void> {
+    const destinationUser = await this.webSocketDurableObject.getByToken(destinationToken);
 
     if (!destinationUser) {
-      this.eventsService.dispatch(BroadcastCommandType.PlayerRelay, {
-        destinationToken,
-        payload,
-      });
+      console.debug(
+        `Ignoring player relay: destination token is not connected to the hub`,
+      );
       return;
     }
 
@@ -273,25 +262,23 @@ export class WebSocketService implements WebSocketServer {
   }
 
   private async getAndSendOnlinePlayers(): Promise<void> {
-    const totalSessions = await this.sessionsService.getTotal();
+    // The Durable Object is the source of truth for currently connected players.
+    // Database sessions can lag or be scoped differently from live WebSockets.
+    const users = await this.webSocketDurableObject.values();
+    const payload = buildOnlinePlayersPayload(users.length);
 
-    // For other instances...
-    this.eventsService.dispatch(
-      BroadcastCommandType.OnlinePlayers,
-      {
-        totalSessions,
-      },
-      EventDispatchMode.LocalAndBroadcast,
-    );
+    for (const user of users) {
+      this.sendMessage(user, payload);
+    }
   }
 
-  private sendNotificationToUsers(
+  private async sendNotificationToUsers(
     channelId: NotificationChannelType,
     text: string,
-  ): void {
+  ): Promise<void> {
     const payload = buildNotificationPayload(channelId, text);
 
-    for (const user of this.userRegistry.valuesByToken()) {
+    for (const user of await this.webSocketDurableObject.values()) {
       this.sendMessage(user, payload);
     }
 
@@ -352,31 +339,27 @@ export class WebSocketService implements WebSocketServer {
     this.sendPlayerKickedNotificationToHost(hostUserId, bannedUserId);
   }
 
-  private sendPlayerKickedNotificationToHost(
+  private async sendPlayerKickedNotificationToHost(
     hostUserId: string,
     bannedUserId: string,
-  ): void {
+  ): Promise<void> {
     const bannedUserNetworkId = bannedUserId.replace(/-/g, "");
 
-    this.sendPlayerKickedNotificationToHostWithNetworkId(
+    await this.sendPlayerKickedNotificationToHostWithNetworkId(
       hostUserId,
       bannedUserNetworkId,
     );
   }
 
-  private sendPlayerKickedNotificationToHostWithNetworkId(
+  private async sendPlayerKickedNotificationToHostWithNetworkId(
     hostUserId: string,
     bannedUserNetworkId: string,
-  ): void {
-    const hostUser = this.userRegistry.getById(hostUserId);
+  ): Promise<void> {
+    const hostUser = await this.webSocketDurableObject.getById(hostUserId);
 
     if (!hostUser) {
-      this.eventsService.dispatch(
-        BroadcastCommandType.PlayerKickedNotification,
-        {
-          hostUserId,
-          bannedUserNetworkId,
-        },
+      console.debug(
+        `Host ${hostUserId} is not connected to the hub; skipping user kicked notification`,
       );
       return;
     }
@@ -406,32 +389,37 @@ export class WebSocketService implements WebSocketServer {
     originUser: WebSocketUser,
     binaryReader: BinaryReader,
   ): Promise<void> {
-    if (originUser.isAuthenticated()) {
-      console.info("Duplicate authentication received; ignoring");
-      return;
-    }
-
-    const accessToken = binaryReader.variableLengthString();
-
-    try {
-      const payload = await this.jwtService.verify(accessToken);
-      this.applyIdentity(originUser, payload);
-
-      await this.handleAuthentication(originUser);
-      await this.sendAuthenticationResponse(originUser);
-    } catch (error) {
-      if (error instanceof AuthenticationRejectedError) {
-        console.info(error.message);
-      } else {
-        console.error("Authentication failed:", error);
+    await this.databaseService.withConnection(async () => {
+      if (originUser.isAuthenticated()) {
+        console.info("Duplicate authentication received; ignoring");
+        return;
       }
-      this.userRegistry.remove(originUser);
-      this.closeConnection(originUser, 1008, "Authentication failed");
-      return;
-    }
 
-    // Not part of the auth contract — failure here shouldn't fail auth
-    this.notifyOnlineCount();
+      const accessToken = binaryReader.variableLengthString();
+
+      try {
+        const payload = await this.jwtService.verify(accessToken);
+        this.applyIdentity(originUser, payload);
+
+        await this.handleAuthentication(originUser);
+        await this.sendAuthenticationResponse(originUser);
+      } catch (error) {
+        if (error instanceof AuthenticationRejectedError) {
+          console.info(error.message);
+        } else {
+          console.error(
+            "Authentication failed:",
+            error,
+          );
+        }
+        await this.webSocketDurableObject.remove(originUser);
+        this.closeConnection(originUser, 1008, "Authentication failed");
+        return;
+      }
+
+      // Not part of the auth contract — failure here shouldn't fail auth
+      await this.notifyOnlineCount();
+    });
   }
 
   private applyIdentity(
@@ -457,9 +445,12 @@ export class WebSocketService implements WebSocketServer {
     this.sendMessage(user, payload);
   }
 
-  private notifyOnlineCount(): void {
-    this.getAndSendOnlinePlayers().catch((error) => {
-      console.error("Failed to notify users count after authentication:", error);
+  private notifyOnlineCount(): Promise<void> {
+    return this.getAndSendOnlinePlayers().catch((error) => {
+      console.error(
+        "Failed to notify users count after authentication:",
+        error,
+      );
     });
   }
 
@@ -471,38 +462,13 @@ export class WebSocketService implements WebSocketServer {
     const destinationTokenBytes = binaryReader.bytes(32);
     const dataBytes = binaryReader.bytesAsUint8Array();
     const tunnelPayload = buildPlayerRelayPayload(
-      decodeBase64(originUser.getToken()),
+      Base64Utils.decodeStandardBase64(originUser.getToken()),
       dataBytes,
     );
 
     this.sendPlayerRelayToToken(
-      encodeBase64(destinationTokenBytes),
+      Base64Utils.encodeStandardBase64(destinationTokenBytes),
       tunnelPayload,
-    );
-  }
-
-  @EventHandler(BroadcastCommandType.OnlinePlayers)
-  private handleOnlinePlayersEvent(
-    eventPayload: OnlinePlayersPayload,
-  ): boolean {
-    const { totalSessions } = eventPayload;
-    const payload = buildOnlinePlayersPayload(totalSessions);
-
-    for (const user of this.userRegistry.valuesByToken()) {
-      this.sendMessage(user, payload);
-    }
-
-    return true;
-  }
-
-  @EventHandler(BroadcastCommandType.PlayerRelay)
-  private handlePlayerRelayEvent(eventPayload: PlayerRelayPayload): boolean {
-    const { destinationToken, payload } = eventPayload;
-
-    return this.withUserByToken(
-      destinationToken,
-      BroadcastCommandType.PlayerRelay,
-      (user) => this.sendMessage(user, payload),
     );
   }
 
@@ -511,23 +477,26 @@ export class WebSocketService implements WebSocketServer {
     user: WebSocketUser,
     binaryReader: BinaryReader,
   ): Promise<void> {
-    await this.chatService.sendSignedChatMessage(this, user, binaryReader);
+    await this.databaseService.withConnection(() =>
+      this.chatService.sendSignedChatMessage(this, user, binaryReader)
+    );
   }
 
-  @EventHandler(BroadcastCommandType.Notification)
-  private handleNotificationEvent(eventPayload: NotificationPayload): boolean {
-    const { channelId, message } = eventPayload;
-    this.sendNotificationToUsers(channelId, message);
-    return true;
+  ///** Sends an in-game notification to every connected user on a channel. */
+  public async sendServerNotificationToAll(
+    channelId: NotificationChannelType,
+    message: string,
+  ): Promise<void> {
+    await this.sendNotificationToUsers(channelId, message);
   }
 
-  @EventHandler(BroadcastCommandType.PlayerNotification)
-  private handlePlayerNotificationEvent(
-    eventPayload: PlayerNotificationPayload,
-  ): boolean {
-    const { userId, channelId, message } = eventPayload;
-
-    return this.withUserById(
+  ///** Sends an in-game notification to a single connected user. */
+  public async sendUserNotification(
+    userId: string,
+    channelId: NotificationChannelType,
+    message: string,
+  ): Promise<boolean> {
+    return await this.withUserById(
       userId,
       BroadcastCommandType.PlayerNotification,
       (user) => {
@@ -536,35 +505,20 @@ export class WebSocketService implements WebSocketServer {
     );
   }
 
-  @EventHandler(BroadcastCommandType.KickPlayer)
-  private handleKickPlayerEvent(eventPayload: KickPlayerPayload): boolean {
-    const { userId } = eventPayload;
+  /** Kicks a connected user, e.g. after they are banned. */
+  public async kickUser(userId: string): Promise<boolean> {
+    const user = await this.webSocketDurableObject.getById(userId);
 
-    return this.withUserById(
-      userId,
-      BroadcastCommandType.KickPlayer,
-      (user) => {
-        void this.kickResolvedUser(user);
-      },
-    );
-  }
+    if (!user) {
+      console.debug(
+        `Ignoring KickPlayer command for user ${userId} because user is not present on this instance`,
+      );
+      return false;
+    }
 
-  @EventHandler(BroadcastCommandType.PlayerKickedNotification)
-  private handlePlayerKickedNotificationEvent(
-    eventPayload: PlayerKickedNotificationPayload,
-  ): boolean {
-    const { hostUserId, bannedUserNetworkId } = eventPayload;
-
-    return this.withUserById(
-      hostUserId,
-      BroadcastCommandType.PlayerKickedNotification,
-      (hostUser) => {
-        this.sendPlayerKickedNotificationToResolvedHost(
-          hostUser,
-          hostUserId,
-          bannedUserNetworkId,
-        );
-      },
-    );
+    // Awaited inside the caller's withConnection scope so the follow-up
+    // match-host lookup uses the same request-scoped connection.
+    await this.kickResolvedUser(user);
+    return true;
   }
 }

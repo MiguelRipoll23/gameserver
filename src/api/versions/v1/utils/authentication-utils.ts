@@ -1,4 +1,3 @@
-import { encodeBase64 } from "@std/encoding/base64";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { type AuthenticatorTransportFuture } from "@simplewebauthn/server";
 import type { UserCredentialEntity } from "../../../../db/tables/user-credentials-table.ts";
@@ -7,7 +6,7 @@ export class AuthenticationUtils {
   public static generateToken(): string {
     const tokenBytes: Uint8Array = crypto.getRandomValues(new Uint8Array(32));
 
-    return encodeBase64(tokenBytes);
+    return Base64Utils.encodeStandardBase64(tokenBytes);
   }
 
   public static async hashToken(token: string): Promise<string> {

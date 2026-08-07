@@ -1,46 +1,38 @@
-import { inject, injectable } from "@needle-di/core";
-import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { eq } from "drizzle-orm";
-import { userEncryptionKeysTable } from "../../../../db/schema.ts";
+import { injectable } from "@needle-di/core";
+import { getKvBinding } from "../../../../core/utils/environment.ts";
 
+function userEncryptionKeyKey(userId: string): string {
+  return `user:${userId}`;
+}
+
+/**
+ * Stores per-user symmetric encryption keys in Workers KV. Keys are written on
+ * sign-in and removed when the user's WebSocket connection closes. No TTL is
+ * set because an active session's key must outlive the connection.
+ */
 @injectable()
 export class UserEncryptionKeysService {
-  constructor(private databaseService = inject(DatabaseService)) {}
-
   public async get(userId: string): Promise<string | null> {
-    const rows = await this.databaseService.executeWithUserContext(
-      userId,
-      async (tx) => {
-        return await tx
-          .select({ key: userEncryptionKeysTable.key })
-          .from(userEncryptionKeysTable)
-          .where(eq(userEncryptionKeysTable.userId, userId))
-          .limit(1);
-      },
-    );
-
-    if (rows.length === 0) return null;
-
-    return rows[0].key;
+    return await getKvBinding<KVNamespace>(
+      "USER_ENCRYPTION_KEYS_V1_KV",
+      "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
+      "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
+    ).get(userEncryptionKeyKey(userId));
   }
 
   public async save(userId: string, key: string): Promise<void> {
-    await this.databaseService.executeWithUserContext(userId, async (tx) => {
-      await tx
-        .insert(userEncryptionKeysTable)
-        .values({ userId, key })
-        .onConflictDoUpdate({
-          target: userEncryptionKeysTable.userId,
-          set: { key },
-        });
-    });
+    await getKvBinding<KVNamespace>(
+      "USER_ENCRYPTION_KEYS_V1_KV",
+      "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
+      "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
+    ).put(userEncryptionKeyKey(userId), key);
   }
 
   public async delete(userId: string): Promise<void> {
-    await this.databaseService.executeWithUserContext(userId, async (tx) => {
-      await tx
-        .delete(userEncryptionKeysTable)
-        .where(eq(userEncryptionKeysTable.userId, userId));
-    });
+    await getKvBinding<KVNamespace>(
+      "USER_ENCRYPTION_KEYS_V1_KV",
+      "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
+      "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
+    ).delete(userEncryptionKeyKey(userId));
   }
 }

@@ -1,12 +1,8 @@
 export class CryptoUtils {
   public static async base64ToCryptoKey(
     key: string,
-    algorithm:
-      | HmacImportParams
-      | AlgorithmIdentifier
-      | RsaHashedImportParams
-      | EcKeyImportParams,
-    keyUsages: KeyUsage[],
+    algorithm: string | SubtleCryptoImportKeyAlgorithm,
+    keyUsages: string[],
   ): Promise<CryptoKey> {
     const rawKey = Uint8Array.from(atob(key), (char) => char.charCodeAt(0));
 

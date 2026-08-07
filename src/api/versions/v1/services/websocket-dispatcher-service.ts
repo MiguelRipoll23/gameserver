@@ -33,11 +33,11 @@ export class WebSocketDispatcherService {
     }
   }
 
-  public dispatchCommand(
+  public async dispatchCommand(
     user: WebSocketUser,
     commandId: WebSocketType,
     binaryReader: BinaryReader,
-  ): void {
+  ): Promise<void> {
     const commandHandler = this.commandHandlers.get(commandId);
 
     if (commandHandler === undefined) {
@@ -46,7 +46,7 @@ export class WebSocketDispatcherService {
     }
 
     try {
-      commandHandler(user, binaryReader);
+      await commandHandler(user, binaryReader);
     } catch (error) {
       console.error(
         `Error executing command handler for ${WebSocketType[commandId]}:`,

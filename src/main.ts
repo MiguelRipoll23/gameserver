@@ -1,21 +1,26 @@
 import { Container } from "@needle-di/core";
 import { HTTPService } from "./core/services/http-service.ts";
-import { DatabaseService } from "./core/services/database-service.ts";
-import { registerCleanupAuthenticationChallengesCron } from "../crons/cleanup-authentication-challenges-cron.ts";
-import { registerCleanupRefreshTokensCron } from "../crons/cleanup-refresh-tokens-cron.ts";
-import { registerCleanupUserSessionsCron } from "../crons/cleanup-user-sessions-cron.ts";
 import { logDiscordBotConfiguration } from "./api/versions/v1/utils/discord-bot-config-utils.ts";
+
+// Re-export the Durable Object so it is included in the Worker bundle and the
+// `WEBSOCKET_V1_DO` binding resolves to it.
+export { V1WebSocketDurableObject } from "./api/versions/v1/durable-objects/v1-web-socket-durable-object.ts";
 
 const container = new Container();
 
-const databaseService = container.get(DatabaseService);
-databaseService.init();
+let httpService: HTTPService | null = null;
 
-logDiscordBotConfiguration();
+function getHTTPService(): HTTPService {
+  if (httpService === null) {
+    logDiscordBotConfiguration();
+    httpService = container.get(HTTPService);
+  }
 
-registerCleanupAuthenticationChallengesCron(databaseService);
-registerCleanupRefreshTokensCron(databaseService);
-registerCleanupUserSessionsCron(databaseService);
+  return httpService;
+}
 
-const httpService = container.get(HTTPService);
-await httpService.listen();
+export default {
+  async fetch(request: Request, _env: Env): Promise<Response> {
+    return getHTTPService().fetch(request);
+  },
+} satisfies ExportedHandler<Env>;

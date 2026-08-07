@@ -4,6 +4,7 @@ import type { MiddlewareHandler } from "hono";
 import { injectable } from "@needle-di/core";
 import { ENV_JWT_SECRET } from "../../api/versions/v1/constants/environment-constants.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
+import { env } from "cloudflare:workers";
 
 @injectable()
 export class JWTService {
@@ -56,7 +57,7 @@ export class JWTService {
   }
 
   private resolveSecret(): string {
-    const secret: string | undefined = Deno.env.get(ENV_JWT_SECRET);
+    const secret: string | undefined = env[ENV_JWT_SECRET];
 
     if (secret === undefined) {
       throw new Error("JWT secret is not defined in environment variables");

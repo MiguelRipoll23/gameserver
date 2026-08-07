@@ -1,0 +1,149 @@
+/**
+ * Cloudflare Workers configuration for the gameserver.
+ *
+ * - Static Assets: everything under `./static` is served by Cloudflare's CDN
+ *   before reaching the Worker (see `assets.directory`).
+ * - `vars` below are plaintext, non-secret environment variables. They mirror
+ *   the keys present in `.env.example`.
+ * - Secrets (JWT_SECRET, CLOUDFLARE_CALLS_URL, CLOUDFLARE_CALLS_TOKEN,
+ *   DISCORD_BOT_TOKEN, DISCORD_PUBLIC_KEY, ...) are NOT stored here. Set them
+ *   with: `npm run secrets` (reads `.env` via `wrangler secret bulk`).
+ *   For local development, copy `.env.example` to `.dev.vars` and fill it in.
+ * - Hyperdrive: create one per environment and set its `id` below (do not
+ *   share IDs across environments). Local dev targets `DATABASE_URL` via
+ *   `localConnectionString`.
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "gameserver",
+	"main": "src/main.ts",
+	"compatibility_date": "2026-08-07",
+	"compatibility_flags": ["nodejs_compat"],
+	"upload_source_maps": true,
+	"keep_vars": true,
+
+	"assets": {
+		"directory": "./static"
+	},
+
+	"observability": {
+		"enabled": true
+	},
+
+	"exports": {
+		"V1WebSocketDurableObject": {
+			"type": "durable-object",
+			"storage": "sqlite"
+		}
+	},
+
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "V1WebSocketDurableObject",
+				"name": "WEBSOCKET_V1_DO"
+			}
+		]
+	},
+
+
+	"hyperdrive": [
+		{
+			"binding": "DATABASE_HYPERDRIVE",
+			"id": "d82b1240ee88426890b56aa284666c08"
+		}
+	],
+
+	"env": {
+		"staging": {
+			"exports": {
+				"V1WebSocketDurableObject": {
+					"type": "durable-object",
+					"storage": "sqlite"
+				}
+			},
+			"durable_objects": {
+				"bindings": [
+					{
+						"class_name": "V1WebSocketDurableObject",
+						"name": "WEBSOCKET_V1_DO"
+					}
+				]
+			},
+			"kv_namespaces": [
+				{
+					"binding": "AUTHENTICATION_CHALLENGES_V1_KV_STAGING",
+					"id": "74f60c8e01544e5bbf20db1d1fcac85b"
+				},
+				{
+					"binding": "GAME_CONFIGURATION_V1_KV_STAGING",
+					"id": "d703dc3f852240749697b0a78db9c6fb"
+				},
+				{
+					"binding": "GAME_VERSION_V1_STAGING",
+					"id": "02bf21a8637e423cbf4a627831dc71fc"
+				},
+				{
+					"binding": "SERVER_SIGNATURE_KEYS_V1_KV_STAGING",
+					"id": "346993ac39384ef9920fc770966354b2"
+				},
+				{
+					"binding": "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
+					"id": "53a07a19566d49418ed77e99a41beb98"
+				}
+			],
+			"hyperdrive": [
+				{
+					"binding": "DATABASE_HYPERDRIVE",
+					// TODO: create a dedicated staging Hyperdrive config and use its id
+					"id": "d82b1240ee88426890b56aa284666c08"
+				}
+			]
+		},
+		"production": {
+			"name": "gameserver",
+			"exports": {
+				"V1WebSocketDurableObject": {
+					"type": "durable-object",
+					"storage": "sqlite"
+				}
+			},
+			"durable_objects": {
+				"bindings": [
+					{
+						"class_name": "V1WebSocketDurableObject",
+						"name": "WEBSOCKET_V1_DO"
+					}
+				]
+			},
+			"kv_namespaces": [
+				{
+					"binding": "AUTHENTICATION_CHALLENGES_V1_KV_PRODUCTION",
+					"id": "650c04c482d044968fc981fcf3bda384"
+				},
+				{
+					"binding": "GAME_CONFIGURATION_V1_KV_PRODUCTION",
+					"id": "63a60f228e1d42f3afc609260b6c51f8"
+				},
+				{
+					"binding": "GAME_VERSION_V1_PRODUCTION",
+					"id": "454ca97c8dd043a2824c93edd83ebf14"
+				},
+				{
+					"binding": "SERVER_SIGNATURE_KEYS_V1_KV_PRODUCTION",
+					"id": "aee69e7f6c2340639c810944f77d70f5"
+				},
+				{
+					"binding": "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
+					"id": "c046938f997f45efa4ed9e10f038727e"
+				}
+			],
+			"hyperdrive": [
+				{
+					"binding": "DATABASE_HYPERDRIVE",
+					"id": "d82b1240ee88426890b56aa284666c08"
+				}
+			]
+		}
+	}
+}

@@ -35,4 +35,36 @@ export class Base64Utils {
   public static base64UrlToString(base64url: string): string {
     return new TextDecoder().decode(this.base64UrlToArrayBuffer(base64url));
   }
+
+  /**
+   * Standard (RFC 4648) Base64 with `=` padding — equivalent to the `encodeBase64`
+   * helper from Deno's `@std/encoding/base64`, which is not available on npm.
+   */
+  public static encodeStandardBase64(
+    data: ArrayBuffer | ArrayBufferLike | Uint8Array,
+  ): string {
+    const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+
+    return btoa(binary);
+  }
+
+  /**
+   * Decodes standard (RFC 4648) Base64 with `=` padding — equivalent to the
+   * `decodeBase64` helper from Deno's `@std/encoding/base64`.
+   */
+  public static decodeStandardBase64(str: string): Uint8Array {
+    const binary = atob(str);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+
+    return bytes;
+  }
 }

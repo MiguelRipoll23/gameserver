@@ -5,6 +5,7 @@ import {
   ENV_CLOUDFLARE_CALLS_URL,
 } from "../constants/environment-constants.ts";
 import { RTCIceServer } from "../schemas/authentication-schemas.ts";
+import { env } from "cloudflare:workers";
 
 @injectable()
 export class ICEService {
@@ -21,8 +22,8 @@ export class ICEService {
   }
 
   private async getCloudflareServers(): Promise<RTCIceServer[]> {
-    const url = Deno.env.get(ENV_CLOUDFLARE_CALLS_URL) ?? null;
-    const token = Deno.env.get(ENV_CLOUDFLARE_CALLS_TOKEN) ?? null;
+    const url = env[ENV_CLOUDFLARE_CALLS_URL] ?? null;
+    const token = env[ENV_CLOUDFLARE_CALLS_TOKEN] ?? null;
 
     if (url === null || token === null) {
       throw new Error("Cloudflare environment variables not set");
@@ -45,7 +46,7 @@ export class ICEService {
       );
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as { iceServers: RTCIceServer[] };
 
     // data.iceServers is already an array of RTCIceServer objects from Cloudflare Calls API
     return data.iceServers;

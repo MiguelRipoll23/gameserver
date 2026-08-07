@@ -6,9 +6,6 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
-import { EventHandler } from "../decorators/event-handler.ts";
-import { EventsService } from "./events-service.ts";
-import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
 import { BlockedWordEntity } from "../../../../db/tables/blocked-words-table.ts";
 
 @injectable()
@@ -21,18 +18,9 @@ export class ChatService {
   constructor(
     private readonly signatureService = inject(SignatureService),
     private readonly textModerationService = inject(TextModerationService),
-    private readonly eventsService = inject(EventsService),
-  ) {
-    this.eventsService.registerEventHandlers(this);
-  }
+  ) {}
 
-  @EventHandler(BroadcastCommandType.RefreshBlockedWordsCache)
-  private handleRefreshBlockedWordsCache(): boolean {
-    void this.refreshBlockedWordsCache();
-    return true;
-  }
-
-  private async refreshBlockedWordsCache(): Promise<void> {
+  public async refreshBlockedWordsCache(): Promise<void> {
     console.log("Refreshing blocked words cache...");
 
     try {

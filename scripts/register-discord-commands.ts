@@ -3,10 +3,11 @@ import {
   ENV_DISCORD_BOT_TOKEN,
 } from "../src/api/versions/v1/constants/environment-constants.ts";
 import { DISCORD_SLASH_COMMANDS } from "../src/api/versions/v1/constants/discord-command-constants.ts";
+import { pathToFileURL } from "node:url";
 
 export async function registerDiscordCommands(): Promise<void> {
-  const applicationId = Deno.env.get(ENV_DISCORD_APPLICATION_ID);
-  const botToken = Deno.env.get(ENV_DISCORD_BOT_TOKEN);
+  const applicationId = process.env[ENV_DISCORD_APPLICATION_ID];
+  const botToken = process.env[ENV_DISCORD_BOT_TOKEN];
 
   if (!applicationId || !botToken) {
     throw new Error(
@@ -35,11 +36,15 @@ export async function registerDiscordCommands(): Promise<void> {
   throw new Error(`Failed to register commands (HTTP ${resp.status}): ${body}`);
 }
 
-if (import.meta.main) {
-  try {
-    await registerDiscordCommands();
-  } catch (error) {
-    console.error(error);
-    Deno.exit(1);
-  }
+const isMain =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMain) {
+  registerDiscordCommands()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
 }

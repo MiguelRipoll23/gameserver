@@ -83,8 +83,27 @@ export class PublicDiscordInteractionsRouter {
         const payload = c.get(
           "discordInteraction",
         ) as DiscordInteractionPayload;
+        const commandName = payload.data?.name ?? "unknown";
+
+        console.info(
+          "Discord interaction received:",
+          JSON.stringify({
+            interactionId: payload.id,
+            type: payload.type,
+            command: commandName,
+            guildId: payload.guildId ?? null,
+          }),
+        );
 
         if (payload.type === DiscordInteractionType.Ping) {
+          console.info(
+            "Discord interaction completed:",
+            JSON.stringify({
+              interactionId: payload.id,
+              command: "ping",
+              outcome: "pong",
+            }),
+          );
           return c.json(
             {
               type: DiscordInteractionResponseType.Pong,
@@ -102,6 +121,14 @@ export class PublicDiscordInteractionsRouter {
         }
 
         const response = await this.commandService.handle(payload);
+        console.info(
+          "Discord interaction completed:",
+          JSON.stringify({
+            interactionId: payload.id,
+            command: commandName,
+            outcome: "response",
+          }),
+        );
         return c.json(response, 200);
       },
     );

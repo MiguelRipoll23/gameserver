@@ -1,3 +1,5 @@
+import { env } from "cloudflare:workers";
+
 export class WebAuthnUtils {
   private static readonly DEFAULT_RP_NAME = "Game server API";
   private static readonly DEFAULT_ALLOWED_ORIGINS = "http://localhost:8000";
@@ -8,7 +10,7 @@ export class WebAuthnUtils {
    * Gets the relying party name from environment variable or uses default
    */
   public static getRelyingPartyName(): string {
-    return Deno.env.get("RP_NAME") ?? WebAuthnUtils.DEFAULT_RP_NAME;
+    return env.RP_NAME ?? WebAuthnUtils.DEFAULT_RP_NAME;
   }
 
   /**
@@ -39,7 +41,7 @@ export class WebAuthnUtils {
    * @returns Array of origin patterns
    */
   private static getAllowedOriginPatterns(): string[] {
-    const allowedOrigins = Deno.env.get("RP_ALLOWED_ORIGINS") ??
+    const allowedOrigins = env.RP_ALLOWED_ORIGINS ??
       WebAuthnUtils.DEFAULT_ALLOWED_ORIGINS;
 
     // Return cached patterns if the env var hasn't changed
