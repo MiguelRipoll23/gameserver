@@ -1,5 +1,5 @@
 import { createMiddleware } from "hono/factory";
-import nacl from "tweetnacl";
+import { verifyKey } from "discord-interactions";
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../versions/v1/models/server-error.ts";
 import {
@@ -12,43 +12,9 @@ import type { DiscordInteractionPayload } from "../versions/v1/types/discord-int
 const TIMESTAMP_FRESHNESS_MS = 300_000;
 
 /**
- * Verifies a Discord interaction request signature (Ed25519) using tweetnacl.
- * Discord signs `timestamp + rawBody` with the application's Ed25519 key; both
- * the signature and the public key are hex-encoded in the interaction request.
+ * Discord signs `timestamp + rawBody` with the application's Ed25519 key.
+ * `verifyKey` keeps the raw body bytes intact while validating that signature.
  */
-function isSignatureValid(
-  publicKey: string,
-  signature: string,
-  timestamp: string,
-  body: string,
-): boolean {
-  try {
-    const message = new TextEncoder().encode(timestamp + body);
-    const signatureBytes = hexToBytes(signature, 64);
-    const publicKeyBytes = hexToBytes(publicKey, 32);
-    return nacl.sign.detached.verify(message, signatureBytes, publicKeyBytes);
-  } catch {
-    return false;
-  }
-}
-
-function hexToBytes(hex: string, expectedLength: number): Uint8Array {
-  if (hex.length !== expectedLength * 2) {
-    throw new Error("Invalid hex string length");
-  }
-
-  const bytes = new Uint8Array(expectedLength);
-  for (let i = 0; i < expectedLength; i++) {
-    const byte = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-    if (Number.isNaN(byte)) {
-      throw new Error("Invalid hex string");
-    }
-    bytes[i] = byte;
-  }
-
-  return bytes;
-}
-
 @injectable()
 export class DiscordSignatureVerificationMiddleware {
   public create() {
@@ -74,12 +40,11 @@ export class DiscordSignatureVerificationMiddleware {
       }
 
       const timestampSeconds = Number(timestamp);
-      const parsedTimestamp = Number.isFinite(timestampSeconds)
-        ? timestampSeconds * 1000
-        : Date.parse(timestamp);
       if (
-        !Number.isFinite(parsedTimestamp) ||
-        Math.abs(Date.now() - parsedTimestamp) > TIMESTAMP_FRESHNESS_MS
+        !/^\d+$/.test(timestamp) ||
+        !Number.isSafeInteger(timestampSeconds) ||
+        Math.abs(Date.now() - timestampSeconds * 1000) >
+          TIMESTAMP_FRESHNESS_MS
       ) {
         throw new ServerError(
           "DISCORD_SIGNATURE_STALE",
@@ -88,8 +53,13 @@ export class DiscordSignatureVerificationMiddleware {
         );
       }
 
-      const body = await context.req.text();
-      const isValid = isSignatureValid(publicKey, signature, timestamp, body);
+      const body = await context.req.arrayBuffer();
+      const isValid = await verifyKey(
+        body,
+        signature,
+        timestamp,
+        publicKey,
+      );
       if (!isValid) {
         throw new ServerError(
           "DISCORD_SIGNATURE_INVALID",
@@ -100,7 +70,8 @@ export class DiscordSignatureVerificationMiddleware {
 
       let payload: DiscordInteractionPayload;
       try {
-        const parsed = JSON.parse(body) as DiscordInteractionPayload & {
+        const bodyText = new TextDecoder().decode(body);
+        const parsed = JSON.parse(bodyText) as DiscordInteractionPayload & {
           guild_id?: string;
         };
         if (typeof parsed !== "object" || parsed === null) {

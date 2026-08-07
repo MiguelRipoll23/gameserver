@@ -50,9 +50,9 @@ export class DiscordCommandService {
     if (!authorized) {
       return this.errorResponse(
         "Not authorized",
-        `You are not authorized to use this command. Only members with one of the following roles can use it: ${
+        `You are not authorized to use this command. Only members with one of the following roles can use it: **${
           this.getAllowedRoleNames().join(", ")
-        }.`,
+        }**.`,
       );
     }
 
@@ -126,7 +126,7 @@ export class DiscordCommandService {
       );
       return this.successResponse(
         "Notification sent",
-        `Notification pushed to **${channel}** players.\n\n${text}`,
+        `Notification pushed to **${channel}** channel: ${this.singleLine(text)}`,
       );
     } catch (e) {
       console.error(
@@ -203,9 +203,9 @@ export class DiscordCommandService {
       await this.userModerationService.banUser(banRequest.data);
       return this.successResponse(
         "Player banned",
-        `Banned **${user.displayName}** (${user.id}) ${
-          this.describeDuration(duration)
-        } for: ${reason}`,
+        `Player **${this.singleLine(user.displayName)}** banned due to **${
+          this.singleLine(reason)
+        }** ${this.describeBanDuration(duration)}`,
       );
     } catch (e) {
       if (e instanceof ServerError) {
@@ -247,7 +247,7 @@ export class DiscordCommandService {
     }
   }
 
-  private describeDuration(
+  private describeBanDuration(
     duration:
       | {
         value: number;
@@ -255,34 +255,34 @@ export class DiscordCommandService {
       }
       | undefined,
   ): string {
-    if (!duration) return "permanently";
+    if (!duration) return "**permanently**";
 
-    return `for ${duration.value} ${duration.unit}`;
+    return `for **${duration.value} ${duration.unit}**`;
   }
 
   private successResponse(
     heading: string,
     description?: string,
   ): DiscordInteractionResponse {
-    return this.textResponse(this.withHeading(heading, description));
+    return this.textResponse(description ?? heading);
   }
 
   private errorResponse(
     heading: string,
     description?: string,
   ): DiscordInteractionResponse {
-    return this.textResponse(this.withHeading(heading, description));
+    return this.textResponse(`**Error:** ${description ?? heading}`);
   }
 
-  private withHeading(heading: string, description?: string): string {
-    return description ? `**${heading}**\n\n${description}` : `**${heading}**`;
+  private singleLine(value: string): string {
+    return value.replace(/\s+/g, " ").trim();
   }
 
   private textResponse(content: string): DiscordInteractionResponse {
     return {
       type: DiscordInteractionResponseType.ChannelMessageWithSource,
       data: {
-        content,
+        content: this.singleLine(content),
         flags: 64,
       },
     };
