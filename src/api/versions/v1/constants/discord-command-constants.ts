@@ -33,8 +33,8 @@ export const DISCORD_SLASH_COMMANDS: DiscordSlashCommandPayload[] = [
     description: "Temporarily or permanently ban a player",
     options: [
       {
-        name: "user-id",
-        description: "The user ID to ban",
+        name: "player-name",
+        description: "The player display name to ban",
         type: STRING,
         required: true,
       },

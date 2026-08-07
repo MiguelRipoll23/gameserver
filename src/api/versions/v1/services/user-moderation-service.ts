@@ -43,6 +43,19 @@ export class UserModerationService {
     return !latestBan.expiresAt || latestBan.expiresAt > new Date();
   }
 
+  public async getUserByDisplayName(
+    displayName: string,
+  ): Promise<{ id: string; displayName: string } | null> {
+    const users = await this.databaseService
+      .get()
+      .select({ id: usersTable.id, displayName: usersTable.displayName })
+      .from(usersTable)
+      .where(eq(usersTable.displayName, displayName))
+      .limit(1);
+
+    return users[0] ?? null;
+  }
+
   public async banUser(body: BanUserRequest): Promise<void> {
     const { userId, reason, duration } = body;
     const db = this.databaseService.get();
