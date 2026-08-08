@@ -15,24 +15,20 @@ export class UserEncryptionKeysService {
   public async get(userId: string): Promise<string | null> {
     return await getKvBinding<KVNamespace>(
       "USER_ENCRYPTION_KEYS_V1_KV",
-      "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
-      "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
     ).get(userEncryptionKeyKey(userId));
   }
 
   public async save(userId: string, key: string): Promise<void> {
-    await getKvBinding<KVNamespace>(
-      "USER_ENCRYPTION_KEYS_V1_KV",
-      "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
-      "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
-    ).put(userEncryptionKeyKey(userId), key, { expirationTtl: 30 * 24 * 60 * 60 });
+    await getKvBinding<KVNamespace>("USER_ENCRYPTION_KEYS_V1_KV").put(
+      userEncryptionKeyKey(userId),
+      key,
+      { expirationTtl: 30 * 24 * 60 * 60 },
+    );
   }
 
   public async delete(userId: string): Promise<void> {
     await getKvBinding<KVNamespace>(
       "USER_ENCRYPTION_KEYS_V1_KV",
-      "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
-      "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
     ).delete(userEncryptionKeyKey(userId));
   }
 }

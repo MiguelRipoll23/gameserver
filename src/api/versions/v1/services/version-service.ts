@@ -12,11 +12,7 @@ const VERSION_KEY = "version";
 @injectable()
 export class VersionService {
   private get versionKv(): KVNamespace {
-    return getKvBinding<KVNamespace>(
-      "GAME_VERSION_V1_KV",
-      "GAME_VERSION_V1_STAGING",
-      "GAME_VERSION_V1_PRODUCTION",
-    );
+    return getKvBinding<KVNamespace>("GAME_VERSION_V1_KV");
   }
 
   public async get(): Promise<GetVersionResponse> {

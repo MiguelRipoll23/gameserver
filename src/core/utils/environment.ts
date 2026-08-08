@@ -38,30 +38,13 @@ export function getDatabaseConnectionString(): string {
 
 const WEBSOCKET_DURABLE_OBJECT_NAME = "websocket-durable-object";
 
-export function getKvBinding<T extends KVNamespace>(
-  sharedName: string,
-  stagingName: string,
-  productionName: string,
-): T {
-  const bindings = env as unknown as Record<string, unknown>;
-  const productionBinding = bindings[productionName];
-  if (productionBinding !== undefined) {
-    return productionBinding as T;
+export function getKvBinding<T extends KVNamespace>(name: string): T {
+  const binding = (env as unknown as Record<string, unknown>)[name];
+  if (binding === undefined) {
+    throw new Error(`KV binding is not configured: ${name}`);
   }
 
-  const stagingBinding = bindings[stagingName];
-  if (stagingBinding !== undefined) {
-    return stagingBinding as T;
-  }
-
-  const sharedBinding = bindings[sharedName];
-  if (sharedBinding === undefined) {
-    throw new Error(
-      `KV binding is not configured: ${sharedName}, ${stagingName}, or ${productionName}`,
-    );
-  }
-
-  return sharedBinding as T;
+  return binding as T;
 }
 
 /**

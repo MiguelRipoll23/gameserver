@@ -117,26 +117,6 @@
 				{
 					"binding": "USER_ENCRYPTION_KEYS_V1_KV",
 					"id": "53a07a19566d49418ed77e99a41beb98"
-				},
-				{
-					"binding": "AUTHENTICATION_CHALLENGES_V1_KV_STAGING",
-					"id": "74f60c8e01544e5bbf20db1d1fcac85b"
-				},
-				{
-					"binding": "GAME_CONFIGURATION_V1_KV_STAGING",
-					"id": "d703dc3f852240749697b0a78db9c6fb"
-				},
-				{
-					"binding": "GAME_VERSION_V1_STAGING",
-					"id": "02bf21a8637e423cbf4a627831dc71fc"
-				},
-				{
-					"binding": "SERVER_SIGNATURE_KEYS_V1_KV_STAGING",
-					"id": "346993ac39384ef9920fc770966354b2"
-				},
-				{
-					"binding": "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
-					"id": "53a07a19566d49418ed77e99a41beb98"
 				}
 			],
 			"hyperdrive": [
@@ -167,42 +147,22 @@
 			"kv_namespaces": [
 				{
 					"binding": "AUTHENTICATION_CHALLENGES_V1_KV",
-					"id": "74f60c8e01544e5bbf20db1d1fcac85b"
-				},
-				{
-					"binding": "GAME_CONFIGURATION_V1_KV",
-					"id": "d703dc3f852240749697b0a78db9c6fb"
-				},
-				{
-					"binding": "GAME_VERSION_V1_KV",
-					"id": "02bf21a8637e423cbf4a627831dc71fc"
-				},
-				{
-					"binding": "SERVER_SIGNATURE_KEYS_V1_KV",
-					"id": "346993ac39384ef9920fc770966354b2"
-				},
-				{
-					"binding": "USER_ENCRYPTION_KEYS_V1_KV",
-					"id": "53a07a19566d49418ed77e99a41beb98"
-				},
-				{
-					"binding": "AUTHENTICATION_CHALLENGES_V1_KV_PRODUCTION",
 					"id": "650c04c482d044968fc981fcf3bda384"
 				},
 				{
-					"binding": "GAME_CONFIGURATION_V1_KV_PRODUCTION",
+					"binding": "GAME_CONFIGURATION_V1_KV",
 					"id": "63a60f228e1d42f3afc609260b6c51f8"
 				},
 				{
-					"binding": "GAME_VERSION_V1_PRODUCTION",
+					"binding": "GAME_VERSION_V1_KV",
 					"id": "454ca97c8dd043a2824c93edd83ebf14"
 				},
 				{
-					"binding": "SERVER_SIGNATURE_KEYS_V1_KV_PRODUCTION",
+					"binding": "SERVER_SIGNATURE_KEYS_V1_KV",
 					"id": "aee69e7f6c2340639c810944f77d70f5"
 				},
 				{
-					"binding": "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
+					"binding": "USER_ENCRYPTION_KEYS_V1_KV",
 					"id": "c046938f997f45efa4ed9e10f038727e"
 				}
 			],

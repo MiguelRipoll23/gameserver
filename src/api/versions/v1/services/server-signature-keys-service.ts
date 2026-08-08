@@ -9,8 +9,6 @@ export class ServerSignatureKeysService {
   public async get(): Promise<SignatureKeysData | null> {
     const raw = await getKvBinding<KVNamespace>(
       "SERVER_SIGNATURE_KEYS_V1_KV",
-      "SERVER_SIGNATURE_KEYS_V1_KV_STAGING",
-      "SERVER_SIGNATURE_KEYS_V1_KV_PRODUCTION",
     ).get(SERVER_SIGNATURE_KEYS_KEY);
     if (raw === null) return null;
 
@@ -26,11 +24,7 @@ export class ServerSignatureKeysService {
   }
 
   public async save(data: SignatureKeysData): Promise<void> {
-    await getKvBinding<KVNamespace>(
-      "SERVER_SIGNATURE_KEYS_V1_KV",
-      "SERVER_SIGNATURE_KEYS_V1_KV_STAGING",
-      "SERVER_SIGNATURE_KEYS_V1_KV_PRODUCTION",
-    ).put(
+    await getKvBinding<KVNamespace>("SERVER_SIGNATURE_KEYS_V1_KV").put(
       SERVER_SIGNATURE_KEYS_KEY,
       JSON.stringify(data),
     );

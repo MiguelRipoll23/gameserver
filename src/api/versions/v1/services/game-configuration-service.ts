@@ -11,11 +11,9 @@ import { getKvBinding } from "../../../../core/utils/environment.ts";
 @injectable()
 export class GameConfigurationService {
   public async get(key: string): Promise<Record<string, unknown> | null> {
-    const raw = await getKvBinding<KVNamespace>(
-      "GAME_CONFIGURATION_V1_KV",
-      "GAME_CONFIGURATION_V1_KV_STAGING",
-      "GAME_CONFIGURATION_V1_KV_PRODUCTION",
-    ).get(key);
+    const raw = await getKvBinding<KVNamespace>("GAME_CONFIGURATION_V1_KV").get(
+      key,
+    );
     if (raw === null) return null;
 
     try {
@@ -29,10 +27,9 @@ export class GameConfigurationService {
     key: string,
     value: Record<string, unknown>,
   ): Promise<void> {
-    await getKvBinding<KVNamespace>(
-      "GAME_CONFIGURATION_V1_KV",
-      "GAME_CONFIGURATION_V1_KV_STAGING",
-      "GAME_CONFIGURATION_V1_KV_PRODUCTION",
-    ).put(key, JSON.stringify(value));
+    await getKvBinding<KVNamespace>("GAME_CONFIGURATION_V1_KV").put(
+      key,
+      JSON.stringify(value),
+    );
   }
 }
