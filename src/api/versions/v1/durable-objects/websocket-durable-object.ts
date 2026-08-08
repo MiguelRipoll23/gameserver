@@ -18,7 +18,7 @@ interface ConnectionRecord {
 }
 
 /**
- * V1WebSocketDurableObject (this Durable Object) **owns** every WebSocket
+ * WebSocketDurableObject (this Durable Object) **owns** every WebSocket
  * connection and its per-player state. There is no separate connection
  * registry: the hub talks to the runtime directly —
  *
@@ -26,11 +26,11 @@ interface ConnectionRecord {
  *  - `ctx.state.getWebSockets(token)` addresses a specific connection (relay,
  *    kick, notify), and `ctx.state.getWebSockets()` fans out to all of them;
  *  - each connection's identity row is persisted under `conn:<token>` and
- *    index under `user:<userId>` so it survives hibernation/eviction.
+ *    index under `user:<userId>:<token>` so it survives hibernation/eviction.
  *
  * Stateless Workers reach the single hub through the RPC methods below.
  */
-export class V1WebSocketDurableObject extends DurableObject<Env> {
+export class WebSocketDurableObject extends DurableObject<Env> {
   private static readonly CONN_KEY = "conn:";
   private static readonly USER_KEY = "user:";
 
@@ -161,31 +161,63 @@ export class V1WebSocketDurableObject extends DurableObject<Env> {
     return this.toUser(record, token, webSocket);
   }
 
-  /** Looks a player up by their authenticated user id (RPC kick/notify). */
+  /** Looks up one connected socket by authenticated user id. */
   public async getById(userId: string): Promise<WebSocketUser | undefined> {
-    const token = await this.ctx.storage.get<string>(this.userKey(userId));
-    if (!token) {
-      return undefined;
+    return (await this.getByIdAll(userId))[0];
+  }
+
+  /** Looks up every connected socket for an authenticated user. */
+  public async getByIdAll(userId: string): Promise<WebSocketUser[]> {
+    const tokens = await this.ctx.storage.list<boolean>({
+      prefix: this.userKeyPrefix(userId),
+    });
+    const users: WebSocketUser[] = [];
+    const staleKeys: string[] = [];
+
+    for (const tokenKey of tokens.keys()) {
+      const token = tokenKey.slice(this.userKeyPrefix(userId).length);
+      const user = await this.getByToken(token);
+      if (user) {
+        users.push(user);
+      } else {
+        staleKeys.push(tokenKey, this.connectionKey(token));
+      }
     }
 
-    return this.getByToken(token);
+    if (staleKeys.length > 0) {
+      await this.ctx.storage.delete(staleKeys);
+    }
+
+    return users;
   }
 
   /** All currently connected, authenticated users (broadcast recipients). */
   public async values(): Promise<WebSocketUser[]> {
-    const users: WebSocketUser[] = [];
+    const sockets = this.ctx.getWebSockets();
+    const socketByToken = new Map<string, WebSocket>();
+    const connectionKeys: string[] = [];
 
-    for (const webSocket of this.ctx.getWebSockets()) {
-      const tags = this.ctx.getTags(webSocket);
-      const token = tags?.[0];
+    for (const webSocket of sockets) {
+      const token = this.ctx.getTags(webSocket)[0];
       if (token === undefined) {
         continue;
       }
 
-      const record = await this.ctx.storage.get<ConnectionRecord>(
-        this.connectionKey(token),
-      );
-      if (record?.authenticated) {
+      socketByToken.set(token, webSocket);
+      connectionKeys.push(this.connectionKey(token));
+    }
+
+    const records = await this.ctx.storage.get<ConnectionRecord>(connectionKeys);
+    const users: WebSocketUser[] = [];
+
+    for (const [key, record] of records) {
+      if (!record?.authenticated) {
+        continue;
+      }
+
+      const token = key.slice(WebSocketDurableObject.CONN_KEY.length);
+      const webSocket = socketByToken.get(token);
+      if (webSocket) {
         users.push(this.toUser(record, token, webSocket));
       }
     }
@@ -208,7 +240,7 @@ export class V1WebSocketDurableObject extends DurableObject<Env> {
       [this.connectionKey(user.getToken())]: record,
     };
     if (user.isAuthenticated()) {
-      writes[this.userKey(user.getId())] = user.getToken();
+      writes[this.userKey(user.getId(), user.getToken())] = true;
     }
 
     await this.ctx.storage.put(writes);
@@ -218,7 +250,7 @@ export class V1WebSocketDurableObject extends DurableObject<Env> {
   public async remove(user: WebSocketUser): Promise<void> {
     await this.ctx.storage.delete([
       this.connectionKey(user.getToken()),
-      this.userKey(user.getId()),
+      this.userKey(user.getId(), user.getToken()),
     ]);
   }
 
@@ -261,11 +293,15 @@ export class V1WebSocketDurableObject extends DurableObject<Env> {
   }
 
   private connectionKey(token: string): string {
-    return `${V1WebSocketDurableObject.CONN_KEY}${token}`;
+    return `${WebSocketDurableObject.CONN_KEY}${token}`;
   }
 
-  private userKey(userId: string): string {
-    return `${V1WebSocketDurableObject.USER_KEY}${userId}`;
+  private userKeyPrefix(userId: string): string {
+    return `${WebSocketDurableObject.USER_KEY}${userId}:`;
+  }
+
+  private userKey(userId: string, token: string): string {
+    return `${this.userKeyPrefix(userId)}${token}`;
   }
 
   private withConnection<T>(fn: () => Promise<T>): Promise<T> {
@@ -278,7 +314,7 @@ export class V1WebSocketDurableObject extends DurableObject<Env> {
     }
 
     const container = new Container();
-    container.bind({ provide: V1WebSocketDurableObject, useValue: this });
+    container.bind({ provide: WebSocketDurableObject, useValue: this });
 
     this.databaseService = container.get(DatabaseService);
 

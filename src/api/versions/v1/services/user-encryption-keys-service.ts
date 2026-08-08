@@ -25,7 +25,7 @@ export class UserEncryptionKeysService {
       "USER_ENCRYPTION_KEYS_V1_KV",
       "USER_ENCRYPTION_KEYS_V1_KV_STAGING",
       "USER_ENCRYPTION_KEYS_V1_KV_PRODUCTION",
-    ).put(userEncryptionKeyKey(userId), key);
+    ).put(userEncryptionKeyKey(userId), key, { expirationTtl: 30 * 24 * 60 * 60 });
   }
 
   public async delete(userId: string): Promise<void> {

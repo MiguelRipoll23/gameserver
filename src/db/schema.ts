@@ -1,3 +1,4 @@
+export { authenticationChallengesTable } from "./tables/authentication-challenges-table.ts";
 export { userCredentialsTable } from "./tables/user-credentials-table.ts";
 export { usersTable } from "./tables/users-table.ts";
 export { userSessionsTable } from "./tables/user-sessions-table.ts";

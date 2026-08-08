@@ -36,7 +36,7 @@ export class AuthenticatedWebSocketRouter {
         },
       }),
       (c) => {
-        // WebSocket connections are owned by the V1WebSocketDurableObject.
+        // WebSocket connections are owned by the WebSocketDurableObject.
         // Forward the upgrade request to the hub, which accepts it and
         // services all messages for the connection.
         const hub = getHubStub();

@@ -24,12 +24,41 @@
 		"directory": "./static"
 	},
 
+	"triggers": {
+		"crons": ["0 * * * *"]
+	},
+
+	// These shared bindings are used by plain `wrangler dev` and local fallback
+	// deployments. Named staging/production environments override them below.
+	"kv_namespaces": [
+		{
+			"binding": "AUTHENTICATION_CHALLENGES_V1_KV",
+			"id": "74f60c8e01544e5bbf20db1d1fcac85b"
+		},
+		{
+			"binding": "GAME_CONFIGURATION_V1_KV",
+			"id": "d703dc3f852240749697b0a78db9c6fb"
+		},
+		{
+			"binding": "GAME_VERSION_V1_KV",
+			"id": "02bf21a8637e423cbf4a627831dc71fc"
+		},
+		{
+			"binding": "SERVER_SIGNATURE_KEYS_V1_KV",
+			"id": "346993ac39384ef9920fc770966354b2"
+		},
+		{
+			"binding": "USER_ENCRYPTION_KEYS_V1_KV",
+			"id": "53a07a19566d49418ed77e99a41beb98"
+		}
+	],
+
 	"observability": {
 		"enabled": true
 	},
 
 	"exports": {
-		"V1WebSocketDurableObject": {
+		"WebSocketDurableObject": {
 			"type": "durable-object",
 			"storage": "sqlite"
 		}
@@ -38,7 +67,7 @@
 	"durable_objects": {
 		"bindings": [
 			{
-				"class_name": "V1WebSocketDurableObject",
+				"class_name": "WebSocketDurableObject",
 				"name": "WEBSOCKET_V1_DO"
 			}
 		]
@@ -55,7 +84,7 @@
 	"env": {
 		"staging": {
 			"exports": {
-				"V1WebSocketDurableObject": {
+				"WebSocketDurableObject": {
 					"type": "durable-object",
 					"storage": "sqlite"
 				}
@@ -63,7 +92,7 @@
 			"durable_objects": {
 				"bindings": [
 					{
-						"class_name": "V1WebSocketDurableObject",
+						"class_name": "WebSocketDurableObject",
 						"name": "WEBSOCKET_V1_DO"
 					}
 				]
@@ -93,7 +122,8 @@
 			"hyperdrive": [
 				{
 					"binding": "DATABASE_HYPERDRIVE",
-					// TODO: create a dedicated staging Hyperdrive config and use its id
+					// Staging intentionally shares production Hyperdrive until a separate
+					// database resource is provisioned.
 					"id": "d82b1240ee88426890b56aa284666c08"
 				}
 			]
@@ -101,7 +131,7 @@
 		"production": {
 			"name": "gameserver",
 			"exports": {
-				"V1WebSocketDurableObject": {
+				"WebSocketDurableObject": {
 					"type": "durable-object",
 					"storage": "sqlite"
 				}
@@ -109,7 +139,7 @@
 			"durable_objects": {
 				"bindings": [
 					{
-						"class_name": "V1WebSocketDurableObject",
+						"class_name": "WebSocketDurableObject",
 						"name": "WEBSOCKET_V1_DO"
 					}
 				]

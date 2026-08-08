@@ -53,11 +53,11 @@ jobs:
             printf 'DISCORD_BOT_TOKEN=%s\n' "$DISCORD_BOT_TOKEN"
           } > .env
 
-      - name: Run predeploy
-        run: npm run predeploy
-
       - name: Deploy Worker
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npm run deploy:${{ inputs.target }}
+
+      - name: Run predeploy
+        run: npm run predeploy

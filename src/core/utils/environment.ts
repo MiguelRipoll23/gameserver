@@ -65,7 +65,7 @@ export function getKvBinding<T extends KVNamespace>(
 }
 
 /**
- * Returns a stub to the single V1WebSocketDurableObject instance, which owns all
+ * Returns a stub to the single WebSocketDurableObject instance, which owns all
  * WebSocket connections. RPC methods on it can be invoked directly.
  */
 export function getHubStub() {

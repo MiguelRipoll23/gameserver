@@ -1,70 +1,64 @@
-import { injectable } from "@needle-di/core";
-import { getKvBinding } from "../../../../core/utils/environment.ts";
-
-/**
- * KV garbage-collection TTL for challenge entries. This is purely a safety
- * net: the application enforces the real 60-second lifetime via the stored
- * `createdAt` timestamp (see OPTIONS_EXPIRATION_TIME). Workers KV deletes
- * expired keys automatically, so no cleanup cron is required.
- *
- * Note: Workers KV `expirationTtl` has a 60-second minimum.
- */
-const CHALLENGE_KV_TTL_SECONDS = 5 * 60;
-
-function challengeKey(transactionId: string, type: string): string {
-  return `challenge:${type}:${transactionId}`;
-}
+import { inject, injectable } from "@needle-di/core";
+import { and, eq, lt } from "drizzle-orm";
+import { authenticationChallengesTable } from "../../../../db/schema.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
+import { sql } from "drizzle-orm";
 
 @injectable()
 export class AuthenticationChallengesService {
+  constructor(private databaseService = inject(DatabaseService)) {}
+
   public async save(
     transactionId: string,
     type: string,
     data: Record<string, unknown>,
   ): Promise<void> {
-    const value = JSON.stringify({
-      data,
-      createdAt: new Date().toISOString(),
-    });
-
-    await getKvBinding<KVNamespace>(
-      "AUTHENTICATION_CHALLENGES_V1_KV",
-      "AUTHENTICATION_CHALLENGES_V1_KV_STAGING",
-      "AUTHENTICATION_CHALLENGES_V1_KV_PRODUCTION",
-    ).put(
-      challengeKey(transactionId, type),
-      value,
-      { expirationTtl: CHALLENGE_KV_TTL_SECONDS },
-    );
+    await this.databaseService
+      .get()
+      .insert(authenticationChallengesTable)
+      .values({
+        transactionId,
+        type,
+        data,
+      });
   }
 
   public async consume<T>(
     transactionId: string,
     type: string,
   ): Promise<{ data: T; createdAt: Date } | null> {
-    const key = challengeKey(transactionId, type);
-    const raw = await getKvBinding<KVNamespace>(
-      "AUTHENTICATION_CHALLENGES_V1_KV",
-      "AUTHENTICATION_CHALLENGES_V1_KV_STAGING",
-      "AUTHENTICATION_CHALLENGES_V1_KV_PRODUCTION",
-    ).get(key);
-    if (raw === null) return null;
+    const rows = await this.databaseService
+      .get()
+      .delete(authenticationChallengesTable)
+      .where(
+        and(
+          eq(authenticationChallengesTable.transactionId, transactionId),
+          eq(authenticationChallengesTable.type, type),
+        ),
+      )
+      .returning({
+        data: authenticationChallengesTable.data,
+        createdAt: authenticationChallengesTable.createdAt,
+      });
 
-    // KV has no atomic get-and-delete. The delete immediately follows the read,
-    // which preserves single-use semantics in practice for the unique random
-    // transaction IDs used by WebAuthn ceremonies. (Postgres previously did
-    // this atomically with DELETE ... RETURNING.)
-    await getKvBinding<KVNamespace>(
-      "AUTHENTICATION_CHALLENGES_V1_KV",
-      "AUTHENTICATION_CHALLENGES_V1_KV_STAGING",
-      "AUTHENTICATION_CHALLENGES_V1_KV_PRODUCTION",
-    ).delete(key);
+    if (rows.length === 0) return null;
 
-    try {
-      const parsed = JSON.parse(raw) as { data: T; createdAt: string };
-      return { data: parsed.data, createdAt: new Date(parsed.createdAt) };
-    } catch {
-      return null;
-    }
+    return { data: rows[0].data as T, createdAt: rows[0].createdAt };
+  }
+
+  /** Removes challenges older than the one-hour lifetime used by the old cron. */
+  public async cleanupExpired(): Promise<number> {
+    const deleted = await this.databaseService
+      .get()
+      .delete(authenticationChallengesTable)
+      .where(
+        lt(
+          authenticationChallengesTable.createdAt,
+          sql`now() - interval '1 hour'`,
+        ),
+      )
+      .returning({ id: authenticationChallengesTable.id });
+
+    return deleted.length;
   }
 }

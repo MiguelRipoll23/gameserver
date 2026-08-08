@@ -20,7 +20,7 @@ import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { RefreshTokensService } from "./refresh-tokens-service.ts";
 import { UserEncryptionKeysService } from "./user-encryption-keys-service.ts";
 import { UserModerationService } from "./user-moderation-service.ts";
-import { V1WebSocketDurableObject } from "../durable-objects/v1-web-socket-durable-object.ts";
+import { WebSocketDurableObject } from "../durable-objects/websocket-durable-object.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
 import { MatchesService } from "./matches-service.ts";
 import { SessionsService } from "./sessions-service.ts";
@@ -40,7 +40,7 @@ export class WebSocketService implements WebSocketServer {
     private matchesService = inject(MatchesService),
     private chatService = inject(ChatService),
     private dispatcher = inject(WebSocketDispatcherService),
-    private webSocketDurableObject = inject(V1WebSocketDurableObject),
+    private webSocketDurableObject = inject(WebSocketDurableObject),
     private databaseService = inject(DatabaseService),
   ) {
     this.dispatcher.registerCommandHandlers(this);
@@ -98,16 +98,18 @@ export class WebSocketService implements WebSocketServer {
     command: BroadcastCommandType,
     cb: (user: WebSocketUser) => void,
   ): Promise<boolean> {
-    const user = await this.webSocketDurableObject.getById(userId);
+    const users = await this.webSocketDurableObject.getByIdAll(userId);
 
-    if (!user) {
+    if (users.length === 0) {
       console.debug(
         `Ignoring ${command} command for user ${userId} because user is not present on this instance`,
       );
       return false;
     }
 
-    cb(user);
+    for (const user of users) {
+      cb(user);
+    }
     return true;
   }
 
@@ -355,7 +357,7 @@ export class WebSocketService implements WebSocketServer {
     hostUserId: string,
     bannedUserNetworkId: string,
   ): Promise<void> {
-    const hostUser = await this.webSocketDurableObject.getById(hostUserId);
+    const [hostUser] = await this.webSocketDurableObject.getByIdAll(hostUserId);
 
     if (!hostUser) {
       console.debug(
@@ -507,9 +509,9 @@ export class WebSocketService implements WebSocketServer {
 
   /** Kicks a connected user, e.g. after they are banned. */
   public async kickUser(userId: string): Promise<boolean> {
-    const user = await this.webSocketDurableObject.getById(userId);
+    const users = await this.webSocketDurableObject.getByIdAll(userId);
 
-    if (!user) {
+    if (users.length === 0) {
       console.debug(
         `Ignoring KickPlayer command for user ${userId} because user is not present on this instance`,
       );
@@ -518,7 +520,9 @@ export class WebSocketService implements WebSocketServer {
 
     // Awaited inside the caller's withConnection scope so the follow-up
     // match-host lookup uses the same request-scoped connection.
-    await this.kickResolvedUser(user);
+    for (const user of users) {
+      await this.kickResolvedUser(user);
+    }
     return true;
   }
 }
