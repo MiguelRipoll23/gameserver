@@ -32,10 +32,6 @@
 	// deployments. Named staging/production environments override them below.
 	"kv_namespaces": [
 		{
-			"binding": "AUTHENTICATION_CHALLENGES_V1_KV",
-			"id": "74f60c8e01544e5bbf20db1d1fcac85b"
-		},
-		{
 			"binding": "GAME_CONFIGURATION_V1_KV",
 			"id": "d703dc3f852240749697b0a78db9c6fb"
 		},
@@ -99,10 +95,6 @@
 			},
 			"kv_namespaces": [
 				{
-					"binding": "AUTHENTICATION_CHALLENGES_V1_KV",
-					"id": "74f60c8e01544e5bbf20db1d1fcac85b"
-				},
-				{
 					"binding": "GAME_CONFIGURATION_V1_KV",
 					"id": "d703dc3f852240749697b0a78db9c6fb"
 				},
@@ -145,10 +137,6 @@
 				]
 			},
 			"kv_namespaces": [
-				{
-					"binding": "AUTHENTICATION_CHALLENGES_V1_KV",
-					"id": "650c04c482d044968fc981fcf3bda384"
-				},
 				{
 					"binding": "GAME_CONFIGURATION_V1_KV",
 					"id": "63a60f228e1d42f3afc609260b6c51f8"
