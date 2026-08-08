@@ -99,6 +99,26 @@
 			},
 			"kv_namespaces": [
 				{
+					"binding": "AUTHENTICATION_CHALLENGES_V1_KV",
+					"id": "74f60c8e01544e5bbf20db1d1fcac85b"
+				},
+				{
+					"binding": "GAME_CONFIGURATION_V1_KV",
+					"id": "d703dc3f852240749697b0a78db9c6fb"
+				},
+				{
+					"binding": "GAME_VERSION_V1_KV",
+					"id": "02bf21a8637e423cbf4a627831dc71fc"
+				},
+				{
+					"binding": "SERVER_SIGNATURE_KEYS_V1_KV",
+					"id": "346993ac39384ef9920fc770966354b2"
+				},
+				{
+					"binding": "USER_ENCRYPTION_KEYS_V1_KV",
+					"id": "53a07a19566d49418ed77e99a41beb98"
+				},
+				{
 					"binding": "AUTHENTICATION_CHALLENGES_V1_KV_STAGING",
 					"id": "74f60c8e01544e5bbf20db1d1fcac85b"
 				},
@@ -145,6 +165,26 @@
 				]
 			},
 			"kv_namespaces": [
+				{
+					"binding": "AUTHENTICATION_CHALLENGES_V1_KV",
+					"id": "74f60c8e01544e5bbf20db1d1fcac85b"
+				},
+				{
+					"binding": "GAME_CONFIGURATION_V1_KV",
+					"id": "d703dc3f852240749697b0a78db9c6fb"
+				},
+				{
+					"binding": "GAME_VERSION_V1_KV",
+					"id": "02bf21a8637e423cbf4a627831dc71fc"
+				},
+				{
+					"binding": "SERVER_SIGNATURE_KEYS_V1_KV",
+					"id": "346993ac39384ef9920fc770966354b2"
+				},
+				{
+					"binding": "USER_ENCRYPTION_KEYS_V1_KV",
+					"id": "53a07a19566d49418ed77e99a41beb98"
+				},
 				{
 					"binding": "AUTHENTICATION_CHALLENGES_V1_KV_PRODUCTION",
 					"id": "650c04c482d044968fc981fcf3bda384"
