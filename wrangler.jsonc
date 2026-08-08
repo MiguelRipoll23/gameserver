@@ -25,7 +25,7 @@
 	},
 
 	"triggers": {
-		"crons": ["0 * * * *"]
+		"crons": ["0 0 * * *"]
 	},
 
 	// These shared bindings are used by plain `wrangler dev` and local fallback
