@@ -131,6 +131,12 @@ export class WebSocketDurableObject extends DurableObject<Env> {
     await this.withConnection(() => this.chatService!.refreshBlockedWordsCache());
   }
 
+  /** Broadcast updated anti-cheat rules to every connected client. */
+  public async pushAntiCheatConfig(rulesBinary: ArrayBuffer): Promise<void> {
+    this.ensureServices();
+    await this.webSocketService!.sendAntiCheatConfigToAll(rulesBinary);
+  }
+
   // ---- Connection access, used by the game/service layer (perf hot paths) ----
 
   /** Rehydrates the player behind a live socket (used by webSocketMessage). */

@@ -6,8 +6,11 @@ import {
   UpdateConfigurationRequest,
 } from "../schemas/configuration-schemas.ts";
 import { GameConfigurationService } from "./game-configuration-service.ts";
+import { getHubStub } from "../../../../core/utils/environment.ts";
+import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 
 const CLOUD_CONFIGURATION_KEY = "cloud_configuration";
+const ANTI_CHEAT_CONFIG_KEY = "4030BF2F";
 
 @injectable()
 export class ConfigurationService {
@@ -39,6 +42,28 @@ export class ConfigurationService {
       CLOUD_CONFIGURATION_KEY,
       configurationRequest as unknown as Record<string, unknown>,
     );
+
+    // If the configuration contains anti-cheat rules, push them to all
+    // connected clients so they take effect immediately.
+    await this.broadcastAntiCheatIfPresent(configurationRequest as unknown as Record<string, unknown>);
+  }
+
+  private async broadcastAntiCheatIfPresent(
+    configuration: Record<string, unknown>,
+  ): Promise<void> {
+    const raw = configuration[ANTI_CHEAT_CONFIG_KEY];
+    if (typeof raw !== "string" || raw.length === 0) {
+      return;
+    }
+
+    try {
+      const rulesBinary = Base64Utils.base64UrlToArrayBuffer(raw);
+      const hub = getHubStub();
+      await hub.pushAntiCheatConfig(rulesBinary);
+      console.log("Broadcast anti-cheat config to all connected clients");
+    } catch (error) {
+      console.error("Failed to broadcast anti-cheat config:", error);
+    }
   }
 
   public async getBlob(userId: string): Promise<ArrayBuffer> {

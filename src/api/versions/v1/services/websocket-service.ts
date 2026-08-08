@@ -7,6 +7,7 @@ import { WebSocketUser } from "../models/websocket-user.ts";
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import {
+  buildAntiCheatPayload,
   buildAuthenticationResponsePayload,
   buildNotificationPayload,
   buildOnlinePlayersPayload,
@@ -524,5 +525,18 @@ export class WebSocketService implements WebSocketServer {
       await this.kickResolvedUser(user);
     }
     return true;
+  }
+
+  /** Broadcast an anti-cheat configuration update to all connected clients. */
+  public async sendAntiCheatConfigToAll(
+    rulesBinary: ArrayBuffer,
+  ): Promise<void> {
+    const payload = buildAntiCheatPayload(rulesBinary);
+
+    for (const user of await this.webSocketDurableObject.values()) {
+      this.sendMessage(user, payload);
+    }
+
+    console.log("Sent anti-cheat configuration to all connected users");
   }
 }
