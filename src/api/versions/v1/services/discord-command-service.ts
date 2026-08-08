@@ -62,6 +62,8 @@ export class DiscordCommandService {
           return await this.handleNotification(interaction);
         case "ban-player":
           return await this.handleBanPlayer(interaction);
+        case "unban-player":
+          return await this.handleUnbanPlayer(interaction);
         default:
           return this.errorResponse("Unknown command");
       }
@@ -219,6 +221,53 @@ export class DiscordCommandService {
       );
       return this.errorResponse(
         "Ban player failed",
+        DiscordCommandService.GENERIC_ERROR_MESSAGE,
+      );
+    }
+  }
+
+  private async handleUnbanPlayer(
+    interaction: DiscordInteractionPayload,
+  ): Promise<DiscordInteractionResponse> {
+    const values = this.optionValues(interaction.data?.options);
+    const playerName = String(values.get("player-name") ?? "").trim();
+
+    if (!playerName) {
+      return this.errorResponse(
+        "Unban player",
+        "Player name is required.",
+      );
+    }
+
+    const user = await this.userModerationService.getUserByDisplayName(
+      playerName,
+    );
+
+    if (!user) {
+      return this.errorResponse(
+        "Unban player failed",
+        `Player **${playerName}** was not found.`,
+      );
+    }
+
+    try {
+      await this.userModerationService.unbanUser(user.id);
+      return this.successResponse(
+        "Player unbanned",
+        `Player **${this.singleLine(user.displayName)}** has been unbanned.`,
+      );
+    } catch (e) {
+      if (e instanceof ServerError) {
+        return this.errorResponse("Unban player failed", e.message);
+      }
+
+      console.error(
+        "discord unban player failed:",
+        e instanceof Error ? e.message : String(e),
+        e instanceof Error ? e.stack : undefined,
+      );
+      return this.errorResponse(
+        "Unban player failed",
         DiscordCommandService.GENERIC_ERROR_MESSAGE,
       );
     }
