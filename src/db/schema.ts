@@ -14,6 +14,7 @@ export { userRolesTable } from "./tables/user-roles-table.ts";
 export { refreshTokensTable } from "./tables/refresh-tokens-table.ts";
 export { botsTable } from "./tables/bots-table.ts";
 export { botRolesTable } from "./tables/bot-roles-table.ts";
+export { antiCheatRulesTable } from "./tables/anti-cheat-rules-table.ts";
 
 // Export RLS roles and helpers
 export * from "./rls.ts";
