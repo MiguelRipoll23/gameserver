@@ -3,15 +3,13 @@
  *
  * - Static Assets: everything under `./static` is served by Cloudflare's CDN
  *   before reaching the Worker (see `assets.directory`).
- * - `vars` below are plaintext, non-secret environment variables. They mirror
- *   the keys present in `.env.example`.
- * - Secrets (JWT_SECRET, CLOUDFLARE_CALLS_URL, CLOUDFLARE_CALLS_TOKEN,
- *   DISCORD_BOT_TOKEN, DISCORD_PUBLIC_KEY, ...) are NOT stored here. Set them
- *   with: `npm run secrets` (reads `.env` via `wrangler secret bulk`).
- *   For local development, copy `.env.example` to `.dev.vars` and fill it in.
- * - Hyperdrive: create one per environment and set its `id` below (do not
- *   share IDs across environments). Local dev targets `DATABASE_URL` via
- *   `localConnectionString`.
+ * - Worker secrets (JWT_SECRET, CLOUDFLARE_CALLS_URL,
+ *   CLOUDFLARE_CALLS_TOKEN, DISCORD_BOT_TOKEN, DISCORD_PUBLIC_KEY, ...) are
+ *   not stored here. Set them with `npx wrangler secret put <NAME>`.
+ * - For local development and migrations, copy `.env.example` to `.env` and
+ *   fill in the migration-only `DATABASE_URL` connection string.
+ * - PostgreSQL connections in deployed Workers use the `DATABASE_HYPERDRIVE`
+ *   binding configured below.
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",

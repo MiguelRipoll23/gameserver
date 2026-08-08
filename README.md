@@ -1,8 +1,8 @@
 # Game server
 
-A secure game server built for multiplayer games.
+A game server for multiplayer peer-to-peer games.
 
-[![Deploy on Deno](https://deno.com/button)](https://console.deno.com/new?clone=https://github.com/MiguelRipoll23/gameserver&predeploy=deno%20task%20predeploy)
+Deploys to Cloudflare Workers with Cloudflare Hyperdrive for PostgreSQL connectivity.
 
 Used by these games:
 
@@ -22,18 +22,19 @@ Used by these games:
 
 ## Configuration
 
-Follow the steps below after using the `Deploy` button above this section:
+The application runs on Cloudflare Workers. Before deploying:
 
-1. On the Deno Deploy project page, go to Settings → Environment Variables.
-2. Copy `.env.example` to `.env` (Deno Deploy requires the `.env` extension when
-   importing).
-3. Drag and drop the `.env` file onto the Environment Variables panel, or click
-   Import and select the file.
+1. Install Node.js and run `npm ci`.
+2. Authenticate Wrangler with `npx wrangler login`, or provide `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+3. Configure the required Worker secrets with Wrangler, including `JWT_SECRET`, `RP_ALLOWED_ORIGINS`, and the Discord/Cloudflare Calls secrets when those features are enabled.
+4. Configure the `DATABASE_HYPERDRIVE` binding in `wrangler.jsonc` for staging and production.
+5. Deploy with `npm run deploy:staging` or `npm run deploy:production`.
 
 ### Database configuration
 
-Provision a database and create the `authenticated_user` role so the migrations can be automatically applied when
-being deployed.
+The deployed Worker connects through Cloudflare Hyperdrive and does not require a `DATABASE_URL` Worker secret. `DATABASE_URL` is only needed by the local/CI migration commands (`npm run migrate` and `npm run predeploy`) because those commands run outside the Worker and connect directly to PostgreSQL.
+
+Provision a PostgreSQL database and create the `authenticated_user` role before running migrations. For local migrations, copy `.env.example` to `.env` and set `DATABASE_URL` to the database connection string.
 
 ## Contributing
 

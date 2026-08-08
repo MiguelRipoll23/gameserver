@@ -21,7 +21,7 @@ export class OpenAPIService {
       info: {
         version: "1.0.0",
         title: "Game server API",
-        description: "A game server built with Deno",
+        description: "A game server for multiplayer peer-to-peer games",
       },
     });
 
@@ -32,7 +32,7 @@ export class OpenAPIService {
         pageTitle: "Game server API",
         metaData: {
           title: "Game server API",
-          description: "A game server built for multiplayer games",
+          description: "A game server for multiplayer peer-to-peer games",
           ogTitle: "Game server API",
           ogDescription: "A game server built for multiplayer games",
         },

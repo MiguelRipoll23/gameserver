@@ -2,14 +2,14 @@
 
 ## Project Overview
 
-This is a **Deno-based game server** using:
-- **Runtime:** Deno (KV, BroadcastChannel)
+This is a **Cloudflare Workers-based game server** using:
+- **Runtime:** Cloudflare Workers (KV, Durable Objects, Hyperdrive)
 - **Framework:** Hono (with Zod OpenAPI)
 - **Database:** PostgreSQL via `pg` driver, **Drizzle ORM**
 - **Auth:** WebAuthn (passkeys) via `@simplewebauthn/server`
 - **DI:** `@needle-di/core` (with decorators)
 - **Validation:** Zod schemas (v4)
-- **Deployment:** Deno Deploy
+- **Deployment:** Cloudflare Workers
 
 ## TypeScript & Import Rules
 
@@ -36,7 +36,7 @@ This is a **Deno-based game server** using:
   ```
 - Use `pgTable` from `drizzle-orm/pg-core`. Column names use `snake_case` in SQL.
 - Foreign keys use `.references()` with `onDelete` cascade where appropriate.
-- For migrations: `deno task generate` (creates SQL), then `deno task migrate` (applies via scripts/migrate-database.ts).
+- For migrations: `npm run generate` (creates SQL), then `npm run migrate` (applies via scripts/migrate-database.ts). `DATABASE_URL` is required only by these local/CI migration commands; deployed Workers use the `DATABASE_HYPERDRIVE` binding.
 - **Row-Level Security (RLS):** Most tables define `pgPolicy` rules using `authenticatedUserRole` and helpers from `src/db/rls.ts` (`isCurrentUser`, `isCurrentCredential`).
 
 ## API Structure
@@ -59,7 +59,7 @@ This is a **Deno-based game server** using:
   }
   ```
 - All injectable dependencies are declared with `= inject(...)` default values.
-- `compilerOptions.experimentalDecorators: true` is set in deno.json.
+- `compilerOptions.experimentalDecorators: true` is set in `tsconfig.json`.
 
 ## Error Handling
 
@@ -77,26 +77,31 @@ This is a **Deno-based game server** using:
 - **Exports:** camelCase for table instances (e.g., `usersTable`, `matchesTable`)
 - **Entity types:** PascalCase with `Entity` suffix (e.g., `UserEntity`, `MatchEntity`)
 - **Insert types:** PascalCase with `InsertEntity` suffix (e.g., `UserInsertEntity`)
-- **Env vars:** `UPPER_SNAKE_CASE` (e.g., `DATABASE_URL`, `JWT_SECRET`)
+- **Env vars:** `UPPER_SNAKE_CASE` (e.g., `JWT_SECRET`, `DATABASE_HYPERDRIVE`)
 - **Error codes:** `UPPER_SNAKE_CASE` (e.g., `MATCH_NOT_FOUND`)
 
 ## Environment Variables
 
-All required env vars (see `.env.example`):
-- `DATABASE_URL` — PostgreSQL connection string
+Worker runtime configuration:
+- `DATABASE_HYPERDRIVE` — Cloudflare Hyperdrive binding used for PostgreSQL connectivity
 - `JWT_SECRET` — JWT signing secret
 - `RP_ALLOWED_ORIGINS` — WebAuthn allowed origins (comma-separated, wildcard support)
 - `CLOUDFLARE_CALLS_URL` / `CLOUDFLARE_CALLS_TOKEN` — Cloudflare Calls (WebRTC)
+
+Migration-only configuration:
+- `DATABASE_URL` — Direct PostgreSQL connection string used by local/CI migration commands, not by the deployed Worker
 
 ## Tasks & Scripts
 
 | Task | Command | Purpose |
 |---|---|---|
-| `dev` | `deno task dev` | Dev server with watch |
-| `check` | `deno task check` | Type-check the project |
-| `generate` | `deno task generate` | Generate Drizzle migrations from schema |
-| `migrate` | `deno task migrate` | Apply pending migrations |
-| `studio` | `deno task studio` | Open Drizzle Studio |
+| `dev` | `npm run dev` | Start the Wrangler development server |
+| `check` | `npm run check` | Type-check the project |
+| `generate` | `npm run generate` | Generate Drizzle migrations from schema |
+| `migrate` | `npm run migrate` | Apply pending migrations using `DATABASE_URL` |
+| `predeploy` | `npm run predeploy` | Run migrations and register Discord commands |
+| `deploy:staging` | `npm run deploy:staging` | Deploy to Cloudflare Workers staging |
+| `deploy:production` | `npm run deploy:production` | Deploy to Cloudflare Workers production |
 
 ## Testing
 

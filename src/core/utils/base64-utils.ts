@@ -37,8 +37,7 @@ export class Base64Utils {
   }
 
   /**
-   * Standard (RFC 4648) Base64 with `=` padding — equivalent to the `encodeBase64`
-   * helper from Deno's `@std/encoding/base64`, which is not available on npm.
+   * Standard (RFC 4648) Base64 with `=` padding for PostgreSQL and API payloads.
    */
   public static encodeStandardBase64(
     data: ArrayBuffer | ArrayBufferLike | Uint8Array,
@@ -54,8 +53,7 @@ export class Base64Utils {
   }
 
   /**
-   * Decodes standard (RFC 4648) Base64 with `=` padding — equivalent to the
-   * `decodeBase64` helper from Deno's `@std/encoding/base64`.
+   * Decodes standard (RFC 4648) Base64 with `=` padding.
    */
   public static decodeStandardBase64(str: string): Uint8Array {
     const binary = atob(str);
