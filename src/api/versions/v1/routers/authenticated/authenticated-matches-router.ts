@@ -66,7 +66,7 @@ export class AuthenticatedMatchesRouter {
       createRoute({
         method: "post",
         path: "/find",
-        summary: "Find matches",
+        summary: "Find available matches",
         description: "Obtains available matches to join for the player",
         tags: ["Matches"],
         request: {
