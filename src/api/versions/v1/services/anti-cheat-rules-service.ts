@@ -1,10 +1,15 @@
 import { inject, injectable } from "@needle-di/core";
-import { asc } from "drizzle-orm";
+import { and, asc, eq, gt, type SQL } from "drizzle-orm";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { antiCheatRulesTable } from "../../../../db/schema.ts";
 import { BinaryWriter } from "../../../../core/utils/binary-writer-utils.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 import { ServerError } from "../models/server-error.ts";
+import type {
+  GetAntiCheatRulesQuery,
+  GetAntiCheatRulesResponse,
+  UpdateAntiCheatRuleRequest,
+} from "../schemas/anti-cheat-rules-schemas.ts";
 import type {
   AntiCheatRule,
   AntiCheatRuleField,
@@ -30,7 +35,61 @@ const FIELD_VALUE_FLOAT32 = 0x01;
 export class AntiCheatRulesService {
   constructor(private databaseService = inject(DatabaseService)) {}
 
-  public async getRules(): Promise<AntiCheatRule[]> {
+  /**
+   * Lists rules ordered by ruleId with keyset pagination and an optional
+   * ruleType filter.
+   */
+  public async list(
+    params: Partial<GetAntiCheatRulesQuery> = {},
+  ): Promise<GetAntiCheatRulesResponse> {
+    const { cursor, limit = 20, ruleType } = params;
+    const db = this.databaseService.get();
+
+    const conditions: SQL[] = [];
+
+    if (ruleType !== undefined) {
+      conditions.push(eq(antiCheatRulesTable.ruleType, ruleType));
+    }
+
+    if (cursor !== undefined) {
+      conditions.push(gt(antiCheatRulesTable.ruleId, cursor));
+    }
+
+    const rows = await db
+      .select()
+      .from(antiCheatRulesTable)
+      .where(
+        conditions.length === 0
+          ? undefined
+          : conditions.length === 1
+            ? conditions[0]
+            : and(...conditions),
+      )
+      .orderBy(asc(antiCheatRulesTable.ruleId))
+      .limit(limit + 1);
+
+    const hasNextPage = rows.length > limit;
+    const results = rows.slice(0, limit).map((row) => ({
+      ruleId: row.ruleId,
+      ruleType: row.ruleType,
+      fields: row.fields as unknown as AntiCheatRuleField[],
+    }));
+
+    return {
+      results,
+      nextCursor:
+        hasNextPage && results.length > 0
+          ? results[results.length - 1].ruleId
+          : undefined,
+      hasMore: hasNextPage,
+    };
+  }
+
+  /**
+   * Returns the full rule set (no pagination). Used to re-serialize the game
+   * configuration after a single-rule mutation.
+   */
+  public async getAllRules(): Promise<AntiCheatRule[]> {
     const db = this.databaseService.get();
     const rows = await db
       .select()
@@ -45,43 +104,81 @@ export class AntiCheatRulesService {
   }
 
   /**
-   * Replaces the entire rule set with the given rules.
+   * Creates a single anti-cheat rule.
+   * @throws ServerError when a rule with the same ruleId already exists
    */
-  public async replaceRules(rules: readonly AntiCheatRule[]): Promise<void> {
-    this.throwIfDuplicateRuleIds(rules);
-
+  public async createRule(rule: AntiCheatRule): Promise<void> {
     const db = this.databaseService.get();
 
-    await db.transaction(async (tx) => {
-      await tx.delete(antiCheatRulesTable);
+    const existing = await db
+      .select({ ruleId: antiCheatRulesTable.ruleId })
+      .from(antiCheatRulesTable)
+      .where(eq(antiCheatRulesTable.ruleId, rule.ruleId))
+      .limit(1);
 
-      if (rules.length === 0) {
-        return;
-      }
-
-      await tx.insert(antiCheatRulesTable).values(
-        rules.map((rule) => ({
-          ruleId: rule.ruleId,
-          ruleType: rule.ruleType,
-          fields: rule.fields,
-          updatedAt: new Date(),
-        })),
+    if (existing.length > 0) {
+      throw new ServerError(
+        "RULE_ALREADY_EXISTS",
+        `Anti-cheat rule with ruleId ${rule.ruleId} already exists`,
+        409,
       );
+    }
+
+    await db.insert(antiCheatRulesTable).values({
+      ruleId: rule.ruleId,
+      ruleType: rule.ruleType,
+      fields: rule.fields,
+      updatedAt: new Date(),
     });
   }
 
-  private throwIfDuplicateRuleIds(rules: readonly AntiCheatRule[]): void {
-    const seen = new Set<number>();
+  /**
+   * Replaces the content of an existing anti-cheat rule.
+   * @throws ServerError when the rule does not exist
+   */
+  public async updateRule(
+    ruleId: number,
+    data: UpdateAntiCheatRuleRequest,
+  ): Promise<void> {
+    const db = this.databaseService.get();
 
-    for (const rule of rules) {
-      if (seen.has(rule.ruleId)) {
-        throw new ServerError(
-          "DUPLICATE_RULE_ID",
-          `Duplicate ruleId ${rule.ruleId}`,
-          400,
-        );
-      }
-      seen.add(rule.ruleId);
+    const updated = await db
+      .update(antiCheatRulesTable)
+      .set({
+        ruleType: data.ruleType,
+        fields: data.fields,
+        updatedAt: new Date(),
+      })
+      .where(eq(antiCheatRulesTable.ruleId, ruleId))
+      .returning({ ruleId: antiCheatRulesTable.ruleId });
+
+    if (updated.length === 0) {
+      throw new ServerError(
+        "RULE_NOT_FOUND",
+        `Anti-cheat rule with ruleId ${ruleId} does not exist`,
+        404,
+      );
+    }
+  }
+
+  /**
+   * Deletes an anti-cheat rule.
+   * @throws ServerError when the rule does not exist
+   */
+  public async deleteRule(ruleId: number): Promise<void> {
+    const db = this.databaseService.get();
+
+    const deleted = await db
+      .delete(antiCheatRulesTable)
+      .where(eq(antiCheatRulesTable.ruleId, ruleId))
+      .returning({ ruleId: antiCheatRulesTable.ruleId });
+
+    if (deleted.length === 0) {
+      throw new ServerError(
+        "RULE_NOT_FOUND",
+        `Anti-cheat rule with ruleId ${ruleId} does not exist`,
+        404,
+      );
     }
   }
 
