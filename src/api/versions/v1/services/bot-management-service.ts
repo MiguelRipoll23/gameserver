@@ -35,6 +35,14 @@ export class BotManagementService {
     );
   }
 
+  private isForeignKeyViolationError(error: unknown): boolean {
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      (error as { code?: unknown }).code === "23503"
+    );
+  }
+
   public async createBot(
     request: CreateBotRequest,
     creatorUserId: string,
@@ -62,6 +70,13 @@ export class BotManagementService {
           "BOT_NAME_TAKEN",
           "A bot with this name already exists",
           409,
+        );
+      }
+      if (this.isForeignKeyViolationError(error)) {
+        throw new ServerError(
+          "USER_NOT_FOUND",
+          "Authenticated user does not exist",
+          404,
         );
       }
       Logger.error("Failed to create bot:", error);

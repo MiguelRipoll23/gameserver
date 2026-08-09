@@ -70,6 +70,7 @@ export class ManagementBotRouter {
           ...ServerResponse.BadRequest,
           ...ServerResponse.Unauthorized,
           ...ServerResponse.Forbidden,
+          ...ServerResponse.NotFound,
           ...ServerResponse.Conflict,
         },
       }),
