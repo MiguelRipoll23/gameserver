@@ -28,19 +28,32 @@ export class BotManagementService {
   ) {}
 
   private isDuplicateNameError(error: unknown): boolean {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      (error as { code?: unknown }).code === "23505"
-    );
+    return this.getDatabaseErrorCode(error) === "23505";
   }
 
   private isForeignKeyViolationError(error: unknown): boolean {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      (error as { code?: unknown }).code === "23503"
-    );
+    return this.getDatabaseErrorCode(error) === "23503";
+  }
+
+  /**
+   * Drizzle wraps database errors in a `DrizzleQueryError` whose `cause` holds
+   * the original driver error (with the Postgres error `code`). Walks the cause
+   * chain until a Postgres error code is found.
+   */
+  private getDatabaseErrorCode(error: unknown): string | undefined {
+    let current: unknown = error;
+    let depth = 0;
+
+    while (typeof current === "object" && current !== null && depth < 10) {
+      const candidate = current as { code?: unknown; cause?: unknown };
+      if (typeof candidate.code === "string") {
+        return candidate.code;
+      }
+      current = candidate.cause;
+      depth += 1;
+    }
+
+    return undefined;
   }
 
   public async createBot(
