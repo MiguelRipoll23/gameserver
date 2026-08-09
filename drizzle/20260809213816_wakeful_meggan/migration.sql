@@ -1,0 +1,2 @@
+ALTER TABLE "user_bans" ADD COLUMN "issued_by" uuid;--> statement-breakpoint
+ALTER TABLE "user_bans" ADD CONSTRAINT "user_bans_issued_by_users_id_fkey" FOREIGN KEY ("issued_by") REFERENCES "users"("id") ON DELETE SET NULL;

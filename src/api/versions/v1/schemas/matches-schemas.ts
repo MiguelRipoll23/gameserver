@@ -85,6 +85,10 @@ export const MatchResponseSchema = z.object({
     .uuid()
     .describe("The ID of the user hosting the match")
     .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
+  hostUserDisplayName: z
+    .string()
+    .describe("Display name of the user hosting the match")
+    .openapi({ example: "Player1" }),
   clientVersion: z
     .string()
     .describe("Version of the game client")

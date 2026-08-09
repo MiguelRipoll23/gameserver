@@ -10,10 +10,11 @@ import {
   UnbanUserRequestSchema,
 } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 
 @injectable()
 export class ManagementUserModerationRouter {
-  private app: OpenAPIHono;
+  private app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(
     private userModerationService = inject(UserModerationService),
@@ -22,7 +23,7 @@ export class ManagementUserModerationRouter {
     this.setRoutes();
   }
 
-  public getRouter(): OpenAPIHono {
+  public getRouter(): OpenAPIHono<{ Variables: HonoVariables }> {
     return this.app;
   }
 
@@ -134,7 +135,8 @@ export class ManagementUserModerationRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        await this.userModerationService.banUser(validated);
+        const issuerUserId = c.get("userId");
+        await this.userModerationService.banUser(validated, issuerUserId);
         return c.body(null, 204);
       },
     );

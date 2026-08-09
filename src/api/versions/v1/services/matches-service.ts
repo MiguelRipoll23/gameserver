@@ -37,8 +37,20 @@ export class MatchesService {
     const db = this.databaseService.get();
 
     const matches = await db
-      .select()
+      .select({
+        id: matchesTable.id,
+        hostUserId: matchesTable.hostUserId,
+        hostUserDisplayName: usersTable.displayName,
+        clientVersion: matchesTable.clientVersion,
+        totalSlots: matchesTable.totalSlots,
+        availableSlots: matchesTable.availableSlots,
+        pingMedianMilliseconds: matchesTable.pingMedianMilliseconds,
+        attributes: matchesTable.attributes,
+        createdAt: matchesTable.createdAt,
+        updatedAt: matchesTable.updatedAt,
+      })
       .from(matchesTable)
+      .innerJoin(usersTable, eq(matchesTable.hostUserId, usersTable.id))
       .where(cursor ? lt(matchesTable.id, cursor) : undefined)
       .orderBy(desc(matchesTable.id))
       .limit(limit + 1);
@@ -47,6 +59,7 @@ export class MatchesService {
     const results = matches.slice(0, limit).map((match) => ({
       id: match.id,
       hostUserId: match.hostUserId,
+      hostUserDisplayName: match.hostUserDisplayName,
       clientVersion: match.clientVersion,
       totalSlots: match.totalSlots,
       availableSlots: match.availableSlots,

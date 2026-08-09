@@ -18,6 +18,7 @@ import {
   usersTable,
 } from "../../../../db/schema.ts";
 import { and, desc, eq, gt } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getHubStub } from "../../../../core/utils/environment.ts";
 
 @injectable()
@@ -54,7 +55,10 @@ export class UserModerationService {
     return users[0] ?? null;
   }
 
-  public async banUser(body: BanUserRequest): Promise<void> {
+  public async banUser(
+    body: BanUserRequest,
+    issuedByUserId?: string,
+  ): Promise<void> {
     const { userId, reason, duration } = body;
     const db = this.databaseService.get();
 
@@ -94,6 +98,7 @@ export class UserModerationService {
           .insert(userBansTable)
           .values({
             userId,
+            issuedBy: issuedByUserId ?? null,
             reason,
             expiresAt,
           });
@@ -218,17 +223,29 @@ export class UserModerationService {
         }
 
         // Fetch one extra item to determine if there are more results
+        const reporterUser = alias(usersTable, "reporter_user");
+        const reportedUser = alias(usersTable, "reported_user");
         const reports = await tx
           .select({
             id: userReportsTable.id,
-            reporterUserId: userReportsTable.reporterUserId,
-            reportedUserId: userReportsTable.reportedUserId,
+            userId: userReportsTable.reportedUserId,
+            userDisplayName: reportedUser.displayName,
+            issuedByUserId: userReportsTable.reporterUserId,
+            issuedByUserDisplayName: reporterUser.displayName,
             reason: userReportsTable.reason,
             automatic: userReportsTable.automatic,
             createdAt: userReportsTable.createdAt,
             updatedAt: userReportsTable.updatedAt,
           })
           .from(userReportsTable)
+          .innerJoin(
+            reporterUser,
+            eq(userReportsTable.reporterUserId, reporterUser.id),
+          )
+          .innerJoin(
+            reportedUser,
+            eq(userReportsTable.reportedUserId, reportedUser.id),
+          )
           .where(
             conditions.length === 0
               ? undefined
@@ -245,8 +262,10 @@ export class UserModerationService {
 
         return {
           results: results.map((report) => ({
-            reporterUserId: report.reporterUserId,
-            reportedUserId: report.reportedUserId,
+            userId: report.userId,
+            userDisplayName: report.userDisplayName,
+            issuedByUserId: report.issuedByUserId,
+            issuedByUserDisplayName: report.issuedByUserDisplayName,
             reason: report.reason,
             automatic: report.automatic,
             createdAt: report.createdAt.toISOString(),
@@ -292,16 +311,23 @@ export class UserModerationService {
         }
 
         // Fetch one extra item to determine if there are more results
+        const bannedUser = alias(usersTable, "banned_user");
+        const issuerUser = alias(usersTable, "issuer_user");
         const bans = await tx
           .select({
             id: userBansTable.id,
             userId: userBansTable.userId,
+            userDisplayName: bannedUser.displayName,
+            issuedByUserId: userBansTable.issuedBy,
+            issuedByUserDisplayName: issuerUser.displayName,
             reason: userBansTable.reason,
             createdAt: userBansTable.createdAt,
             updatedAt: userBansTable.updatedAt,
             expiresAt: userBansTable.expiresAt,
           })
           .from(userBansTable)
+          .innerJoin(bannedUser, eq(userBansTable.userId, bannedUser.id))
+          .leftJoin(issuerUser, eq(userBansTable.issuedBy, issuerUser.id))
           .where(
             conditions.length === 0
               ? undefined
@@ -319,6 +345,9 @@ export class UserModerationService {
         return {
           results: results.map((ban) => ({
             userId: ban.userId,
+            userDisplayName: ban.userDisplayName,
+            issuedByUserId: ban.issuedByUserId ?? null,
+            issuedByUserDisplayName: ban.issuedByUserDisplayName ?? null,
             reason: ban.reason,
             createdAt: ban.createdAt.toISOString(),
             updatedAt: ban.updatedAt?.toISOString() || null,

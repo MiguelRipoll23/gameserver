@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit",
     "generate": "drizzle-kit generate",
+    "generate:openapi": "node --env-file=.env --import tsx --import ./scripts/register-openapi-loader.mjs scripts/generate-openapi-schema.ts",
     "migrate": "node --env-file=.env --import tsx scripts/migrate-database.ts",
     "predeploy": "node --env-file=.env --import tsx scripts/predeploy.ts",
     "register-discord-commands": "node --env-file=.env --import tsx scripts/register-discord-commands.ts"

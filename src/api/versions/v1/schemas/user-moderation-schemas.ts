@@ -103,7 +103,16 @@ export const GetUserBansRequestSchema = GetUserBansQuerySchema;
 export type GetUserBansRequest = z.infer<typeof GetUserBansRequestSchema>;
 
 export const UserBanResponseSchema = z.object({
-  userId: z.string().describe("User ID"),
+  userId: z.string().describe("Banned user ID"),
+  userDisplayName: z.string().describe("Display name of the banned user"),
+  issuedByUserId: z
+    .string()
+    .nullable()
+    .describe("ID of the user who issued the ban"),
+  issuedByUserDisplayName: z
+    .string()
+    .nullable()
+    .describe("Display name of the user who issued the ban"),
   reason: z.string().describe("Ban reason"),
   createdAt: z.string().describe("Ban creation date"),
   updatedAt: z.string().nullable().describe("Ban update date"),
@@ -132,8 +141,14 @@ export const GetUserReportsRequestSchema = GetUserReportsQuerySchema;
 export type GetUserReportsRequest = z.infer<typeof GetUserReportsRequestSchema>;
 
 export const UserReportResponseSchema = z.object({
-  reporterUserId: z.string().describe("Reporter user ID"),
-  reportedUserId: z.string().describe("Reported user ID"),
+  userId: z.string().describe("Reported user ID"),
+  userDisplayName: z.string().describe("Display name of the reported user"),
+  issuedByUserId: z
+    .string()
+    .describe("ID of the user who issued the report"),
+  issuedByUserDisplayName: z
+    .string()
+    .describe("Display name of the user who issued the report"),
   reason: z.string().describe("Report reason"),
   automatic: z.boolean().describe("Whether the report was automatic"),
   createdAt: z.string().describe("Report creation date"),
