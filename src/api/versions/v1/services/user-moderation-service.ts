@@ -161,8 +161,12 @@ export class UserModerationService {
   ): Promise<void> {
     const { userId, reason, automatic } = body;
 
-    if (reporterUserId === userId) {
-      throw new ServerError("INVALID_REPORT", "Cannot report yourself", 400);
+    if (reporterUserId === userId && !automatic) {
+      throw new ServerError(
+        "INVALID_REPORT",
+        "Cannot report yourself",
+        400,
+      );
     }
 
     const db = this.databaseService.get();
