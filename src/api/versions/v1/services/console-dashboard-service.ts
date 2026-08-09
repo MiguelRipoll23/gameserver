@@ -1,7 +1,8 @@
 import { inject, injectable } from "@needle-di/core";
-import { count, desc } from "drizzle-orm";
+import { count, desc, gt, type SQL } from "drizzle-orm";
 import type { AnyPgTable } from "drizzle-orm/pg-core";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
+import { ServerError } from "../models/server-error.ts";
 import { VersionService } from "./version-service.ts";
 import {
   antiCheatRulesTable,
@@ -34,8 +35,12 @@ export class ConsoleDashboardService {
     let minimumVersion: string | null = null;
     try {
       minimumVersion = (await this.versionService.get()).minimumVersion;
-    } catch {
-      // The version is optional on the dashboard; surface it as null when unset.
+    } catch (error) {
+      if (error instanceof ServerError && error.getCode() === "MISSING_VERSION") {
+        minimumVersion = null;
+      } else {
+        throw error;
+      }
     }
 
     const [
@@ -52,7 +57,7 @@ export class ConsoleDashboardService {
       this.countRows(usersTable),
       this.countRows(botsTable),
       this.countRows(userSessionsTable),
-      this.countRows(matchesTable),
+      this.countRows(matchesTable, gt(matchesTable.availableSlots, 0)),
       this.countRows(userScoresTable),
       this.countRows(userReportsTable),
       this.countRows(userBansTable),
@@ -88,11 +93,16 @@ export class ConsoleDashboardService {
     };
   }
 
-  private async countRows(table: AnyPgTable): Promise<number> {
-    const rows = await this.databaseService
+  private async countRows(
+    table: AnyPgTable,
+    filter?: SQL | undefined,
+  ): Promise<number> {
+    const query = this.databaseService
       .get()
       .select({ value: count() })
       .from(table);
+
+    const rows = filter ? await query.where(filter) : await query;
 
     return Number(rows[0]?.value ?? 0);
   }
