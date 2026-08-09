@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import {
   AdvertiseMatchRequest,
   FindMatchesRequest,
@@ -119,7 +120,7 @@ export class MatchesService {
         await this.populateMatchUsers(tx, match.id, usersList);
       });
     } catch (error) {
-      console.error("Failed to create match:", error);
+      Logger.error("Failed to create match:", error);
       throw new ServerError(
         "MATCH_CREATION_FAILED",
         "Match creation failed",
@@ -208,7 +209,7 @@ export class MatchesService {
       );
     }
 
-    console.log(`Deleted match for user ${userId}`);
+    Logger.log(`Deleted match for user ${userId}`);
   }
 
   public async deleteById(matchId: number): Promise<void> {
@@ -227,7 +228,7 @@ export class MatchesService {
       );
     }
 
-    console.log(`Deleted match ${matchId}`);
+    Logger.log(`Deleted match ${matchId}`);
   }
 
   public async deleteIfExists(userId: string, userName: string): Promise<void> {
@@ -239,7 +240,7 @@ export class MatchesService {
       .returning();
 
     if (affectedRows.length > 0) {
-      console.log(`Deleted match for user ${userName}`);
+      Logger.log(`Deleted match for user ${userName}`);
     }
   }
 
@@ -257,7 +258,7 @@ export class MatchesService {
       .limit(1);
 
     if (result.length === 0) {
-      console.info(`User ${matchUserId} is not a participant in any match`);
+      Logger.info(`User ${matchUserId} is not a participant in any match`);
       return null;
     }
 

@@ -1,4 +1,5 @@
 import { injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DEFAULT_ICE_SERVERS } from "../constants/api-constants.ts";
 import {
   ENV_CLOUDFLARE_CALLS_TOKEN,
@@ -15,7 +16,7 @@ export class ICEService {
     try {
       iceServers = await this.getCloudflareServers();
     } catch (error) {
-      console.error("Failed to get Cloudflare ICE servers", error);
+      Logger.error("Failed to get Cloudflare ICE servers", error);
     }
 
     return iceServers;

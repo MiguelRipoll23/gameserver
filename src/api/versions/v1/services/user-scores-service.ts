@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { CryptoService } from "./crypto-service.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { NotificationService } from "./notification-service.ts";
@@ -91,7 +92,7 @@ export class UserScoresService {
     const matchId = await this.getHostedMatchId(userId);
 
     const request = await this.parseAndValidateSaveRequest(userId, body);
-    console.debug("SaveScoresRequest", request);
+    Logger.debug("SaveScoresRequest", request);
 
     // Use database transaction to ensure atomicity
     const db = this.databaseService.get();
@@ -123,7 +124,7 @@ export class UserScoresService {
         );
       }
     } catch (error) {
-      console.error("Failed to update scores in transaction:", error);
+      Logger.error("Failed to update scores in transaction:", error);
       // Notifications are not dispatched on transaction failure
       throw new ServerError(
         "SCORE_UPDATE_FAILED",
@@ -167,7 +168,7 @@ export class UserScoresService {
       });
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to update user score:", error);
+      Logger.error("Failed to update user score:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to update user score",
@@ -212,7 +213,7 @@ export class UserScoresService {
 
       return SaveScoresRequestSchema.parse(JSON.parse(json));
     } catch (error) {
-      console.error("Failed to parse and validate SaveScoresRequest:", error);
+      Logger.error("Failed to parse and validate SaveScoresRequest:", error);
       throw new ServerError("BAD_REQUEST", "Invalid request body", 400);
     }
   }

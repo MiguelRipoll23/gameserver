@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { Logger } from "../utils/logger.ts";
 import { Client } from "pg";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
@@ -53,7 +54,7 @@ export class DatabaseService {
       );
     } finally {
       await client.end().catch((error) => {
-        console.error("[database] Failed to close connection:", error);
+        Logger.error("[database] Failed to close connection:", error);
       });
     }
   }

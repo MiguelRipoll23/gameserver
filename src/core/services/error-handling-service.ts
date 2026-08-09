@@ -1,4 +1,5 @@
 import { HTTPException } from "hono/http-exception";
+import { Logger } from "../utils/logger.ts";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 import { HonoVariables } from "../types/hono-variables-type.ts";
@@ -8,7 +9,7 @@ export class ErrorHandlingService {
     app: OpenAPIHono<{ Variables: HonoVariables }>,
   ): void {
     app.onError((error, c) => {
-      console.error(error);
+      Logger.error(error);
 
       if (error instanceof HTTPException) {
         return c.json(

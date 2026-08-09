@@ -1,3 +1,4 @@
+import { Logger } from "../../../../core/utils/logger.ts";
 import {
   ENV_DISCORD_BOT_TOKEN,
   ENV_DISCORD_PUBLIC_KEY,
@@ -14,7 +15,7 @@ export function logDiscordBotConfiguration(): void {
   }
 
   if (missing.length > 0) {
-    console.warn(
+    Logger.warn(
       `Discord bot not configured (missing ${missing.join(", ")}); ` +
         "slash command endpoints will be disabled",
     );

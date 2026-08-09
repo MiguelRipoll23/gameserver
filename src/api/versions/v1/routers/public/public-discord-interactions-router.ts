@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { Logger } from "../../../../../core/utils/logger.ts";
 import { inject, injectable } from "@needle-di/core";
 import { DiscordCommandService } from "../../services/discord-command-service.ts";
 import { DiscordSignatureVerificationMiddleware } from "../../../../middlewares/discord-signature-verification-middleware.ts";
@@ -86,7 +87,7 @@ export class PublicDiscordInteractionsRouter {
         ) as DiscordInteractionPayload;
         const commandName = payload.data?.name ?? "unknown";
 
-        console.info(
+        Logger.info(
           "Discord interaction received:",
           JSON.stringify({
             interactionId: payload.id,
@@ -97,7 +98,7 @@ export class PublicDiscordInteractionsRouter {
         );
 
         if (payload.type === DiscordInteractionType.Ping) {
-          console.info(
+          Logger.info(
             "Discord interaction completed:",
             JSON.stringify({
               interactionId: payload.id,
@@ -122,7 +123,7 @@ export class PublicDiscordInteractionsRouter {
         }
 
         const response = await this.commandService.handle(payload);
-        console.info(
+        Logger.info(
           "Discord interaction completed:",
           JSON.stringify({
             interactionId: payload.id,

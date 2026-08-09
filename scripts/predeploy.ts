@@ -1,4 +1,5 @@
 import { pathToFileURL } from "node:url";
+import { Logger } from "../src/core/utils/logger.ts";
 import { migrateDatabase } from "./migrate-database.ts";
 import { registerDiscordCommands } from "./register-discord-commands.ts";
 
@@ -15,7 +16,7 @@ if (isMain) {
   predeploy()
     .then(() => process.exit(0))
     .catch((error) => {
-      console.error(error);
+      Logger.error(error);
       process.exit(1);
     });
 }

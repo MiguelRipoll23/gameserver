@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -71,7 +72,7 @@ export class UserRolesService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while fetching user roles:", error);
+      Logger.error("Database error while fetching user roles:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch user roles",
@@ -116,7 +117,7 @@ export class UserRolesService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Error adding user role:", error);
+      Logger.error("Error adding user role:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to add user role", 500);
     }
   }
@@ -156,7 +157,7 @@ export class UserRolesService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Error removing user role:", error);
+      Logger.error("Error removing user role:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to remove user role",
@@ -184,7 +185,7 @@ export class UserRolesService {
         throw error;
       }
 
-      console.error("Database error while checking user existence:", error);
+      Logger.error("Database error while checking user existence:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to verify user existence",
@@ -214,7 +215,7 @@ export class UserRolesService {
         throw error;
       }
 
-      console.error("Database error while getting role by name:", error);
+      Logger.error("Database error while getting role by name:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to verify role existence",
@@ -249,7 +250,7 @@ export class UserRolesService {
 
       return newRoles[0].id;
     } catch (error) {
-      console.error(
+      Logger.error(
         "Database error while getting or creating role by name:",
         error,
       );

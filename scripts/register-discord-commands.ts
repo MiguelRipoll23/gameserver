@@ -1,3 +1,4 @@
+import { Logger } from "../src/core/utils/logger.ts";
 import {
   ENV_DISCORD_APPLICATION_ID,
   ENV_DISCORD_BOT_TOKEN,
@@ -28,7 +29,7 @@ export async function registerDiscordCommands(): Promise<void> {
   );
 
   if (resp.ok) {
-    console.log(`Registered ${DISCORD_SLASH_COMMANDS.length} global commands`);
+    Logger.log(`Registered ${DISCORD_SLASH_COMMANDS.length} global commands`);
     return;
   }
 
@@ -44,7 +45,7 @@ if (isMain) {
   registerDiscordCommands()
     .then(() => process.exit(0))
     .catch((error) => {
-      console.error(error);
+      Logger.error(error);
       process.exit(1);
     });
 }

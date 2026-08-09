@@ -1,4 +1,5 @@
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { inject, injectable } from "@needle-di/core";
 import { ChatService } from "./chat-service.ts";
@@ -48,7 +49,7 @@ export class WebSocketService implements WebSocketServer {
   }
 
   public handleOpenEvent(user: WebSocketUser): void {
-    console.debug(
+    Logger.debug(
       `Unauthenticated WebSocket connection from ${user.getPublicIp()}`,
     );
   }
@@ -66,7 +67,7 @@ export class WebSocketService implements WebSocketServer {
     try {
       await this.handleMessage(user, data);
     } catch (error) {
-      console.error(error);
+      Logger.error(error);
     }
   }
 
@@ -80,13 +81,13 @@ export class WebSocketService implements WebSocketServer {
 
     try {
       webSocket.send(arrayBuffer);
-      console.debug(
+      Logger.debug(
         `%cSent message to user ${user.getName()}:\n` +
           BinaryWriter.preview(arrayBuffer),
         "color: purple",
       );
     } catch (error) {
-      console.error(
+      Logger.error(
         "Failed to send message to user",
         user.getName(),
         error,
@@ -102,7 +103,7 @@ export class WebSocketService implements WebSocketServer {
     const users = await this.webSocketDurableObject.getByIdAll(userId);
 
     if (users.length === 0) {
-      console.debug(
+      Logger.debug(
         `Ignoring ${command} command for user ${userId} because user is not present on this instance`,
       );
       return false;
@@ -126,14 +127,14 @@ export class WebSocketService implements WebSocketServer {
     }
 
     webSocket.close(code, reason);
-    console.log(
+    Logger.log(
       `Closed connection for user ${user.getName()} with code ${code}: ${reason}`,
     );
   }
 
   private async handleDisconnection(user: WebSocketUser): Promise<void> {
     if (!user.isAuthenticated()) {
-      console.debug(
+      Logger.debug(
         `Unauthenticated WebSocket connection disconnection from ${user.getPublicIp()}`,
       );
       await this.webSocketDurableObject.remove(user);
@@ -143,7 +144,7 @@ export class WebSocketService implements WebSocketServer {
     const userId = user.getId();
     const userName = user.getName();
 
-    console.log(`User ${userName} disconnected from server`);
+    Logger.log(`User ${userName} disconnected from server`);
 
     try {
       await this.databaseService.withConnection(async () => {
@@ -152,7 +153,7 @@ export class WebSocketService implements WebSocketServer {
           await this.deleteUserTemporaryData(userId, userName);
           await this.matchesService.deleteIfExists(userId, userName);
         } catch (error) {
-          console.error(
+          Logger.error(
             `Error during disconnection for user ${userName}:`,
             error,
           );
@@ -176,9 +177,9 @@ export class WebSocketService implements WebSocketServer {
     try {
       await this.refreshTokensService.incrementVersion(userId);
       await this.userEncryptionKeysService.delete(userId);
-      console.log(`Deleted temporary data for user ${userName}`);
+      Logger.log(`Deleted temporary data for user ${userName}`);
     } catch (error) {
-      console.error(
+      Logger.error(
         `Failed to delete temporary data for user ${userName}:`,
         error,
       );
@@ -193,12 +194,12 @@ export class WebSocketService implements WebSocketServer {
     const commandId = binaryReader.unsignedInt8();
 
     if (commandId == WebSocketType.Authentication) {
-      console.debug(
+      Logger.debug(
         `%cReceived authentication message from ${user.getPublicIp()}`,
         "color: green;",
       );
     } else {
-      console.debug(
+      Logger.debug(
         `%cReceived message from user ${user.getName()}:\n` +
           binaryReader.preview(),
         "color: green;",
@@ -206,7 +207,7 @@ export class WebSocketService implements WebSocketServer {
     }
 
     if (this.rejectWhenUnauthenticated(user, commandId)) {
-      console.warn(
+      Logger.warn(
         `Rejected command ${
           WebSocketType[commandId]
         } from unauthenticated user ${user.getPublicIp()}`,
@@ -255,7 +256,7 @@ export class WebSocketService implements WebSocketServer {
     const destinationUser = await this.webSocketDurableObject.getByToken(destinationToken);
 
     if (!destinationUser) {
-      console.debug(
+      Logger.debug(
         `Ignoring player relay: destination token is not connected to the hub`,
       );
       return;
@@ -285,7 +286,7 @@ export class WebSocketService implements WebSocketServer {
       this.sendMessage(user, payload);
     }
 
-    console.log(
+    Logger.log(
       `Sent notification to all users on channel ${
         NotificationChannelType[channelId]
       }`,
@@ -300,7 +301,7 @@ export class WebSocketService implements WebSocketServer {
     const payload = buildNotificationPayload(channelId, text);
 
     this.sendMessage(user, payload);
-    console.log(
+    Logger.log(
       `Sent notification to user ${user.getName()} on channel ${
         NotificationChannelType[channelId]
       }`,
@@ -325,7 +326,7 @@ export class WebSocketService implements WebSocketServer {
         bannedUserId,
       );
     } catch (error) {
-      console.error(
+      Logger.error(
         `Error obtaining match host for banned user ${bannedUserId}:`,
         error,
       );
@@ -333,7 +334,7 @@ export class WebSocketService implements WebSocketServer {
     }
 
     if (!hostUserId) {
-      console.info(
+      Logger.info(
         `Banned user ${bannedUserId} is not currently in a match, skipping user kicked notification`,
       );
       return;
@@ -361,7 +362,7 @@ export class WebSocketService implements WebSocketServer {
     const [hostUser] = await this.webSocketDurableObject.getByIdAll(hostUserId);
 
     if (!hostUser) {
-      console.debug(
+      Logger.debug(
         `Host ${hostUserId} is not connected to the hub; skipping user kicked notification`,
       );
       return;
@@ -382,7 +383,7 @@ export class WebSocketService implements WebSocketServer {
     const payload = buildPlayerKickedPayload(bannedUserNetworkId);
     this.sendMessage(hostUser, payload);
 
-    console.log(
+    Logger.log(
       `Sent user kicked to host ${hostUserId} for banned user network id ${bannedUserNetworkId}`,
     );
   }
@@ -394,7 +395,7 @@ export class WebSocketService implements WebSocketServer {
   ): Promise<void> {
     await this.databaseService.withConnection(async () => {
       if (originUser.isAuthenticated()) {
-        console.info("Duplicate authentication received; ignoring");
+        Logger.info("Duplicate authentication received; ignoring");
         return;
       }
 
@@ -408,9 +409,9 @@ export class WebSocketService implements WebSocketServer {
         await this.sendAuthenticationResponse(originUser);
       } catch (error) {
         if (error instanceof AuthenticationRejectedError) {
-          console.info(error.message);
+          Logger.info(error.message);
         } else {
-          console.error(
+          Logger.error(
             "Authentication failed:",
             error,
           );
@@ -450,7 +451,7 @@ export class WebSocketService implements WebSocketServer {
 
   private notifyOnlineCount(): Promise<void> {
     return this.getAndSendOnlinePlayers().catch((error) => {
-      console.error(
+      Logger.error(
         "Failed to notify users count after authentication:",
         error,
       );
@@ -513,7 +514,7 @@ export class WebSocketService implements WebSocketServer {
     const users = await this.webSocketDurableObject.getByIdAll(userId);
 
     if (users.length === 0) {
-      console.debug(
+      Logger.debug(
         `Ignoring KickPlayer command for user ${userId} because user is not present on this instance`,
       );
       return false;
@@ -537,6 +538,6 @@ export class WebSocketService implements WebSocketServer {
       this.sendMessage(user, payload);
     }
 
-    console.log("Sent anti-cheat configuration to all connected users");
+    Logger.log("Sent anti-cheat configuration to all connected users");
   }
 }

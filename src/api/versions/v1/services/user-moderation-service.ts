@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
@@ -101,7 +102,7 @@ export class UserModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while creating ban record:", error);
+      Logger.error("Database error while creating ban record:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to create ban record",
@@ -109,7 +110,7 @@ export class UserModerationService {
       );
     }
 
-    console.log(
+    Logger.log(
       `User ${userId} has been banned for: ${reason}${
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
       }`,
@@ -152,7 +153,7 @@ export class UserModerationService {
       .delete(userBansTable)
       .where(eq(userBansTable.id, ban.id));
 
-    console.log(`User ${userId} has been unbanned`);
+    Logger.log(`User ${userId} has been unbanned`);
   }
 
   public async reportUser(
@@ -189,7 +190,7 @@ export class UserModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while creating report:", error);
+      Logger.error("Database error while creating report:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to create report", 500);
     }
   }
@@ -255,7 +256,7 @@ export class UserModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while fetching user reports:", error);
+      Logger.error("Database error while fetching user reports:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch user reports",
@@ -327,7 +328,7 @@ export class UserModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while fetching user bans:", error);
+      Logger.error("Database error while fetching user bans:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to fetch user bans", 500);
     }
   }
@@ -393,7 +394,7 @@ export class UserModerationService {
         throw error;
       }
 
-      console.error("Database error while checking user existence:", error);
+      Logger.error("Database error while checking user existence:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to verify user existence",

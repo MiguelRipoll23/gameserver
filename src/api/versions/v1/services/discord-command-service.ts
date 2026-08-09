@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { NotificationService } from "./notification-service.ts";
 import { DiscordRestService } from "./discord-rest-service.ts";
 import { UserModerationService } from "./user-moderation-service.ts";
@@ -36,7 +37,7 @@ export class DiscordCommandService {
     try {
       authorized = await this.isAuthorized(interaction);
     } catch (e) {
-      console.error(
+      Logger.error(
         `discord interaction authorization error /${name}:`,
         e instanceof Error ? e.message : String(e),
         e instanceof Error ? e.stack : undefined,
@@ -68,7 +69,7 @@ export class DiscordCommandService {
           return this.errorResponse("Unknown command");
       }
     } catch (e) {
-      console.error(
+      Logger.error(
         `discord interaction error /${name}:`,
         e instanceof Error ? e.message : String(e),
         e instanceof Error ? e.stack : undefined,
@@ -131,7 +132,7 @@ export class DiscordCommandService {
         `Notification pushed to **${channel}** channel: ${this.singleLine(text)}`,
       );
     } catch (e) {
-      console.error(
+      Logger.error(
         "discord notification failed:",
         e instanceof Error ? e.message : String(e),
         e instanceof Error ? e.stack : undefined,
@@ -214,7 +215,7 @@ export class DiscordCommandService {
         return this.errorResponse("Ban player failed", e.message);
       }
 
-      console.error(
+      Logger.error(
         "discord ban player failed:",
         e instanceof Error ? e.message : String(e),
         e instanceof Error ? e.stack : undefined,
@@ -261,7 +262,7 @@ export class DiscordCommandService {
         return this.errorResponse("Unban player failed", e.message);
       }
 
-      console.error(
+      Logger.error(
         "discord unban player failed:",
         e instanceof Error ? e.message : String(e),
         e instanceof Error ? e.stack : undefined,

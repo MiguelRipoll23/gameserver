@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { Container } from "@needle-di/core";
 import { WebSocketService } from "../services/websocket-service.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
@@ -61,7 +62,7 @@ export class WebSocketDurableObject extends DurableObject<Env> {
     this.ctx.acceptWebSocket(server, [token]);
     await this.ctx.storage.put(this.connectionKey(token), this.emptyRecord(publicIp));
 
-    console.log(`WebSocket accepted for ${publicIp} (token ${token})`);
+    Logger.log(`WebSocket accepted for ${publicIp} (token ${token})`);
     return new Response(null, { status: 101, webSocket: client });
   }
 

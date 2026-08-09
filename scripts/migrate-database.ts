@@ -1,4 +1,5 @@
 import { drizzle } from "drizzle-orm/node-postgres";
+import { Logger } from "../src/core/utils/logger.ts";
 import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 import { pathToFileURL } from "node:url";
@@ -22,11 +23,11 @@ export async function migrateDatabase(): Promise<void> {
   try {
     const database = drizzle({ client: databasePool });
 
-    console.log("Running database migrations");
+    Logger.log("Running database migrations");
     await migrate(database, { migrationsFolder: "drizzle" });
-    console.log("Database migrations completed");
+    Logger.log("Database migrations completed");
   } catch (error) {
-    console.error("Database migration failed");
+    Logger.error("Database migration failed");
     throw error;
   } finally {
     await databasePool.end();
@@ -41,7 +42,7 @@ if (isMain) {
   migrateDatabase()
     .then(() => process.exit(0))
     .catch((error) => {
-      console.error(error);
+      Logger.error(error);
       process.exit(1);
     });
 }

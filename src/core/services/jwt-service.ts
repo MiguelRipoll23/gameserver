@@ -1,4 +1,5 @@
 import { sign, verify } from "hono/jwt";
+import { Logger } from "../utils/logger.ts";
 import { jwt } from "hono/jwt";
 import type { MiddlewareHandler } from "hono";
 import { injectable } from "@needle-di/core";
@@ -39,7 +40,7 @@ export class JWTService {
     try {
       payload = await verify(jwt, this.secret, "HS256");
     } catch (error) {
-      console.error(error);
+      Logger.error(error);
     }
 
     if (payload === null) {

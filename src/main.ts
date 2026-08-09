@@ -1,4 +1,5 @@
 import { Container } from "@needle-di/core";
+import { Logger } from "./core/utils/logger.ts";
 import { HTTPService } from "./core/services/http-service.ts";
 import { DatabaseService } from "./core/services/database-service.ts";
 import { AuthenticationChallengesService } from "./api/versions/v1/services/authentication-challenges-service.ts";
@@ -32,7 +33,7 @@ export default {
 
     await databaseService.withConnection(async () => {
       const deleted = await challengesService.cleanupExpired();
-      console.log(`Cleaned up ${deleted} expired authentication challenges`);
+      Logger.log(`Cleaned up ${deleted} expired authentication challenges`);
     });
   },
 } satisfies ExportedHandler<Env>;

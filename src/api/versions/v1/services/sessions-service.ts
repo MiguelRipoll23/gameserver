@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { userSessionsTable } from "../../../../db/schema.ts";
@@ -38,7 +39,7 @@ export class SessionsService {
       }
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to query active user session:", error);
+      Logger.error("Failed to query active user session:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to validate active session",
@@ -77,7 +78,7 @@ export class SessionsService {
       }
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to query user sessions:", error);
+      Logger.error("Failed to query user sessions:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to check for existing sessions",
@@ -111,7 +112,7 @@ export class SessionsService {
           },
         });
     } catch (error) {
-      console.error(
+      Logger.error(
         `Failed to create/update session for user ${userName}:`,
         error,
       );
@@ -154,7 +155,7 @@ export class SessionsService {
       .returning({ id: userSessionsTable.userId });
 
     if (deletedSessions.length > 0) {
-      console.log(`Deleted session for user ${userName}`);
+      Logger.log(`Deleted session for user ${userName}`);
     }
   }
 
@@ -223,6 +224,6 @@ export class SessionsService {
       );
     }
 
-    console.log(`Deleted session for user ${userId}`);
+    Logger.log(`Deleted session for user ${userId}`);
   }
 }

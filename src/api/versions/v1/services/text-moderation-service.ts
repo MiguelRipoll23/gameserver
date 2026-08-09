@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { and, asc, eq, gt, like } from "drizzle-orm";
@@ -45,7 +46,7 @@ export class TextModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while blocking word:", error);
+      Logger.error("Database error while blocking word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to block word", 500);
     }
 
@@ -107,7 +108,7 @@ export class TextModerationService {
         hasMore,
       };
     } catch (error) {
-      console.error("Database error while fetching blocked words:", error);
+      Logger.error("Database error while fetching blocked words:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch blocked words",
@@ -135,7 +136,7 @@ export class TextModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while unblocking word:", error);
+      Logger.error("Database error while unblocking word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to unblock word", 500);
     }
 
@@ -196,7 +197,7 @@ export class TextModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while updating word:", error);
+      Logger.error("Database error while updating word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to update word", 500);
     }
 
@@ -209,7 +210,7 @@ export class TextModerationService {
     try {
       return await db.select().from(blockedWordsTable);
     } catch (error) {
-      console.error("Database error while fetching blocked words:", error);
+      Logger.error("Database error while fetching blocked words:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch blocked words",

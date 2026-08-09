@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { ServerError } from "../models/server-error.ts";
 import { CryptoService } from "./crypto-service.ts";
 import {
@@ -126,9 +127,9 @@ export class ConfigurationService {
       const rulesBinary = Base64Utils.base64UrlToArrayBuffer(raw);
       const hub = getHubStub();
       await hub.pushAntiCheatConfig(rulesBinary);
-      console.log("Broadcast anti-cheat config to all connected clients");
+      Logger.log("Broadcast anti-cheat config to all connected clients");
     } catch (error) {
-      console.error("Failed to broadcast anti-cheat config:", error);
+      Logger.error("Failed to broadcast anti-cheat config:", error);
     }
   }
 }

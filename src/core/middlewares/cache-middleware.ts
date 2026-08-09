@@ -1,4 +1,5 @@
 import { createMiddleware } from "hono/factory";
+import { Logger } from "../utils/logger.ts";
 import { CACHE_EXCLUDED_PATHS } from "../constants/cache-constants.ts";
 
 export class CacheMiddleware {
@@ -6,13 +7,13 @@ export class CacheMiddleware {
 
   public static async init() {
     this.cache = await caches.open("http-cache");
-    console.log("Cache initialized");
+    Logger.log("Cache initialized");
   }
 
   public static create() {
     return createMiddleware(async (c, next) => {
       if (this.cache === null) {
-        console.warn("Cache not initialized");
+        Logger.warn("Cache not initialized");
         return await next();
       }
 
@@ -25,12 +26,12 @@ export class CacheMiddleware {
       const cachedResponse = await this.cache.match(request);
 
       if (cachedResponse) {
-        console.debug("🎯 Cache hit", this.getPathFromURL(request.url));
+        Logger.debug("🎯 Cache hit", this.getPathFromURL(request.url));
         c.res = cachedResponse;
         return;
       }
 
-      console.debug("💨 Cache miss", this.getPathFromURL(request.url));
+      Logger.debug("💨 Cache miss", this.getPathFromURL(request.url));
       await next();
 
       if (c.res.ok) {

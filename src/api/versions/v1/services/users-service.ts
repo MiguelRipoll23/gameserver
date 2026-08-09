@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
@@ -51,7 +52,7 @@ export class UsersService {
         hasMore: hasNextPage,
       };
     } catch (error) {
-      console.error("Failed to query users:", error);
+      Logger.error("Failed to query users:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to retrieve users", 500);
     }
   }
@@ -104,7 +105,7 @@ export class UsersService {
       });
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to update user:", error);
+      Logger.error("Failed to update user:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to update user", 500);
     }
   }
@@ -129,7 +130,7 @@ export class UsersService {
       return users[0];
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to query user:", error);
+      Logger.error("Failed to query user:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to retrieve user", 500);
     }
   }
@@ -149,7 +150,7 @@ export class UsersService {
 
       return userRoleResults.map((role: { name: string }) => role.name);
     } catch (error) {
-      console.error("Failed to query user roles:", error);
+      Logger.error("Failed to query user roles:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to retrieve user roles",
