@@ -199,11 +199,14 @@ export class UserModerationService {
     // Check if user exists and fetch reports in transaction
     try {
       return await db.transaction(async (tx) => {
-        // Check if user exists
-        await this.checkUserExists(tx, userId);
+        // Build query conditions. When a user ID is provided, verify the user
+        // exists and filter reports by that user; otherwise list all reports.
+        const conditions = [];
 
-        // Build query conditions
-        const conditions = [eq(userReportsTable.reportedUserId, userId)];
+        if (userId !== undefined) {
+          await this.checkUserExists(tx, userId);
+          conditions.push(eq(userReportsTable.reportedUserId, userId));
+        }
 
         if (cursor) {
           conditions.push(gt(userReportsTable.id, cursor));
@@ -219,7 +222,13 @@ export class UserModerationService {
             automatic: userReportsTable.automatic,
           })
           .from(userReportsTable)
-          .where(conditions.length > 1 ? and(...conditions) : conditions[0])
+          .where(
+            conditions.length === 0
+              ? undefined
+              : conditions.length === 1
+                ? conditions[0]
+                : and(...conditions),
+          )
           .orderBy(userReportsTable.id)
           .limit(limit + 1);
 
@@ -260,11 +269,14 @@ export class UserModerationService {
     // Check if user exists and fetch bans in transaction
     try {
       return await db.transaction(async (tx) => {
-        // Check if user exists
-        await this.checkUserExists(tx, userId);
+        // Build query conditions. When a user ID is provided, verify the user
+        // exists and filter bans by that user; otherwise list all bans.
+        const conditions = [];
 
-        // Build query conditions
-        const conditions = [eq(userBansTable.userId, userId)];
+        if (userId !== undefined) {
+          await this.checkUserExists(tx, userId);
+          conditions.push(eq(userBansTable.userId, userId));
+        }
 
         if (cursor) {
           conditions.push(gt(userBansTable.id, cursor));
@@ -281,7 +293,13 @@ export class UserModerationService {
             expiresAt: userBansTable.expiresAt,
           })
           .from(userBansTable)
-          .where(conditions.length > 1 ? and(...conditions) : conditions[0])
+          .where(
+            conditions.length === 0
+              ? undefined
+              : conditions.length === 1
+                ? conditions[0]
+                : and(...conditions),
+          )
           .orderBy(userBansTable.id)
           .limit(limit + 1);
 

@@ -56,6 +56,7 @@ export class UserScoresService {
     const scores = await db
       .select({
         id: userScoresTable.id,
+        userId: userScoresTable.userId,
         userDisplayName: usersTable.displayName,
         totalScore: userScoresTable.totalScore,
       })
@@ -71,6 +72,7 @@ export class UserScoresService {
 
     return {
       results: results.map((score) => ({
+        userId: score.userId,
         userDisplayName: score.userDisplayName,
         totalScore: score.totalScore,
       })),
@@ -126,6 +128,49 @@ export class UserScoresService {
       throw new ServerError(
         "SCORE_UPDATE_FAILED",
         "Failed to update player scores",
+        500,
+      );
+    }
+  }
+
+  /**
+   * Sets the total score for a user, creating the score entry if it does not
+   * exist or overwriting the existing value.
+   * @param userId The ID of the user whose score should be updated
+   * @param totalScore The new total score
+   * @throws ServerError if the user does not exist
+   */
+  public async updateScore(userId: string, totalScore: number): Promise<void> {
+    const db = this.databaseService.get();
+
+    try {
+      await db.transaction(async (tx) => {
+        // Check if the user exists to fail with a clean 404 before upserting
+        const users = await tx
+          .select({ id: usersTable.id })
+          .from(usersTable)
+          .where(eq(usersTable.id, userId))
+          .limit(1);
+
+        if (users.length === 0) {
+          throw new ServerError("USER_NOT_FOUND", "User not found", 404);
+        }
+
+        // Upsert: insert the score or overwrite the existing value
+        await tx
+          .insert(userScoresTable)
+          .values({ userId, totalScore })
+          .onConflictDoUpdate({
+            target: userScoresTable.userId,
+            set: { totalScore },
+          });
+      });
+    } catch (error) {
+      if (error instanceof ServerError) throw error;
+      console.error("Failed to update user score:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to update user score",
         500,
       );
     }

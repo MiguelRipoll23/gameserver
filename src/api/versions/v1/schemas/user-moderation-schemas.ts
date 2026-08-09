@@ -89,18 +89,18 @@ export const ReportUserRequestSchema = z.object({
 
 export type ReportUserRequest = z.infer<typeof ReportUserRequestSchema>;
 
-export const GetUserBansRequestSchema = PaginationSchema.extend({
+export const GetUserBansQuerySchema = PaginationSchema.extend({
   userId: z
     .string()
     .length(36)
-    .describe("The user ID to get bans for")
+    .optional()
+    .describe("The user ID to get bans for. If omitted, returns bans for all users")
     .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
 });
 
-export type GetUserBansRequest = z.infer<typeof GetUserBansRequestSchema>;
+export const GetUserBansRequestSchema = GetUserBansQuerySchema;
 
-// Query-only schema for HTTP routes (without userId since it comes from path)
-export const GetUserBansQuerySchema = PaginationSchema;
+export type GetUserBansRequest = z.infer<typeof GetUserBansRequestSchema>;
 
 export const UserBanResponseSchema = z.object({
   userId: z.string().describe("User ID"),
@@ -118,18 +118,18 @@ export const GetUserBansResponseSchema = PaginatedResponseSchema(
 
 export type GetUserBansResponse = z.infer<typeof GetUserBansResponseSchema>;
 
-export const GetUserReportsRequestSchema = PaginationSchema.extend({
+export const GetUserReportsQuerySchema = PaginationSchema.extend({
   userId: z
     .string()
     .length(36)
-    .describe("The user ID to get reports for")
+    .optional()
+    .describe("The user ID to get reports for. If omitted, returns reports for all users")
     .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
 });
 
-export type GetUserReportsRequest = z.infer<typeof GetUserReportsRequestSchema>;
+export const GetUserReportsRequestSchema = GetUserReportsQuerySchema;
 
-// Query-only schema for HTTP routes (without userId since it comes from path)
-export const GetUserReportsQuerySchema = PaginationSchema;
+export type GetUserReportsRequest = z.infer<typeof GetUserReportsRequestSchema>;
 
 export const UserReportResponseSchema = z.object({
   reporterUserId: z.string().describe("Reporter user ID"),

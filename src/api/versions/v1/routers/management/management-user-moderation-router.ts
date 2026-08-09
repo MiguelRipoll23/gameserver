@@ -1,5 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
-import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { UserModerationService } from "../../services/user-moderation-service.ts";
 import {
   BanUserRequestSchema,
@@ -37,18 +37,12 @@ export class ManagementUserModerationRouter {
     this.app.openapi(
       createRoute({
         method: "get",
-        path: "/reports/:userId",
+        path: "/reports",
         summary: "Get user reports",
         description:
-          "Retrieves all reports for a specific user with pagination",
+          "Retrieves reports with pagination. Optionally filters by user",
         tags: ["User reports"],
         request: {
-          params: z.object({
-            userId: z
-              .string()
-              .length(36)
-              .describe("The user ID to get reports for"),
-          }),
           query: GetUserReportsQuerySchema,
         },
         responses: {
@@ -67,14 +61,9 @@ export class ManagementUserModerationRouter {
         },
       }),
       async (c) => {
-        const userId = c.req.param("userId");
-        const { cursor, limit } = c.req.valid("query");
+        const query = c.req.valid("query");
 
-        const response = await this.userModerationService.getUserReports({
-          userId,
-          cursor,
-          limit,
-        });
+        const response = await this.userModerationService.getUserReports(query);
 
         return c.json(response, 200);
       },
@@ -85,17 +74,12 @@ export class ManagementUserModerationRouter {
     this.app.openapi(
       createRoute({
         method: "get",
-        path: "/bans/:userId",
+        path: "/bans",
         summary: "Get user bans",
-        description: "Retrieves all bans for a specific user with pagination",
+        description:
+          "Retrieves bans with pagination. Optionally filters by user",
         tags: ["User bans"],
         request: {
-          params: z.object({
-            userId: z
-              .string()
-              .length(36)
-              .describe("The user ID to get bans for"),
-          }),
           query: GetUserBansQuerySchema,
         },
         responses: {
@@ -114,14 +98,9 @@ export class ManagementUserModerationRouter {
         },
       }),
       async (c) => {
-        const userId = c.req.param("userId");
-        const { cursor, limit } = c.req.valid("query");
+        const query = c.req.valid("query");
 
-        const response = await this.userModerationService.getUserBans({
-          userId,
-          cursor,
-          limit,
-        });
+        const response = await this.userModerationService.getUserBans(query);
 
         return c.json(response, 200);
       },

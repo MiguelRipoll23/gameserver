@@ -20,6 +20,11 @@ export type SaveScoresRequest = z.infer<typeof SaveScoresRequestSchema>;
 export const GetScoresQuerySchema = StringPaginationSchema;
 
 export const UserScoreResponseSchema = z.object({
+  userId: z
+    .string()
+    .uuid()
+    .describe("The unique identifier of the user")
+    .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
   userDisplayName: z
     .string()
     .min(1)
@@ -40,3 +45,22 @@ export const GetScoresResponseSchema = StringPaginatedResponseSchema(
 );
 
 export type GetScoresResponse = z.infer<typeof GetScoresResponseSchema>;
+
+export const UpdateUserScoreParamsSchema = z.object({
+  userId: z
+    .string()
+    .uuid()
+    .describe("The ID of the user whose score should be updated"),
+});
+
+export const UpdateUserScoreRequestSchema = z.object({
+  totalScore: z
+    .number()
+    .min(0)
+    .describe("The new total score of the user")
+    .openapi({ example: 4 }),
+});
+
+export type UpdateUserScoreRequest = z.infer<
+  typeof UpdateUserScoreRequestSchema
+>;

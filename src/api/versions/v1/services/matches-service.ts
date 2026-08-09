@@ -171,6 +171,25 @@ export class MatchesService {
     console.log(`Deleted match for user ${userId}`);
   }
 
+  public async deleteById(matchId: number): Promise<void> {
+    const db = this.databaseService.get();
+
+    const deleted = await db
+      .delete(matchesTable)
+      .where(eq(matchesTable.id, matchId))
+      .returning({ id: matchesTable.id });
+
+    if (deleted.length === 0) {
+      throw new ServerError(
+        "MATCH_NOT_FOUND",
+        `Match with id ${matchId} does not exist`,
+        404,
+      );
+    }
+
+    console.log(`Deleted match ${matchId}`);
+  }
+
   public async deleteIfExists(userId: string, userName: string): Promise<void> {
     const db = this.databaseService.get();
 
