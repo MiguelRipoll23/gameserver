@@ -15,6 +15,7 @@ import { ManagementUsersRouter } from "./management/management-users-router.ts";
 import { ManagementUserSessionsRouter } from "./management/management-user-sessions-router.ts";
 import { ManagementUserScoresRouter } from "./management/management-user-scores-router.ts";
 import { ManagementMatchesRouter } from "./management/management-matches-router.ts";
+import { ManagementConsoleDashboardRouter } from "./management/management-console-dashboard-router.ts";
 
 @injectable()
 export class V1ManagementRouter {
@@ -37,6 +38,7 @@ export class V1ManagementRouter {
     private userSessionsRouter = inject(ManagementUserSessionsRouter),
     private userScoresRouter = inject(ManagementUserScoresRouter),
     private matchesRouter = inject(ManagementMatchesRouter),
+    private consoleDashboardRouter = inject(ManagementConsoleDashboardRouter),
   ) {
     this.app = new OpenAPIHono();
     this.setMiddlewares();
@@ -71,6 +73,7 @@ export class V1ManagementRouter {
     this.app.route("/user-sessions", this.userSessionsRouter.getRouter());
     this.app.route("/user-scores", this.userScoresRouter.getRouter());
     this.app.route("/matches", this.matchesRouter.getRouter());
+    this.app.route("/console-dashboard", this.consoleDashboardRouter.getRouter());
     this.app.route("/bots", this.botRouter.getRouter());
     this.app.route("/text-moderation", this.textModerationRouter.getRouter());
   }
