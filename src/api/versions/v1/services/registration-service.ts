@@ -55,7 +55,7 @@ export class RegistrationService {
       );
     }
 
-    const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+    const rpID = WebAuthnUtils.getRelyingPartyID();
     const userId = crypto.randomUUID();
     const options = await generateRegistrationOptions({
       rpName: WebAuthnUtils.getRelyingPartyName(),
@@ -176,7 +176,7 @@ export class RegistrationService {
     origin: string,
   ): Promise<VerifiedRegistrationResponse> {
     try {
-      const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+      const rpID = WebAuthnUtils.getRelyingPartyID();
       const verification = await verifyRegistrationResponse({
         response: registrationResponse,
         expectedChallenge: registrationOptions.challenge,

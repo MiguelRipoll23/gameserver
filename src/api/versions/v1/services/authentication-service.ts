@@ -69,7 +69,7 @@ export class AuthenticationService {
       );
     }
 
-    const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+    const rpID = WebAuthnUtils.getRelyingPartyID();
     const options = await generateAuthenticationOptions({
       rpID,
       userVerification: "preferred",
@@ -331,7 +331,7 @@ export class AuthenticationService {
     origin: string,
   ): Promise<VerifiedAuthenticationResponse> {
     try {
-      const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+      const rpID = WebAuthnUtils.getRelyingPartyID();
       const verification = await verifyAuthenticationResponse({
         response: authenticationResponse,
         expectedChallenge: authenticationOptions.challenge,

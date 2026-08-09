@@ -9,6 +9,7 @@
 declare global {
   interface Env {
     RP_NAME?: string;
+    RP_ID?: string;
     DATABASE_URL?: string;
     JWT_SECRET?: string;
     CLOUDFLARE_CALLS_URL?: string;
@@ -23,6 +24,7 @@ declare global {
   namespace Cloudflare {
     interface Env {
       RP_NAME?: string;
+      RP_ID?: string;
       DATABASE_URL?: string;
       JWT_SECRET?: string;
       CLOUDFLARE_CALLS_URL?: string;

@@ -3,6 +3,7 @@ import { bodyLimit } from "hono/body-limit";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
 import { OpenAPIService } from "./openapi-service.ts";
+import { WebAuthnService } from "./webauthn-service.ts";
 import { APIRouter } from "../../api/routers/api-router.ts";
 import { RootRouter } from "../routers/root-router.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
@@ -39,6 +40,7 @@ export class HTTPService {
   private configure(): void {
     ErrorHandlingService.configure(this.app);
     OpenAPIService.configure(this.app);
+    WebAuthnService.configure(this.app);
   }
 
   private setMiddlewares(): void {
