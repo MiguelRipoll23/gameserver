@@ -6,6 +6,7 @@ import {
   GetBlockedWordsRequestSchema,
   GetBlockedWordsResponseSchema,
   UnblockWordParamSchema,
+  UpdateWordParamsSchema,
   UpdateWordRequestSchema,
 } from "../../schemas/text-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
@@ -102,12 +103,14 @@ export class ManagementTextModerationRouter {
   private registerUpdateWordRoute(): void {
     this.app.openapi(
       createRoute({
-        method: "put",
-        path: "/update-word",
+        method: "patch",
+        path: "/blocked-words/:wordId",
         summary: "Update word",
-        description: "Updates an existing word in the blocked words list",
+        description:
+          "Updates an existing word in the blocked words list by its ID",
         tags: ["Blocked words"],
         request: {
+          params: UpdateWordParamsSchema,
           body: {
             content: {
               "application/json": {
@@ -126,8 +129,9 @@ export class ManagementTextModerationRouter {
         },
       }),
       async (c) => {
+        const { wordId } = c.req.valid("param");
         const validated = c.req.valid("json");
-        await this.textModerationService.updateWord(validated);
+        await this.textModerationService.updateWord(wordId, validated);
         return c.body(null, 204);
       },
     );

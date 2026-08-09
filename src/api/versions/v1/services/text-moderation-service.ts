@@ -142,31 +142,55 @@ export class TextModerationService {
     this.dispatchRefreshCacheEvent();
   }
 
-  public async updateWord(body: UpdateWordRequest): Promise<void> {
-    const { word, newWord, notes } = body;
-    const normalizedCurrentWord = this.normalizeWord(word);
-    const normalizedNewWord = this.normalizeWord(newWord);
+  public async updateWord(
+    wordId: number,
+    body: UpdateWordRequest,
+  ): Promise<void> {
+    const { word, notes } = body;
     const db = this.databaseService.get();
 
     try {
       await db.transaction(async (tx) => {
-        // Check if the current word exists and is blocked
-        await this.checkWordIsBlocked(tx, normalizedCurrentWord, word);
+        // Check the blocked word exists by id
+        const existing = await tx
+          .select()
+          .from(blockedWordsTable)
+          .where(eq(blockedWordsTable.id, wordId))
+          .limit(1);
 
-        // If the new word is different from the current word, check if it already exists
-        if (normalizedCurrentWord !== normalizedNewWord) {
-          await this.checkWordNotBlocked(tx, normalizedNewWord, newWord);
+        if (existing.length === 0) {
+          throw new ServerError(
+            "WORD_NOT_FOUND",
+            `Blocked word with id ${wordId} does not exist`,
+            404,
+          );
         }
 
-        // Update the blocked word
+        const updateData: Partial<BlockedWordInsertEntity> = {
+          updatedAt: new Date(),
+        };
+
+        // Update the word text when provided, ensuring the new value is not
+        // already blocked under a different entry
+        if (word !== undefined) {
+          const normalizedNewWord = this.normalizeWord(word);
+
+          if (normalizedNewWord !== existing[0].word) {
+            await this.checkWordNotBlocked(tx, normalizedNewWord, word);
+          }
+
+          updateData.word = normalizedNewWord;
+        }
+
+        // Omit keeps the current notes, null clears them
+        if (notes !== undefined) {
+          updateData.notes = notes;
+        }
+
         await tx
           .update(blockedWordsTable)
-          .set({
-            word: normalizedNewWord,
-            notes,
-            updatedAt: new Date(),
-          })
-          .where(eq(blockedWordsTable.word, normalizedCurrentWord));
+          .set(updateData)
+          .where(eq(blockedWordsTable.id, wordId));
       });
     } catch (error) {
       if (error instanceof ServerError) {
