@@ -21,6 +21,7 @@ export const userReportsTable = pgTable("user_reports", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }),
 });
 
 export type UserReportEntity = typeof userReportsTable.$inferSelect;

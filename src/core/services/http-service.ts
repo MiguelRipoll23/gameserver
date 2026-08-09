@@ -1,4 +1,5 @@
 import { logger } from "hono/logger";
+import { HTTPException } from "hono/http-exception";
 import { bodyLimit } from "hono/body-limit";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { inject, injectable } from "@needle-di/core";
@@ -9,6 +10,7 @@ import { RootRouter } from "../routers/root-router.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
 import { HonoVariables } from "../types/hono-variables-type.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
+import { Logger } from "../utils/logger.ts";
 import { DatabaseService } from "./database-service.ts";
 
 @injectable()
@@ -20,7 +22,26 @@ export class HTTPService {
     private apiRouter = inject(APIRouter),
     private databaseService = inject(DatabaseService),
   ) {
-    this.app = new OpenAPIHono();
+    this.app = new OpenAPIHono<{ Variables: HonoVariables }>({
+      // Route validation failures through onError so they are logged with the
+      // original zod error as the cause instead of being returned silently.
+      defaultHook: (result) => {
+        if (!result.success) {
+          const issues = (
+            result.error as { issues?: { message?: string }[] } | undefined
+          )?.issues;
+          const summary =
+            issues && issues.length > 0
+              ? issues.map((i) => i.message).join("; ")
+              : "Bad Request";
+
+          throw new HTTPException(400, {
+            message: `Validation failed: ${summary}`,
+            cause: result.error,
+          });
+        }
+      },
+    });
     this.configure();
     this.setMiddlewares();
     this.setRoutes();
@@ -44,7 +65,10 @@ export class HTTPService {
   }
 
   private setMiddlewares(): void {
-    this.app.use("*", logger());
+    this.app.use(
+      "*",
+      logger((message, ...rest) => Logger.log(message, ...rest)),
+    );
     this.setBodyLimitMiddleware();
   }
 

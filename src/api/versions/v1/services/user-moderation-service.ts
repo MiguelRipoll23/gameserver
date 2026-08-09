@@ -225,6 +225,8 @@ export class UserModerationService {
             reportedUserId: userReportsTable.reportedUserId,
             reason: userReportsTable.reason,
             automatic: userReportsTable.automatic,
+            createdAt: userReportsTable.createdAt,
+            updatedAt: userReportsTable.updatedAt,
           })
           .from(userReportsTable)
           .where(
@@ -247,6 +249,8 @@ export class UserModerationService {
             reportedUserId: report.reportedUserId,
             reason: report.reason,
             automatic: report.automatic,
+            createdAt: report.createdAt.toISOString(),
+            updatedAt: report.updatedAt?.toISOString() || null,
           })),
           nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
           hasMore: hasNextPage,

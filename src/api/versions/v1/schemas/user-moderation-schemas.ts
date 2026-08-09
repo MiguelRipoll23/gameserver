@@ -136,6 +136,8 @@ export const UserReportResponseSchema = z.object({
   reportedUserId: z.string().describe("Reported user ID"),
   reason: z.string().describe("Report reason"),
   automatic: z.boolean().describe("Whether the report was automatic"),
+  createdAt: z.string().describe("Report creation date"),
+  updatedAt: z.string().nullable().describe("Report update date"),
 });
 
 export type UserReportResponse = z.infer<typeof UserReportResponseSchema>;
