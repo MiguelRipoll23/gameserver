@@ -1,7 +1,7 @@
 import { env } from "cloudflare:workers";
 
 export class WebAuthnUtils {
-  private static readonly DEFAULT_RP_NAME = "Game server API";
+  private static readonly DEFAULT_RP_NAME = "Game server";
   private static readonly DEFAULT_RP_ID = "localhost";
   private static readonly DEFAULT_ALLOWED_ORIGINS = "http://localhost:8000";
   private static cachedPatterns: string[] | null = null;
