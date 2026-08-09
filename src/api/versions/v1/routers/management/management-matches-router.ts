@@ -1,6 +1,8 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 import { MatchesService } from "../../services/matches-service.ts";
+import { GetMatchesResponseSchema } from "../../schemas/matches-schemas.ts";
+import { PaginationSchema } from "../../schemas/pagination-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
 @injectable()
@@ -17,9 +19,45 @@ export class ManagementMatchesRouter {
   }
 
   private setRoutes(): void {
+    this.registerGetMatchesRoute();
     this.registerDeleteMatchRoute();
   }
 
+
+  private registerGetMatchesRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "get",
+        path: "/",
+        summary: "Get matches",
+        description: "Retrieves all matches with pagination",
+        tags: ["Matches"],
+        request: {
+          query: PaginationSchema,
+        },
+        responses: {
+          200: {
+            description: "Responds with matches data",
+            content: {
+              "application/json": {
+                schema: GetMatchesResponseSchema,
+              },
+            },
+          },
+          ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
+          ...ServerResponse.Forbidden,
+        },
+      }),
+      async (c) => {
+        const { cursor, limit } = c.req.valid("query");
+
+        const response = await this.matchesService.list({ cursor, limit });
+
+        return c.json(response, 200);
+      },
+    );
+  }
   private registerDeleteMatchRoute(): void {
     this.app.openapi(
       createRoute({

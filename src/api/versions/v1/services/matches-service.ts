@@ -3,7 +3,9 @@ import {
   AdvertiseMatchRequest,
   FindMatchesRequest,
   FindMatchesResponse,
+  GetMatchesResponse,
 } from "../schemas/matches-schemas.ts";
+import type { PaginationParams } from "../schemas/pagination-schemas.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
@@ -12,7 +14,7 @@ import {
   userSessionsTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, lt, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { SessionsService } from "./sessions-service.ts";
 
@@ -23,6 +25,44 @@ export class MatchesService {
     private sessionsService = inject(SessionsService),
   ) {}
 
+
+  /**
+   * Lists all matches with keyset pagination (newest first).
+   */
+  public async list(
+    params: PaginationParams,
+  ): Promise<GetMatchesResponse> {
+    const { cursor, limit = 20 } = params;
+    const db = this.databaseService.get();
+
+    const matches = await db
+      .select()
+      .from(matchesTable)
+      .where(cursor ? lt(matchesTable.id, cursor) : undefined)
+      .orderBy(desc(matchesTable.id))
+      .limit(limit + 1);
+
+    const hasNextPage = matches.length > limit;
+    const results = matches.slice(0, limit).map((match) => ({
+      id: match.id,
+      hostUserId: match.hostUserId,
+      clientVersion: match.clientVersion,
+      totalSlots: match.totalSlots,
+      availableSlots: match.availableSlots,
+      pingMedianMilliseconds: match.pingMedianMilliseconds,
+      attributes: (match.attributes ?? {}) as Record<string, unknown>,
+      createdAt: match.createdAt.toISOString(),
+      updatedAt: match.updatedAt.toISOString(),
+    }));
+
+    return {
+      results,
+      nextCursor: hasNextPage && results.length > 0
+        ? results[results.length - 1].id
+        : undefined,
+      hasMore: hasNextPage,
+    };
+  }
   public async advertise(
     userId: string,
     body: AdvertiseMatchRequest,
