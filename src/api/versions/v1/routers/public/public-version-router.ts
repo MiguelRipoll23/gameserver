@@ -29,6 +29,7 @@ export class PublicVersionRouter {
         summary: "Get game version",
         description: "Obtains general version information related to the game",
         tags: ["Game version"],
+        security: [],
         responses: {
           200: {
             description: "Responds with data",

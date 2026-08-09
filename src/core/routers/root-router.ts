@@ -28,6 +28,7 @@ export class RootRouter {
         summary: "Get health",
         description: "Obtains health related to this server",
         tags: ["Default"],
+        security: [],
         responses: {
           204: {
             description: "Responds with no content",
@@ -48,6 +49,7 @@ export class RootRouter {
         summary: "Get game",
         description: "Obtains game associated with this server",
         tags: ["Default"],
+        security: [],
         responses: {
           307: {
             description: "Responds with temporary redirect",

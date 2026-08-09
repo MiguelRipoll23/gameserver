@@ -37,6 +37,7 @@ export class PublicRegistrationRouter {
         summary: "Get registration options",
         description: "Registration options for a new credential",
         tags: ["User registration"],
+        security: [],
         request: {
           body: {
             content: {
@@ -90,6 +91,7 @@ export class PublicRegistrationRouter {
         summary: "Verify registration response",
         description: "Result of a registration attempt for a new credential",
         tags: ["User registration"],
+        security: [],
         request: {
           body: {
             content: {

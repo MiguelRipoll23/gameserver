@@ -41,6 +41,7 @@ export class PublicAuthenticationRouter {
         summary: "Get authentication options",
         description: "Authentication options for a new credential",
         tags: ["User authentication"],
+        security: [],
         request: {
           body: {
             content: {
@@ -86,6 +87,7 @@ export class PublicAuthenticationRouter {
         description:
           "Result of an authentication attempt for an existing credential",
         tags: ["User authentication"],
+        security: [],
         request: {
           body: {
             content: {
@@ -134,6 +136,7 @@ export class PublicAuthenticationRouter {
         description:
           "Rotates a refresh token and returns a new access token pair",
         tags: ["User authentication"],
+        security: [],
         request: {
           body: {
             content: {

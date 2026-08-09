@@ -56,6 +56,7 @@ export class PublicDiscordInteractionsRouter {
         description:
           "Verifies and processes an incoming Discord HTTP interaction",
         tags: ["Discord"],
+        security: [],
         request: {
           body: {
             content: {

@@ -30,6 +30,7 @@ export class AuthenticatedWebSocketRouter {
         description:
           "Upgrades the connection to WebSocket and handles messages from the client",
         tags: ["Server connection"],
+        security: [],
         responses: {
           ...ServerResponse.SwitchingProtocols,
           ...ServerResponse.Unauthorized,

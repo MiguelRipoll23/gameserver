@@ -23,6 +23,9 @@ export class OpenAPIService {
         title: "Game server API",
         description: "A game server for multiplayer peer-to-peer games",
       },
+      // Requires a bearer token by default. Public operations explicitly
+      // opt out with `security: []`.
+      security: [{ bearer: [] }],
     });
 
     app.get(
