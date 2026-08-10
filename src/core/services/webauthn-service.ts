@@ -27,6 +27,10 @@ export class WebAuthnService {
           // Origins can change when RP_ALLOWED_ORIGINS is updated, so the
           // manifest must not be served from a stale cache.
           "Cache-Control": "no-store",
+          // The manifest is fetched cross-origin with CORS by browsers when
+          // validating a WebAuthn RP ID (e.g. the console running on
+          // http://localhost:5173), so it must be readable from any origin.
+          "Access-Control-Allow-Origin": "*",
         },
       );
     });
