@@ -12,6 +12,10 @@ export const UserSessionResponseSchema = z.object({
     .uuid()
     .describe("The user ID the session belongs to")
     .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
+  userDisplayName: z
+    .string()
+    .describe("The display name of the user the session belongs to")
+    .openapi({ example: "PlayerOne" }),
   token: z
     .string()
     .describe("The session token used to authenticate the connection"),

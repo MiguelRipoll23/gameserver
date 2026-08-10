@@ -2,7 +2,7 @@ import { inject, injectable } from "@needle-di/core";
 import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
-import { userSessionsTable } from "../../../../db/schema.ts";
+import { userSessionsTable, usersTable } from "../../../../db/schema.ts";
 import {
   SESSION_LIFETIME_SECONDS,
 } from "../constants/authentication-constants.ts";
@@ -175,6 +175,7 @@ export class SessionsService {
     const sessions = await db
       .select({
         userId: userSessionsTable.userId,
+        userDisplayName: usersTable.displayName,
         token: userSessionsTable.token,
         publicIp: userSessionsTable.publicIp,
         country: userSessionsTable.country,
@@ -182,6 +183,7 @@ export class SessionsService {
         updatedAt: userSessionsTable.updatedAt,
       })
       .from(userSessionsTable)
+      .innerJoin(usersTable, eq(userSessionsTable.userId, usersTable.id))
       .where(conditions ? conditions[0] : undefined)
       .orderBy(desc(userSessionsTable.userId))
       .limit(limit + 1);
@@ -192,6 +194,7 @@ export class SessionsService {
     return {
       results: results.map((session) => ({
         userId: session.userId,
+        userDisplayName: session.userDisplayName,
         token: session.token,
         publicIp: session.publicIp,
         country: session.country,
