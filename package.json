@@ -4,8 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "start": "wrangler dev",
+    "dev": "node --env-file-if-exists=.dev.vars ./node_modules/wrangler/bin/wrangler.js dev",
+    "start": "node --env-file-if-exists=.dev.vars ./node_modules/wrangler/bin/wrangler.js dev",
     "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:production": "wrangler deploy --env production",
@@ -35,7 +35,7 @@
     "drizzle-kit": "beta",
     "tsx": "^4.19.2",
     "typescript": "^5.5.2",
-    "wrangler": "^4.119.0"
+    "wrangler": "^4.122.0"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,

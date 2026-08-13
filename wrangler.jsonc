@@ -1,16 +1,3 @@
-/**
- * Cloudflare Workers configuration for the gameserver.
- *
- * - Static Assets: everything under `./static` is served by Cloudflare's CDN
- *   before reaching the Worker (see `assets.directory`).
- * - Worker secrets (JWT_SECRET, CLOUDFLARE_CALLS_URL,
- *   CLOUDFLARE_CALLS_TOKEN, DISCORD_BOT_TOKEN, DISCORD_PUBLIC_KEY, ...) are
- *   not stored here. Set them with `npx wrangler secret put <NAME>`.
- * - For local development and migrations, copy `.env.example` to `.env` and
- *   fill in the migration-only `DATABASE_URL` connection string.
- * - PostgreSQL connections in deployed Workers use the `DATABASE_HYPERDRIVE`
- *   binding configured below.
- */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "gameserver",
@@ -28,24 +15,22 @@
 		"crons": ["0 0 * * *"]
 	},
 
-	// These shared bindings are used by plain `wrangler dev` and local fallback
-	// deployments. Named staging/production environments override them below.
 	"kv_namespaces": [
 		{
 			"binding": "GAME_CONFIGURATION_V1_KV",
-			"id": "d703dc3f852240749697b0a78db9c6fb"
+			"id": "83a5f559f8b24dfab2413cfe6c0210ef"
 		},
 		{
 			"binding": "GAME_VERSION_V1_KV",
-			"id": "02bf21a8637e423cbf4a627831dc71fc"
+			"id": "0d140b4b48a140b1bd827e57cdfe8cbe"
 		},
 		{
 			"binding": "SERVER_SIGNATURE_KEYS_V1_KV",
-			"id": "346993ac39384ef9920fc770966354b2"
+			"id": "8703b811367f455f9192fc251dfcf63b"
 		},
 		{
 			"binding": "USER_ENCRYPTION_KEYS_V1_KV",
-			"id": "53a07a19566d49418ed77e99a41beb98"
+			"id": "860a0efe89cb4ca69d4f09cd3140444b"
 		}
 	],
 
@@ -68,7 +53,6 @@
 			}
 		]
 	},
-
 
 	"hyperdrive": [
 		{
