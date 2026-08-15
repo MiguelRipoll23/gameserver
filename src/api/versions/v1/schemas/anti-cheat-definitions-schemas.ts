@@ -53,7 +53,64 @@ export const AntiCheatDefinitionsResponseSchema = z
   })
   .describe(
     "Anti-cheat rule definitions used by the management console to render rules",
-  );
+  )
+  .openapi({
+    example: {
+      ruleTypes: {
+        "0": {
+          label: "Event rate limit",
+          description:
+            "Limits how many events of one type a player can fire per time window.",
+        },
+        "1": {
+          label: "Movement speed limit",
+          description:
+            "Limits how far a scene entity can move within a time window.",
+        },
+      },
+      ruleFields: {
+        "0": {
+          "0": { label: "Event type", hint: "Which event is being limited" },
+          "1": { label: "Max count", hint: "Max events allowed per window" },
+          "2": { label: "Window", hint: "Time window in seconds" },
+        },
+        "1": {
+          "0": { label: "Max distance", hint: "Max movement in px per window" },
+          "1": { label: "Window", hint: "Time window in seconds" },
+          "2": { label: "Entity type", hint: "0 = all types" },
+        },
+      },
+      eventNames: {
+        "9": "Countdown",
+        "10": "Goal scored",
+        "11": "Game over",
+        "12": "Boost pad consumed",
+        "15": "Car demolished",
+        "18": "Player banned",
+      },
+      entityNames: {
+        "0": "All types",
+        "1": "Local car",
+        "2": "Remote car",
+        "3": "NPC car",
+        "4": "Goal",
+        "5": "Goal explosion",
+        "6": "Car explosion",
+        "7": "Boost pad",
+        "10": "Scoreboard",
+        "11": "Alert",
+        "12": "Toast",
+        "13": "Help",
+        "14": "Match log",
+        "15": "Boost meter",
+        "20": "World background",
+      },
+      valueTypes: {
+        "0": "uint16",
+        "1": "float32",
+      },
+    },
+  });
 
 export type AntiCheatDefinitionsResponse = z.infer<
   typeof AntiCheatDefinitionsResponseSchema
