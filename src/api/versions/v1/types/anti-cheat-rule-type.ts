@@ -11,6 +11,13 @@ export interface AntiCheatRuleField {
 }
 
 /**
+ * What the server does when a game client reports a violation of this rule.
+ *   - `report`: record the automatic report only.
+ *   - `ban`:    record the report and temporarily ban the player (1 day).
+ */
+export type AntiCheatRuleAction = "report" | "ban";
+
+/**
  * An anti-cheat rule: a unique identifier, a type category, and typed fields.
  */
 export interface AntiCheatRule {
@@ -18,6 +25,8 @@ export interface AntiCheatRule {
   ruleId: number;
   /** Category of the rule (0x00 = EventRateLimit, 0x01 = MovementSpeedLimit). */
   ruleType: number;
+  /** Server-side action taken on violation (report or ban). */
+  action: AntiCheatRuleAction;
   /** Typed fields that parameterize the rule. */
   fields: AntiCheatRuleField[];
 }

@@ -11,7 +11,8 @@ import {
   matchesTable,
   serverMessagesTable,
   userBansTable,
-  userReportsTable,
+  userReportsAutomaticTable,
+  userReportsManualTable,
   userScoresTable,
   userSessionsTable,
   usersTable,
@@ -49,7 +50,6 @@ export class ConsoleDashboardService {
       sessionsCount,
       matchesCount,
       scoresCount,
-      reportsCount,
       bansCount,
       blockedWordsCount,
       antiCheatRulesCount,
@@ -59,10 +59,14 @@ export class ConsoleDashboardService {
       this.countRows(userSessionsTable),
       this.countRows(matchesTable),
       this.countRows(userScoresTable),
-      this.countRows(userReportsTable),
       this.countRows(userBansTable),
       this.countRows(blockedWordsTable),
       this.countRows(antiCheatRulesTable),
+    ]);
+
+    const [manualReportsCount, automaticReportsCount] = await Promise.all([
+      this.countRows(userReportsManualTable),
+      this.countRows(userReportsAutomaticTable),
     ]);
 
     const [latestMessage] = await db
@@ -78,7 +82,7 @@ export class ConsoleDashboardService {
       sessionsCount,
       matchesCount,
       scoresCount,
-      reportsCount,
+      reportsCount: manualReportsCount + automaticReportsCount,
       bansCount,
       blockedWordsCount,
       antiCheatRulesCount,

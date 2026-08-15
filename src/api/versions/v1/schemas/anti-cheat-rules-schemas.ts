@@ -4,6 +4,11 @@ import {
   PaginationSchema,
 } from "./pagination-schemas.ts";
 
+export const AntiCheatRuleActionSchema = z
+  .enum(["report", "ban"])
+  .describe("Server-side action taken when a violation of this rule is reported")
+  .openapi({ example: "report" });
+
 export const AntiCheatRuleFieldSchema = z
   .object({
     fieldId: z
@@ -45,6 +50,7 @@ export const AntiCheatRuleSchema = z
         "Category of the rule (0x00 = EventRateLimit, 0x01 = MovementSpeedLimit)",
       )
       .openapi({ example: 0x01 }),
+    action: AntiCheatRuleActionSchema,
     fields: z
       .array(AntiCheatRuleFieldSchema)
       .describe("Typed fields that parameterize the rule")
@@ -109,6 +115,7 @@ export const UpdateAntiCheatRuleRequestSchema = z.object({
       "Category of the rule (0x00 = EventRateLimit, 0x01 = MovementSpeedLimit)",
     )
     .openapi({ example: 0x01 }),
+  action: AntiCheatRuleActionSchema,
   fields: z
     .array(AntiCheatRuleFieldSchema)
     .describe("Typed fields that parameterize the rule")

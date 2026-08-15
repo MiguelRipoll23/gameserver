@@ -12,6 +12,7 @@ import type {
 } from "../schemas/anti-cheat-rules-schemas.ts";
 import type {
   AntiCheatRule,
+  AntiCheatRuleAction,
   AntiCheatRuleField,
 } from "../types/anti-cheat-rule-type.ts";
 
@@ -30,6 +31,9 @@ const FIELD_VALUE_FLOAT32 = 0x01;
  *   per rule: uint16 ruleId, uint8 ruleType, uint8 fieldCount
  *   per field: uint8 fieldId, uint8 valueType, then
  *     uint16 (valueType 0x00) or float32 (valueType 0x01)
+ *
+ * The `action` (report/ban) is server-side only and is deliberately excluded
+ * from the binary payload — the client only detects and reports violations.
  */
 @injectable()
 export class AntiCheatRulesService {
@@ -72,6 +76,7 @@ export class AntiCheatRulesService {
     const results = rows.slice(0, limit).map((row) => ({
       ruleId: row.ruleId,
       ruleType: row.ruleType,
+      action: row.action,
       fields: row.fields as unknown as AntiCheatRuleField[],
     }));
 
@@ -99,8 +104,26 @@ export class AntiCheatRulesService {
     return rows.map((row) => ({
       ruleId: row.ruleId,
       ruleType: row.ruleType,
+      action: row.action,
       fields: row.fields as unknown as AntiCheatRuleField[],
     }));
+  }
+
+  /**
+   * Returns the server-side action for a single rule, or `null` when the rule
+   * does not exist.
+   */
+  public async getRuleAction(
+    ruleId: number,
+  ): Promise<AntiCheatRuleAction | null> {
+    const db = this.databaseService.get();
+    const rows = await db
+      .select({ action: antiCheatRulesTable.action })
+      .from(antiCheatRulesTable)
+      .where(eq(antiCheatRulesTable.ruleId, ruleId))
+      .limit(1);
+
+    return rows[0]?.action ?? null;
   }
 
   /**
@@ -127,6 +150,7 @@ export class AntiCheatRulesService {
     await db.insert(antiCheatRulesTable).values({
       ruleId: rule.ruleId,
       ruleType: rule.ruleType,
+      action: rule.action,
       fields: rule.fields,
       updatedAt: new Date(),
     });
@@ -146,6 +170,7 @@ export class AntiCheatRulesService {
       .update(antiCheatRulesTable)
       .set({
         ruleType: data.ruleType,
+        action: data.action,
         fields: data.fields,
         updatedAt: new Date(),
       })

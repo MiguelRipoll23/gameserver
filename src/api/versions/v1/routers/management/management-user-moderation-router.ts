@@ -5,8 +5,10 @@ import {
   BanUserRequestSchema,
   GetUserBansQuerySchema,
   GetUserBansResponseSchema,
-  GetUserReportsQuerySchema,
-  GetUserReportsResponseSchema,
+  GetUserReportsAutomaticQuerySchema,
+  GetUserReportsAutomaticResponseSchema,
+  GetUserReportsManualQuerySchema,
+  GetUserReportsManualResponseSchema,
   UnbanUserRequestSchema,
 } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
@@ -29,6 +31,7 @@ export class ManagementUserModerationRouter {
 
   private setRoutes(): void {
     this.registerGetUserReportsRoute();
+    this.registerGetUserAutomaticReportsRoute();
     this.registerGetUserBansRoute();
     this.registerBanUserRoute();
     this.registerUnbanUserRoute();
@@ -41,17 +44,17 @@ export class ManagementUserModerationRouter {
         path: "/reports",
         summary: "Get user reports",
         description:
-          "Retrieves reports with pagination. Optionally filters by user",
+          "Retrieves manual reports with pagination. Optionally filters by user",
         tags: ["User reports"],
         request: {
-          query: GetUserReportsQuerySchema,
+          query: GetUserReportsManualQuerySchema,
         },
         responses: {
           200: {
             description: "Responds with user reports data",
             content: {
               "application/json": {
-                schema: GetUserReportsResponseSchema,
+                schema: GetUserReportsManualResponseSchema,
               },
             },
           },
@@ -64,7 +67,47 @@ export class ManagementUserModerationRouter {
       async (c) => {
         const query = c.req.valid("query");
 
-        const response = await this.userModerationService.getUserReports(query);
+        const response = await this.userModerationService.getUserManualReports(
+          query,
+        );
+
+        return c.json(response, 200);
+      },
+    );
+  }
+
+  private registerGetUserAutomaticReportsRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "get",
+        path: "/reports/automatic",
+        summary: "Get automatic anti-cheat reports",
+        description:
+          "Retrieves automatic anti-cheat reports with pagination. Optionally filters by user",
+        tags: ["User reports"],
+        request: {
+          query: GetUserReportsAutomaticQuerySchema,
+        },
+        responses: {
+          200: {
+            description: "Responds with automatic anti-cheat reports data",
+            content: {
+              "application/json": {
+                schema: GetUserReportsAutomaticResponseSchema,
+              },
+            },
+          },
+          ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
+          ...ServerResponse.Forbidden,
+          ...ServerResponse.NotFound,
+        },
+      }),
+      async (c) => {
+        const query = c.req.valid("query");
+
+        const response =
+          await this.userModerationService.getUserAutomaticReports(query);
 
         return c.json(response, 200);
       },

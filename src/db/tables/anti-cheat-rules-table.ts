@@ -1,10 +1,21 @@
 import {
   integer,
   jsonb,
+  pgEnum,
   pgTable,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+
+/**
+ * What the server does when a game client reports a violation of this rule.
+ *   - `report`: record the automatic report only.
+ *   - `ban`:    record the report and temporarily ban the player (1 day).
+ */
+export const antiCheatRuleActionEnum = pgEnum("anti_cheat_rule_action", [
+  "report",
+  "ban",
+]);
 
 /**
  * Anti-cheat rules applied by the game client.
@@ -14,12 +25,14 @@ import {
  * the `4030BF2F` key of the game configuration. Management-only data, so no
  * RLS policies are needed (mirrors `blocked_words`).
  */
-export const antiCheatRulesTable = pgTable("anticheat_rules", {
+export const antiCheatRulesTable = pgTable("anti_cheat_rules", {
   id: uuid("id").primaryKey().defaultRandom(),
   // Unique rule identifier used by the game (and the binary payload).
   ruleId: integer("rule_id").notNull().unique(),
   // Category of the rule (0x00 = EventRateLimit, 0x01 = MovementSpeedLimit).
   ruleType: integer("rule_type").notNull(),
+  // Server-side action taken on violation (report or ban).
+  action: antiCheatRuleActionEnum("action").notNull().default("report"),
   // Typed fields that parameterize the rule:
   // [{ fieldId, valueType (0x00 uint16 | 0x01 float32), value }]
   fields: jsonb("fields").notNull(),
