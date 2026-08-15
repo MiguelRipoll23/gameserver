@@ -3,7 +3,7 @@ import { Scalar } from "@scalar/hono-api-reference";
 import { HonoVariables } from "../types/hono-variables-type.ts";
 
 // Shared document metadata so the served endpoint (`/.well-known/openapi`)
-// and the `npm run generate:openapi` script produce the same schema.
+// and the `npm run openapi:generate` script produce the same schema.
 export const OPENAPI_DOCUMENT_CONFIG = {
   openapi: "3.1.0",
   info: {
@@ -45,6 +45,7 @@ export class OpenAPIService {
         },
         darkMode: true,
         defaultOpenAllTags: true,
+        tagsSorter: "alpha",
         authentication: {
           preferredSecurityScheme: "bearer",
         },

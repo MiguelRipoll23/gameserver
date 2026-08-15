@@ -5,18 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file-if-exists=.dev.vars ./node_modules/wrangler/bin/wrangler.js dev",
-    "start": "node --env-file-if-exists=.dev.vars ./node_modules/wrangler/bin/wrangler.js dev",
-    "deploy": "wrangler deploy",
     "deploy:staging": "wrangler deploy --env staging",
     "deploy:production": "wrangler deploy --env production",
     "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
-    "check": "tsc --noEmit",
-    "generate": "drizzle-kit generate",
-    "generate:openapi": "node --env-file=.env --import tsx --import ./scripts/register-openapi-loader.mjs scripts/generate-openapi-schema.ts",
-    "migrate": "node --env-file=.env --import tsx scripts/migrate-database.ts",
-    "predeploy": "node --env-file=.env --import tsx scripts/predeploy.ts",
-    "register-discord-commands": "node --env-file=.env --import tsx scripts/register-discord-commands.ts"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "node --env-file=.env --import tsx scripts/migrate-database.ts",
+    "openapi:generate": "node --env-file=.env --import tsx --import ./scripts/register-openapi-loader.mjs scripts/generate-openapi-schema.ts",
+    "predeploy": "node --env-file=.env --import tsx scripts/predeploy.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.5.1",

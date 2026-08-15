@@ -36,7 +36,7 @@ This is a **Cloudflare Workers-based game server** using:
   ```
 - Use `pgTable` from `drizzle-orm/pg-core`. Column names use `snake_case` in SQL.
 - Foreign keys use `.references()` with `onDelete` cascade where appropriate.
-- For migrations: `npm run generate` (creates SQL), then `npm run migrate` (applies via scripts/migrate-database.ts). `DATABASE_URL` is required only by these local/CI migration commands; deployed Workers use the `DATABASE_HYPERDRIVE` binding.
+- For migrations: `npm run db:generate` (creates SQL), then `npm run db:migrate` (applies via scripts/migrate-database.ts). `DATABASE_URL` is required only by these local/CI migration commands; deployed Workers use the `DATABASE_HYPERDRIVE` binding.
 - **Row-Level Security (RLS):** Most tables define `pgPolicy` rules using `authenticatedUserRole` and helpers from `src/db/rls.ts` (`isCurrentUser`, `isCurrentCredential`).
 
 ## API Structure

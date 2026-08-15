@@ -32,7 +32,7 @@ The application runs on Cloudflare Workers. Before deploying:
 
 ### Database configuration
 
-The deployed Worker connects through Cloudflare Hyperdrive and does not require a `DATABASE_URL` Worker secret. `DATABASE_URL` is only needed by the local/CI migration commands (`npm run migrate` and `npm run predeploy`) because those commands run outside the Worker and connect directly to PostgreSQL.
+The deployed Worker connects through Cloudflare Hyperdrive and does not require a `DATABASE_URL` Worker secret. `DATABASE_URL` is only needed by the local/CI migration commands (`npm run db:migrate` and `npm run predeploy`) because those commands run outside the Worker and connect directly to PostgreSQL.
 
 Provision a PostgreSQL database and create the `authenticated_user` role before running migrations. For local migrations, copy `.env.example` to `.env` and set `DATABASE_URL` to the database connection string. For local `npm run dev`, put the connection string in `.dev.vars` as `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_DATABASE_HYPERDRIVE` (the dev script loads it into the process environment; wrangler does not read it from `.dev.vars` directly). Local development should use an explicit environment, such as `npm run dev -- --env staging`, so the corresponding KV bindings are loaded.
 

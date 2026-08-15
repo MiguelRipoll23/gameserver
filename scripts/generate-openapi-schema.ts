@@ -12,7 +12,7 @@ const DEFAULT_OUTPUT_PATH = "openapi.json";
  *
  * The `cloudflare:workers` binding is unavailable in plain Node, so run this
  * through the shim loader registered by `register-openapi-loader.mjs` — see the
- * `generate:openapi` npm script. The shim falls back to `process.env`, so a
+ * `openapi:generate` npm script. The shim falls back to `process.env`, so a
  * `.env` with `JWT_SECRET` must be present (JWTService reads it at startup).
  */
 async function generateOpenAPISchema(): Promise<void> {

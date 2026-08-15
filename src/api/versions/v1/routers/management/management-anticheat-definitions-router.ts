@@ -35,7 +35,7 @@ export class ManagementAntiCheatDefinitionsRouter {
         summary: "Get anti-cheat definitions",
         description:
           "Returns the anti-cheat rule definitions used by the management console to render rule types, fields, events, entities and value types",
-        tags: ["Anti-cheat rules"],
+        tags: ["Anti-cheat definitions"],
         responses: {
           200: {
             description: "Responds with the anti-cheat definitions",
@@ -65,7 +65,7 @@ export class ManagementAntiCheatDefinitionsRouter {
         summary: "Update anti-cheat definitions",
         description:
           "Replaces the anti-cheat rule definitions used by the management console to render rule types, fields, events, entities and value types",
-        tags: ["Anti-cheat rules"],
+        tags: ["Anti-cheat definitions"],
         request: {
           body: {
             content: {

@@ -28,7 +28,7 @@ export class ManagementConsoleDashboardRouter {
       createRoute({
         method: "get",
         path: "/",
-        summary: "Console",
+        summary: "Get dashboard data",
         description:
           "Retrieves all data displayed on the management console dashboard",
         tags: ["Console"],
