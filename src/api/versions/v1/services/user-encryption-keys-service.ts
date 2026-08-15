@@ -1,8 +1,9 @@
 import { injectable } from "@needle-di/core";
 import { getKvBinding } from "../../../../core/utils/environment.ts";
+import { KV_GAMESERVER } from "../constants/environment-constants.ts";
 
 function userEncryptionKeyKey(userId: string): string {
-  return `user:${userId}`;
+  return `user-encryption-keys:${userId}`;
 }
 
 /**
@@ -14,12 +15,12 @@ function userEncryptionKeyKey(userId: string): string {
 export class UserEncryptionKeysService {
   public async get(userId: string): Promise<string | null> {
     return await getKvBinding<KVNamespace>(
-      "USER_ENCRYPTION_KEYS_V1_KV",
+      KV_GAMESERVER,
     ).get(userEncryptionKeyKey(userId));
   }
 
   public async save(userId: string, key: string): Promise<void> {
-    await getKvBinding<KVNamespace>("USER_ENCRYPTION_KEYS_V1_KV").put(
+    await getKvBinding<KVNamespace>(KV_GAMESERVER).put(
       userEncryptionKeyKey(userId),
       key,
       { expirationTtl: 30 * 24 * 60 * 60 },
@@ -28,7 +29,7 @@ export class UserEncryptionKeysService {
 
   public async delete(userId: string): Promise<void> {
     await getKvBinding<KVNamespace>(
-      "USER_ENCRYPTION_KEYS_V1_KV",
+      KV_GAMESERVER,
     ).delete(userEncryptionKeyKey(userId));
   }
 }

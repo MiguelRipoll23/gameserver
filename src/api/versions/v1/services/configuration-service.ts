@@ -12,7 +12,7 @@ import type { AntiCheatRule } from "../types/anti-cheat-rule-type.ts";
 import { getHubStub } from "../../../../core/utils/environment.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 
-const CLOUD_CONFIGURATION_KEY = "cloud_configuration";
+const CLOUD_CONFIGURATION_KEY = "game-configuration";
 const ANTI_CHEAT_CONFIG_KEY = "4030BF2F";
 
 @injectable()

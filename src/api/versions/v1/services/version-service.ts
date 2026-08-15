@@ -6,13 +6,14 @@ import {
   UpdateVersionRequest,
 } from "../schemas/version-schemas.ts";
 import { getKvBinding } from "../../../../core/utils/environment.ts";
+import { KV_GAMESERVER } from "../constants/environment-constants.ts";
 
-const VERSION_KEY = "version";
+const VERSION_KEY = "game-version";
 
 @injectable()
 export class VersionService {
   private get versionKv(): KVNamespace {
-    return getKvBinding<KVNamespace>("GAME_VERSION_V1_KV");
+    return getKvBinding<KVNamespace>(KV_GAMESERVER);
   }
 
   public async get(): Promise<GetVersionResponse> {
