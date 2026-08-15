@@ -7,6 +7,7 @@ import { ManagementNotificationRouter } from "./management/management-notificati
 import { ManagementServerMessagesRouter } from "./management/management-server-messages-router.ts";
 import { ManagementConfigurationRouter } from "./management/management-configuration-router.ts";
 import { ManagementAntiCheatRulesRouter } from "./management/management-anticheat-rules-router.ts";
+import { ManagementAntiCheatDefinitionsRouter } from "./management/management-anticheat-definitions-router.ts";
 import { ManagementVersionRouter } from "./management/management-version-router.ts";
 import { ManagementTextModerationRouter } from "./management/management-text-moderation-router.ts";
 import { ManagementUserRolesRouter } from "./management/management-user-roles-router.ts";
@@ -29,6 +30,9 @@ export class V1ManagementRouter {
     private versionRouter = inject(ManagementVersionRouter),
     private configurationRouter = inject(ManagementConfigurationRouter),
     private antiCheatRulesRouter = inject(ManagementAntiCheatRulesRouter),
+    private antiCheatDefinitionsRouter = inject(
+      ManagementAntiCheatDefinitionsRouter,
+    ),
     private serverMessagesRouter = inject(ManagementServerMessagesRouter),
     private notificationRouter = inject(ManagementNotificationRouter),
     private textModerationRouter = inject(ManagementTextModerationRouter),
@@ -66,6 +70,10 @@ export class V1ManagementRouter {
     this.app.route("/game-version", this.versionRouter.getRouter());
     this.app.route("/game-configuration", this.configurationRouter.getRouter());
     this.app.route("/anti-cheat-rules", this.antiCheatRulesRouter.getRouter());
+    this.app.route(
+      "/anti-cheat-definitions",
+      this.antiCheatDefinitionsRouter.getRouter(),
+    );
     this.app.route("/server-messages", this.serverMessagesRouter.getRouter());
     this.app.route("/server-notification", this.notificationRouter.getRouter());
     this.app.route("/users", this.usersRouter.getRouter());
