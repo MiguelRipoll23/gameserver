@@ -18,10 +18,10 @@ import {
  *   - `eventName` / `entityName` / `valueType`: key = numeric id -> { label }
  *
  * Management-only read data seeded by migration, so no RLS policies are
- * needed (mirrors `anticheat_rules` / `blocked_words`).
+ * needed (mirrors `anti_cheat_rules` / `blocked_words`).
  */
 export const antiCheatDefinitionsTable = pgTable(
-  "anticheat_definitions",
+  "anti_cheat_definitions",
   {
     id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
     kind: varchar("kind", { length: 32 }).notNull(),
@@ -43,7 +43,7 @@ export const antiCheatDefinitionsTable = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => ({
-    uniqueDefinition: uniqueIndex("anticheat_definitions_unique_entry").on(
+    uniqueDefinition: uniqueIndex("anti_cheat_definitions_unique_entry").on(
       table.kind,
       table.key,
       table.parentKey,

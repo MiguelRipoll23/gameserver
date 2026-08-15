@@ -18,7 +18,7 @@ type DefinitionKind =
 /**
  * Reads and writes the anti-cheat rule definitions persisted in the database.
  *
- * The definitions are one row per entry (see `anticheat_definitions`): each
+ * The definitions are one row per entry (see `anti_cheat_definitions`): each
  * row carries a `kind` discriminator, a numeric `key`, and an optional
  * `parentKey` for hierarchical entries (rule fields). This service flattens
  * the nested document the management console edits into rows on save, and
