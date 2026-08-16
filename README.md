@@ -2,8 +2,6 @@
 
 A game server for multiplayer peer-to-peer games.
 
-Deploys to Cloudflare Workers with Cloudflare Hyperdrive for PostgreSQL connectivity.
-
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MiguelRipoll23/gameserver)
 
 Used by these games:
