@@ -49,7 +49,7 @@ The `dev` script loads `.env` into the process environment, which is how Wrangle
 
 Deployment runs through Cloudflare Workers Builds, which authenticates through the dashboard connection — no `CLOUDFLARE_API_TOKEN` is needed. Set the deploy command to `npx wrangler deploy` (no build command). For separate `staging` and `production` Workers, connect each environment's Worker and add `--env staging`/`--env production` to the deploy command.
 
-Database migrations run separately from deploys via the `Database migrations` GitHub Actions workflow (or `pnpm run db:migrate` locally). Add a `DATABASE_URL` secret to each GitHub Actions environment (`staging` and `production`) and trigger the workflow with the matching `target` to apply pending migrations.
+Database migrations and Discord slash-command registration run separately from deploys via the `Predeploy` GitHub Actions workflow (or `pnpm run predeploy` locally). It applies migrations and registers Discord commands automatically on pushes to `main` (production), and can be triggered manually for `staging` or `production`. Add `DATABASE_URL`, `DISCORD_APPLICATION_ID`, and `DISCORD_BOT_TOKEN` secrets to each GitHub Actions environment.
 
 ## Contributing
 
