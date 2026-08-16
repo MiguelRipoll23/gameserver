@@ -1,5 +1,5 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { V1Router } from "../versions/v1/routers/v1-rooter.ts";
+import { V1Router } from "../versions/v1/routers/v1-router.ts";
 import { inject, injectable } from "@needle-di/core";
 import { CORSMiddleware } from "../../core/middlewares/cors-middleware.ts";
 

@@ -7,8 +7,9 @@ function userEncryptionKeyKey(userId: string): string {
 
 /**
  * Stores per-user symmetric encryption keys in Workers KV. Keys are written on
- * sign-in and removed when the user's WebSocket connection closes. No TTL is
- * set because an active session's key must outlive the connection.
+ * sign-in and removed when the user's WebSocket connection closes. A 30-day
+ * TTL is set as a safety net so a key cannot outlive the session lifetime if
+ * the disconnect cleanup is ever missed.
  */
 @injectable()
 export class UserEncryptionKeysService {

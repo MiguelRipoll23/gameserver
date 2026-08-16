@@ -25,13 +25,11 @@ import { and, desc, eq, gt } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { env } from "cloudflare:workers";
 import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../constants/durable-object-constants.ts";
-import { AntiCheatRulesService } from "./anti-cheat-rules-service.ts";
 
 @injectable()
 export class UserModerationService {
   constructor(
     private databaseService = inject(DatabaseService),
-    private antiCheatRulesService = inject(AntiCheatRulesService),
   ) {}
 
   public async isBanned(userId: string): Promise<boolean> {
@@ -207,11 +205,11 @@ export class UserModerationService {
   }
 
   /**
-   * Records an automatic anti-cheat report and, when the broken rule's action
-   * is `ban`, bans the violating player for one day.
+   * Records an automatic anti-cheat report.
    *
-   * The report is always recorded. If the player is already banned the ban is
-   * skipped silently (no 409), since a duplicate ban would add no value.
+   * The report is always recorded and never triggers an automatic action:
+   * client-submitted violation reports are unauthenticated evidence, so the
+   * server records them for review instead of banning players from them.
    */
   public async reportAutomaticViolation(
     body: AutomaticReportUserRequest,
@@ -240,30 +238,6 @@ export class UserModerationService {
         "Failed to create automatic report",
         500,
       );
-    }
-
-    const action = await this.antiCheatRulesService.getRuleAction(ruleId);
-    if (action !== "ban") {
-      return;
-    }
-
-    try {
-      await this.banUser(
-        {
-          userId,
-          reason: `Anti-cheat rule ${ruleId}`,
-          duration: { value: 1, unit: "days" },
-        },
-        issuedByUserId,
-      );
-    } catch (error) {
-      if (
-        error instanceof ServerError &&
-        error.getCode() === "USER_ALREADY_BANNED"
-      ) {
-        return;
-      }
-      throw error;
     }
   }
 

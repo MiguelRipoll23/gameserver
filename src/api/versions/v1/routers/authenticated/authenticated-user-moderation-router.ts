@@ -69,7 +69,7 @@ export class AuthenticatedUserModerationRouter {
         path: "/automatic-report",
         summary: "Report anti-cheat violation",
         description:
-          "Reports an automatically detected anti-cheat violation. When the broken rule's action is 'ban', the user is temporarily banned for one day",
+          "Reports an automatically detected anti-cheat violation. The violation is recorded for review",
         tags: ["User reports"],
         request: {
           body: {
