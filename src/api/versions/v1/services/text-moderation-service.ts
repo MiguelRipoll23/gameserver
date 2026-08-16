@@ -15,7 +15,8 @@ import {
   GetBlockedWordsResponse,
   UpdateWordRequest,
 } from "../schemas/text-moderation-schemas.ts";
-import { getHubStub } from "../../../../core/utils/environment.ts";
+import { env } from "cloudflare:workers";
+import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../constants/durable-object-constants.ts";
 
 @injectable()
 export class TextModerationService {
@@ -264,6 +265,6 @@ export class TextModerationService {
   }
 
   private dispatchRefreshCacheEvent(): void {
-    void getHubStub().refreshBlockedWords();
+    void env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME).refreshBlockedWords();
   }
 }

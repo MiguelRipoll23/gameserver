@@ -1,6 +1,5 @@
 import { injectable } from "@needle-di/core";
-import { getKvBinding } from "../../../../core/utils/environment.ts";
-import { KV_GAMESERVER } from "../constants/environment-constants.ts";
+import { env } from "cloudflare:workers";
 
 /**
  * Stores game configuration request key/value pairs in Workers KV.
@@ -12,9 +11,7 @@ import { KV_GAMESERVER } from "../constants/environment-constants.ts";
 @injectable()
 export class GameConfigurationService {
   public async get(key: string): Promise<Record<string, unknown> | null> {
-    const raw = await getKvBinding<KVNamespace>(KV_GAMESERVER).get(
-      key,
-    );
+    const raw = await env.GAMESERVER_KV.get(key);
     if (raw === null) return null;
 
     try {
@@ -28,9 +25,6 @@ export class GameConfigurationService {
     key: string,
     value: Record<string, unknown>,
   ): Promise<void> {
-    await getKvBinding<KVNamespace>(KV_GAMESERVER).put(
-      key,
-      JSON.stringify(value),
-    );
+    await env.GAMESERVER_KV.put(key, JSON.stringify(value));
   }
 }

@@ -21,7 +21,7 @@ interface ConnectionRecord {
 /**
  * WebSocketDurableObject (this Durable Object) **owns** every WebSocket
  * connection and its per-player state. There is no separate connection
- * registry: the hub talks to the runtime directly —
+ * registry: the Durable Object talks to the runtime directly —
  *
  *  - `ctx.acceptWebSocket(server, [token])` claims an upgrade for hibernation;
  *  - `ctx.state.getWebSockets(token)` addresses a specific connection (relay,
@@ -29,7 +29,7 @@ interface ConnectionRecord {
  *  - each connection's identity row is persisted under `conn:<token>` and
  *    index under `user:<userId>:<token>` so it survives hibernation/eviction.
  *
- * Stateless Workers reach the single hub through the RPC methods below.
+ * Stateless Workers reach the single WebSocketDurableObject through the RPC methods below.
  */
 export class WebSocketDurableObject extends DurableObject<Env> {
   private static readonly CONN_KEY = "conn:";
@@ -53,7 +53,7 @@ export class WebSocketDurableObject extends DurableObject<Env> {
     const [client, server] = Object.values(pair);
 
     // A fresh, unique connection token (32-byte, standard base64). It doubles as
-    // the socket's tag so the hub can address or rehydrate this connection at
+    // the socket's tag so the Durable Object can address or rehydrate this connection at
     // any point (including after hibernation) without holding in-memory state,
     // and peers can trade it for relay addressing.
     const token = AuthenticationUtils.generateToken();

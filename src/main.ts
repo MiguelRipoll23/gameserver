@@ -6,7 +6,7 @@ import { AuthenticationChallengesService } from "./api/versions/v1/services/auth
 import { logDiscordBotConfiguration } from "./api/versions/v1/utils/discord-bot-config-utils.ts";
 
 // Re-export the Durable Object so it is included in the Worker bundle and the
-// `WEBSOCKET_V1_DO` binding resolves to it.
+// `WEBSOCKET_DURABLE_OBJECT` binding resolves to it.
 export { WebSocketDurableObject } from "./api/versions/v1/durable-objects/websocket-durable-object.ts";
 
 const container = new Container();

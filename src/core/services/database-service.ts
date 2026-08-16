@@ -5,7 +5,8 @@ import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
 import { injectable } from "@needle-di/core";
 import { sql } from "drizzle-orm/sql";
-import { getDatabaseConnectionString } from "../utils/environment.ts";
+import { env } from "cloudflare:workers";
+import { normalizeDatabaseConnectionString } from "../utils/connection-string-utils.ts";
 
 /**
  * Request-scoped PostgreSQL access for Cloudflare Workers.
@@ -36,8 +37,19 @@ export class DatabaseService {
    * connection, so a request performs all of its queries on a single client.
    */
   public async withConnection<T>(fn: () => Promise<T>): Promise<T> {
+    const hyperdrive = env.HYPERDRIVE;
+    if (
+      !hyperdrive ||
+      typeof hyperdrive.connectionString !== "string" ||
+      hyperdrive.connectionString.length === 0
+    ) {
+      throw new Error("HYPERDRIVE binding is not configured");
+    }
+
     const client = new Client({
-      connectionString: getDatabaseConnectionString(),
+      connectionString: normalizeDatabaseConnectionString(
+        hyperdrive.connectionString,
+      ),
       connectionTimeoutMillis: DatabaseService.CONNECTION_TIMEOUT_MS,
       query_timeout: DatabaseService.QUERY_TIMEOUT_MS,
       statement_timeout: DatabaseService.QUERY_TIMEOUT_MS,
@@ -63,7 +75,7 @@ export class DatabaseService {
    * Returns the database instance scoped to the current request/operation.
    *
    * @throws ServerError when no connection scope is active — callers must be
-   *   reached from a `withConnection()` scope (HTTP handler, cron, hub).
+   *   reached from a `withConnection()` scope (HTTP handler, cron, WebSocket Durable Object).
    */
   public get(): NodePgDatabase {
     const database = DatabaseService.requestStorage.getStore();

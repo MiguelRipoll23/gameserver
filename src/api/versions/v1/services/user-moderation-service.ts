@@ -23,7 +23,8 @@ import {
 } from "../../../../db/schema.ts";
 import { and, desc, eq, gt } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
-import { getHubStub } from "../../../../core/utils/environment.ts";
+import { env } from "cloudflare:workers";
+import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../constants/durable-object-constants.ts";
 import { AntiCheatRulesService } from "./anti-cheat-rules-service.ts";
 
 @injectable()
@@ -126,7 +127,7 @@ export class UserModerationService {
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
       }`,
     );
-    await getHubStub().kickPlayer(userId);
+    await env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME).kickPlayer(userId);
   }
 
   public async unbanUser(userId: string): Promise<void> {

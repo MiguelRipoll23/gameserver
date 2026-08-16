@@ -245,7 +245,7 @@ export class WebSocketService implements WebSocketServer {
       user.getPublicIp(),
     );
 
-    // Persist the now-authenticated identity so it survives hub hibernation.
+    // Persist the now-authenticated identity so it survives Durable Object hibernation.
     await this.webSocketDurableObject.update(user);
   }
 
@@ -257,7 +257,7 @@ export class WebSocketService implements WebSocketServer {
 
     if (!destinationUser) {
       Logger.debug(
-        `Ignoring player relay: destination token is not connected to the hub`,
+        `Ignoring player relay: destination token is not connected to the WebSocketDurableObject`,
       );
       return;
     }
@@ -363,7 +363,7 @@ export class WebSocketService implements WebSocketServer {
 
     if (!hostUser) {
       Logger.debug(
-        `Host ${hostUserId} is not connected to the hub; skipping user kicked notification`,
+        `Host ${hostUserId} is not connected to the WebSocketDurableObject; skipping user kicked notification`,
       );
       return;
     }

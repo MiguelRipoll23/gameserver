@@ -1,7 +1,8 @@
 import { injectable } from "@needle-di/core";
 import { ServerError } from "../models/server-error.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
-import { getHubStub } from "../../../../core/utils/environment.ts";
+import { env } from "cloudflare:workers";
+import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../constants/durable-object-constants.ts";
 
 @injectable()
 export class NotificationService {
@@ -31,7 +32,7 @@ export class NotificationService {
       );
     }
 
-    await getHubStub().pushServerNotification(channelId, message);
+    await env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME).pushServerNotification(channelId, message);
   }
 
   public async notifyUser(
@@ -64,6 +65,6 @@ export class NotificationService {
       );
     }
 
-    await getHubStub().pushUserNotification(userId.trim(), channelId, message);
+    await env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME).pushUserNotification(userId.trim(), channelId, message);
   }
 }

@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Node.js project dependencies (npm ecosystem, pnpm lockfile auto-detected).
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # GitHub Actions workflow versions.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

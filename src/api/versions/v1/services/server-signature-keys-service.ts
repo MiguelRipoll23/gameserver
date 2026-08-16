@@ -1,16 +1,13 @@
 import { injectable } from "@needle-di/core";
-import { getKvBinding } from "../../../../core/utils/environment.ts";
+import { env } from "cloudflare:workers";
 import { SignatureKeysData } from "../types/signature-keys-data-type.ts";
-import { KV_GAMESERVER } from "../constants/environment-constants.ts";
 
 const SERVER_SIGNATURE_KEYS_KEY = "server-signature-keys";
 
 @injectable()
 export class ServerSignatureKeysService {
   public async get(): Promise<SignatureKeysData | null> {
-    const raw = await getKvBinding<KVNamespace>(
-      KV_GAMESERVER,
-    ).get(SERVER_SIGNATURE_KEYS_KEY);
+    const raw = await env.GAMESERVER_KV.get(SERVER_SIGNATURE_KEYS_KEY);
     if (raw === null) return null;
 
     try {
@@ -25,7 +22,7 @@ export class ServerSignatureKeysService {
   }
 
   public async save(data: SignatureKeysData): Promise<void> {
-    await getKvBinding<KVNamespace>(KV_GAMESERVER).put(
+    await env.GAMESERVER_KV.put(
       SERVER_SIGNATURE_KEYS_KEY,
       JSON.stringify(data),
     );

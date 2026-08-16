@@ -1,6 +1,5 @@
 import { injectable } from "@needle-di/core";
-import { getKvBinding } from "../../../../core/utils/environment.ts";
-import { KV_GAMESERVER } from "../constants/environment-constants.ts";
+import { env } from "cloudflare:workers";
 
 function userEncryptionKeyKey(userId: string): string {
   return `user-encryption-keys:${userId}`;
@@ -14,22 +13,16 @@ function userEncryptionKeyKey(userId: string): string {
 @injectable()
 export class UserEncryptionKeysService {
   public async get(userId: string): Promise<string | null> {
-    return await getKvBinding<KVNamespace>(
-      KV_GAMESERVER,
-    ).get(userEncryptionKeyKey(userId));
+    return await env.GAMESERVER_KV.get(userEncryptionKeyKey(userId));
   }
 
   public async save(userId: string, key: string): Promise<void> {
-    await getKvBinding<KVNamespace>(KV_GAMESERVER).put(
-      userEncryptionKeyKey(userId),
-      key,
-      { expirationTtl: 30 * 24 * 60 * 60 },
-    );
+    await env.GAMESERVER_KV.put(userEncryptionKeyKey(userId), key, {
+      expirationTtl: 30 * 24 * 60 * 60,
+    });
   }
 
   public async delete(userId: string): Promise<void> {
-    await getKvBinding<KVNamespace>(
-      KV_GAMESERVER,
-    ).delete(userEncryptionKeyKey(userId));
+    await env.GAMESERVER_KV.delete(userEncryptionKeyKey(userId));
   }
 }

@@ -4,15 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node --env-file-if-exists=.dev.vars ./node_modules/wrangler/bin/wrangler.js dev",
-    "deploy:staging": "wrangler deploy --env staging",
-    "deploy:production": "wrangler deploy --env production",
+    "dev": "node --env-file-if-exists=.env ./node_modules/wrangler/bin/wrangler.js dev",
     "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
+    "predeploy": "node --env-file=.env --import tsx scripts/predeploy.ts",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file=.env --import tsx scripts/migrate-database.ts",
-    "openapi:generate": "node --env-file=.env --import tsx --import ./scripts/register-openapi-loader.mjs scripts/generate-openapi-schema.ts",
-    "predeploy": "node --env-file=.env --import tsx scripts/predeploy.ts"
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "openapi:generate": "node --env-file=.env --import tsx --import ./scripts/register-openapi-loader.mjs scripts/generate-openapi-schema.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.5.1",

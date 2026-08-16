@@ -160,8 +160,9 @@ dist
 
 # wrangler project
 
-.dev.vars*
-!.dev.vars.example
 .env*
 !.env.example
 .wrangler/
+
+# npm lockfile (pnpm is the package manager)
+package-lock.json

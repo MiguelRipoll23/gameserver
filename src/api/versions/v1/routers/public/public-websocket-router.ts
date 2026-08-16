@@ -1,6 +1,7 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { injectable } from "@needle-di/core";
-import { getHubStub } from "../../../../../core/utils/environment.ts";
+import { env } from "cloudflare:workers";
+import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../../constants/durable-object-constants.ts";
 import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 import { ServerResponse } from "../../models/server-response.ts";
 
@@ -38,10 +39,10 @@ export class AuthenticatedWebSocketRouter {
       }),
       (c) => {
         // WebSocket connections are owned by the WebSocketDurableObject.
-        // Forward the upgrade request to the hub, which accepts it and
-        // services all messages for the connection.
-        const hub = getHubStub();
-        return hub.fetch(c.req.raw);
+        // Forward the upgrade request to it, which accepts it and services
+        // all messages for the connection.
+        const webSocketDurableObject = env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME);
+        return webSocketDurableObject.fetch(c.req.raw);
       },
     );
   }

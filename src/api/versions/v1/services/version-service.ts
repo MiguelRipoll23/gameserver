@@ -5,15 +5,14 @@ import {
   GetVersionResponseSchema,
   UpdateVersionRequest,
 } from "../schemas/version-schemas.ts";
-import { getKvBinding } from "../../../../core/utils/environment.ts";
-import { KV_GAMESERVER } from "../constants/environment-constants.ts";
+import { env } from "cloudflare:workers";
 
 const VERSION_KEY = "game-version";
 
 @injectable()
 export class VersionService {
   private get versionKv(): KVNamespace {
-    return getKvBinding<KVNamespace>(KV_GAMESERVER);
+    return env.GAMESERVER_KV;
   }
 
   public async get(): Promise<GetVersionResponse> {

@@ -9,7 +9,8 @@ import {
 import { GameConfigurationService } from "./game-configuration-service.ts";
 import { AntiCheatRulesService } from "./anti-cheat-rules-service.ts";
 import type { AntiCheatRule } from "../types/anti-cheat-rule-type.ts";
-import { getHubStub } from "../../../../core/utils/environment.ts";
+import { env } from "cloudflare:workers";
+import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../constants/durable-object-constants.ts";
 import { Base64Utils } from "../../../../core/utils/base64-utils.ts";
 
 const CLOUD_CONFIGURATION_KEY = "game-configuration";
@@ -125,8 +126,8 @@ export class ConfigurationService {
 
     try {
       const rulesBinary = Base64Utils.base64UrlToArrayBuffer(raw);
-      const hub = getHubStub();
-      await hub.pushAntiCheatConfig(rulesBinary);
+      const webSocketDurableObject = env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME);
+      await webSocketDurableObject.pushAntiCheatConfig(rulesBinary);
       Logger.log("Broadcast anti-cheat config to all connected clients");
     } catch (error) {
       Logger.error("Failed to broadcast anti-cheat config:", error);

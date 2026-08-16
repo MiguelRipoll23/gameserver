@@ -26,6 +26,14 @@ This is a **Cloudflare Workers-based game server** using:
 - Use relative imports with `.ts` extensions (e.g., `../../db/schema.ts`).
 - Barrel exports through `schema.ts` for all database tables.
 
+## Environment & Bindings
+
+- Bindings are read directly via `import { env } from "cloudflare:workers"` — do not add wrapper helpers around `env`.
+- Bindings: `GAMESERVER_KV` (KV), `HYPERDRIVE` (PostgreSQL via Hyperdrive), `WEBSOCKET_DURABLE_OBJECT` (WebSocket Durable Object). KV and Hyperdrive keep one binding name and vary the `id` per environment in `wrangler.jsonc`.
+- Local development reads a single gitignored `.env` (copy from `.env.example`): `DATABASE_URL` for migrations, and `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` for `pnpm run dev`.
+- Install dependencies with `pnpm install`.
+- Regenerate `worker-configuration.d.ts` with `pnpm run cf-typegen` after changing `wrangler.jsonc`.
+
 ## Database & Drizzle ORM
 
 - Tables are defined in `src/db/tables/` as individual files, re-exported from `src/db/schema.ts`.
@@ -36,7 +44,7 @@ This is a **Cloudflare Workers-based game server** using:
   ```
 - Use `pgTable` from `drizzle-orm/pg-core`. Column names use `snake_case` in SQL.
 - Foreign keys use `.references()` with `onDelete` cascade where appropriate.
-- For migrations: `npm run db:generate` (creates SQL), then `npm run db:migrate` (applies via scripts/migrate-database.ts). `DATABASE_URL` is required only by these local/CI migration commands; deployed Workers use the `DATABASE_HYPERDRIVE` binding.
+- For migrations: `pnpm run db:generate` (creates SQL), then `pnpm run db:migrate` (applies via scripts/migrate-database.ts). `DATABASE_URL` is required only by these local/CI migration commands; deployed Workers use the `HYPERDRIVE` binding (one binding name, per-environment `id` in `wrangler.jsonc`).
 - **Row-Level Security (RLS):** Most tables define `pgPolicy` rules using `authenticatedUserRole` and helpers from `src/db/rls.ts` (`isCurrentUser`, `isCurrentCredential`).
 
 ## API Structure
@@ -77,5 +85,5 @@ This is a **Cloudflare Workers-based game server** using:
 - **Exports:** camelCase for table instances (e.g., `usersTable`, `matchesTable`)
 - **Entity types:** PascalCase with `Entity` suffix (e.g., `UserEntity`, `MatchEntity`)
 - **Insert types:** PascalCase with `InsertEntity` suffix (e.g., `UserInsertEntity`)
-- **Env vars:** `UPPER_SNAKE_CASE` (e.g., `JWT_SECRET`, `DATABASE_HYPERDRIVE`)
+- **Env vars and bindings:** `UPPER_SNAKE_CASE` (e.g., `JWT_SECRET`, `DATABASE_URL`, `HYPERDRIVE`, `GAMESERVER_KV`)
 - **Error codes:** `UPPER_SNAKE_CASE` (e.g., `MATCH_NOT_FOUND`)
