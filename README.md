@@ -19,6 +19,7 @@ Used by these games:
 - Chat messages integrity using digital signatures
 - Secure player score management
 - Discord bot for management and moderation
+- Anti-cheat rules with automatic violation reporting and temporary bans
 
 ## Configuration
 

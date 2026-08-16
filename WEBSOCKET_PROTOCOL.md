@@ -53,6 +53,7 @@ Numeric values are encoded **big-endian**.
 | `3` | ChatMessage |
 | `4` | PlayerKicked |
 | `5` | Notification |
+| `6` | AntiCheat |
 
 ---
 
@@ -171,6 +172,27 @@ Sent to match host when a participant is banned/kicked.
   - `1` = Menu
   - `2` = Match
 - `text: bytes[...]` (UTF-8 notification text)
+
+### AntiCheat
+
+Server pushes the serialized anti-cheat rule set to all connected clients.
+
+**Structure**
+
+- `type: uint8 = 6`
+- `rules: bytes[...]` — serialized anti-cheat rules (see below)
+
+**Rules binary format**
+
+- `ruleCount: uint16`
+- Per rule (repeated `ruleCount` times):
+  - `ruleId: uint16`
+  - `ruleType: uint8`
+  - `fieldCount: uint8`
+  - Per field (repeated `fieldCount` times):
+    - `fieldId: uint8`
+    - `valueType: uint8` — `0x00` = uint16, `0x01` = float32
+    - `value`: `uint16` when `valueType = 0x00`, otherwise `float32`
 
 ---
 
