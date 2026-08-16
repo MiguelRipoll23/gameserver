@@ -1,4 +1,3 @@
-import { WSContext } from "hono/ws";
 import { AuthenticationUtils } from "../utils/authentication-utils.ts";
 
 export class WebSocketUser {
@@ -9,7 +8,7 @@ export class WebSocketUser {
   private name: string;
   private publicIp: string;
   private connectedTimestamp: number;
-  private webSocket: WSContext<WebSocket> | null = null;
+  private webSocket: WebSocket | null = null;
   private authenticated: boolean = false;
   private claims: Record<string, unknown> | null = null;
 
@@ -63,11 +62,11 @@ export class WebSocketUser {
     return this.connectedTimestamp;
   }
 
-  public getWebSocket(): WSContext<WebSocket> | null {
+  public getWebSocket(): WebSocket | null {
     return this.webSocket;
   }
 
-  public setWebSocket(webSocket: WSContext<WebSocket> | null): void {
+  public setWebSocket(webSocket: WebSocket | null): void {
     this.webSocket = webSocket;
   }
 

@@ -69,7 +69,7 @@ export const UnbanUserRequestSchema = z.object({
 
 export type UnbanUserRequest = z.infer<typeof UnbanUserRequestSchema>;
 
-export const ReportUserRequestSchema = z.object({
+export const ManualReportUserRequestSchema = z.object({
   userId: z
     .string()
     .length(36)
@@ -78,32 +78,58 @@ export const ReportUserRequestSchema = z.object({
   reason: z
     .string()
     .min(1)
-    .max(100)
+    .max(500)
     .describe("Reason for the report")
     .openapi({ example: "Offensive language" }),
-  automatic: z
-    .boolean()
-    .describe("Defines if the game client reported this automatically")
-    .openapi({ example: false }),
 });
 
-export type ReportUserRequest = z.infer<typeof ReportUserRequestSchema>;
+export type ManualReportUserRequest = z.infer<
+  typeof ManualReportUserRequestSchema
+>;
 
-export const GetUserBansRequestSchema = PaginationSchema.extend({
+export const AutomaticReportUserRequestSchema = z.object({
   userId: z
     .string()
     .length(36)
-    .describe("The user ID to get bans for")
+    .describe("The user ID the anti-cheat system detected")
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
+  ruleId: z
+    .number()
+    .int()
+    .min(0)
+    .max(65535)
+    .describe("The anti-cheat rule that was broken")
+    .openapi({ example: 1 }),
+});
+
+export type AutomaticReportUserRequest = z.infer<
+  typeof AutomaticReportUserRequestSchema
+>;
+
+export const GetUserBansQuerySchema = PaginationSchema.extend({
+  userId: z
+    .string()
+    .length(36)
+    .optional()
+    .describe("The user ID to get bans for. If omitted, returns bans for all users")
     .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
 });
 
+export const GetUserBansRequestSchema = GetUserBansQuerySchema;
+
 export type GetUserBansRequest = z.infer<typeof GetUserBansRequestSchema>;
 
-// Query-only schema for HTTP routes (without userId since it comes from path)
-export const GetUserBansQuerySchema = PaginationSchema;
-
 export const UserBanResponseSchema = z.object({
-  userId: z.string().describe("User ID"),
+  userId: z.string().describe("Banned user ID"),
+  userDisplayName: z.string().describe("Display name of the banned user"),
+  issuedByUserId: z
+    .string()
+    .nullable()
+    .describe("ID of the user who issued the ban"),
+  issuedByUserDisplayName: z
+    .string()
+    .nullable()
+    .describe("Display name of the user who issued the ban"),
   reason: z.string().describe("Ban reason"),
   createdAt: z.string().describe("Ban creation date"),
   updatedAt: z.string().nullable().describe("Ban update date"),
@@ -118,32 +144,80 @@ export const GetUserBansResponseSchema = PaginatedResponseSchema(
 
 export type GetUserBansResponse = z.infer<typeof GetUserBansResponseSchema>;
 
-export const GetUserReportsRequestSchema = PaginationSchema.extend({
+export const GetUserReportsManualQuerySchema = PaginationSchema.extend({
   userId: z
     .string()
     .length(36)
-    .describe("The user ID to get reports for")
+    .optional()
+    .describe("The user ID to get reports for. If omitted, returns reports for all users")
     .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
 });
 
-export type GetUserReportsRequest = z.infer<typeof GetUserReportsRequestSchema>;
+export type GetUserReportsManualRequest = z.infer<
+  typeof GetUserReportsManualQuerySchema
+>;
 
-// Query-only schema for HTTP routes (without userId since it comes from path)
-export const GetUserReportsQuerySchema = PaginationSchema;
+export const GetUserReportsAutomaticQuerySchema = PaginationSchema.extend({
+  userId: z
+    .string()
+    .length(36)
+    .optional()
+    .describe("The user ID to get automatic reports for. If omitted, returns reports for all users")
+    .openapi({ example: "00000000-0000-0000-0000-000000000000" }),
+});
+
+export type GetUserReportsAutomaticRequest = z.infer<
+  typeof GetUserReportsAutomaticQuerySchema
+>;
 
 export const UserReportResponseSchema = z.object({
-  reporterUserId: z.string().describe("Reporter user ID"),
-  reportedUserId: z.string().describe("Reported user ID"),
+  userId: z.string().describe("Reported user ID"),
+  userDisplayName: z.string().describe("Display name of the reported user"),
+  issuedByUserId: z
+    .string()
+    .describe("ID of the user who issued the report"),
+  issuedByUserDisplayName: z
+    .string()
+    .describe("Display name of the user who issued the report"),
   reason: z.string().describe("Report reason"),
-  automatic: z.boolean().describe("Whether the report was automatic"),
+  createdAt: z.string().describe("Report creation date"),
+  updatedAt: z.string().nullable().describe("Report update date"),
 });
 
 export type UserReportResponse = z.infer<typeof UserReportResponseSchema>;
 
-export const GetUserReportsResponseSchema = PaginatedResponseSchema(
+export const GetUserReportsManualResponseSchema = PaginatedResponseSchema(
   UserReportResponseSchema,
 );
 
-export type GetUserReportsResponse = z.infer<
-  typeof GetUserReportsResponseSchema
+export type GetUserReportsManualResponse = z.infer<
+  typeof GetUserReportsManualResponseSchema
+>;
+
+export const AutomaticUserReportResponseSchema = z.object({
+  userId: z.string().describe("Reported user ID"),
+  userDisplayName: z.string().describe("Display name of the reported user"),
+  issuedByUserId: z
+    .string()
+    .nullable()
+    .describe("ID of the host that detected the violation"),
+  issuedByUserDisplayName: z
+    .string()
+    .nullable()
+    .describe("Display name of the host that detected the violation"),
+  ruleId: z.number().int().describe("The anti-cheat rule that was broken"),
+  createdAt: z.string().describe("Report creation date"),
+  updatedAt: z.string().nullable().describe("Report update date"),
+});
+
+export type AutomaticUserReportResponse = z.infer<
+  typeof AutomaticUserReportResponseSchema
+>;
+
+export const GetUserReportsAutomaticResponseSchema = PaginatedResponseSchema(
+  AutomaticUserReportResponseSchema,
+);
+
+export type GetUserReportsAutomaticResponse = z.infer<
+  typeof GetUserReportsAutomaticResponseSchema
 >;

@@ -1,31 +1,37 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import {
+  AutomaticReportUserRequest,
   BanDuration,
   BanUserRequest,
   GetUserBansRequest,
   GetUserBansResponse,
-  GetUserReportsRequest,
-  GetUserReportsResponse,
-  ReportUserRequest,
+  GetUserReportsAutomaticRequest,
+  GetUserReportsAutomaticResponse,
+  GetUserReportsManualRequest,
+  GetUserReportsManualResponse,
+  ManualReportUserRequest,
 } from "../schemas/user-moderation-schemas.ts";
 import {
   userBansTable,
-  userReportsTable,
+  userReportsAutomaticTable,
+  userReportsManualTable,
   usersTable,
 } from "../../../../db/schema.ts";
-import { and, desc, eq, gt, sql } from "drizzle-orm";
-import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
-import { EventsService } from "./events-service.ts";
-import { EventDispatchMode } from "../constants/event-constants.ts";
+import { and, desc, eq, gt } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+import { env } from "cloudflare:workers";
+import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../constants/durable-object-constants.ts";
+import { AntiCheatRulesService } from "./anti-cheat-rules-service.ts";
 
 @injectable()
 export class UserModerationService {
   constructor(
     private databaseService = inject(DatabaseService),
-    private eventsService = inject(EventsService),
+    private antiCheatRulesService = inject(AntiCheatRulesService),
   ) {}
 
   public async isBanned(userId: string): Promise<boolean> {
@@ -56,7 +62,10 @@ export class UserModerationService {
     return users[0] ?? null;
   }
 
-  public async banUser(body: BanUserRequest): Promise<void> {
+  public async banUser(
+    body: BanUserRequest,
+    issuedByUserId?: string,
+  ): Promise<void> {
     const { userId, reason, duration } = body;
     const db = this.databaseService.get();
 
@@ -96,6 +105,7 @@ export class UserModerationService {
           .insert(userBansTable)
           .values({
             userId,
+            issuedBy: issuedByUserId ?? null,
             reason,
             expiresAt,
           });
@@ -104,7 +114,7 @@ export class UserModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while creating ban record:", error);
+      Logger.error("Database error while creating ban record:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to create ban record",
@@ -112,18 +122,12 @@ export class UserModerationService {
       );
     }
 
-    console.log(
+    Logger.log(
       `User ${userId} has been banned for: ${reason}${
         duration ? ` (expires: ${expiresAt})` : " (permanent)"
       }`,
     );
-    this.eventsService.dispatch(
-      BroadcastCommandType.KickPlayer,
-      {
-        userId,
-      },
-      EventDispatchMode.LocalAndBroadcast,
-    );
+    await env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME).kickPlayer(userId);
   }
 
   public async unbanUser(userId: string): Promise<void> {
@@ -161,87 +165,171 @@ export class UserModerationService {
       .delete(userBansTable)
       .where(eq(userBansTable.id, ban.id));
 
-    console.log(`User ${userId} has been unbanned`);
+    Logger.log(`User ${userId} has been unbanned`);
   }
 
-  public async reportUser(
+  /**
+   * Records a manual report filed by one human player against another.
+   */
+  public async reportUserManual(
     reporterUserId: string,
-    body: ReportUserRequest,
+    body: ManualReportUserRequest,
   ): Promise<void> {
-    const { userId, reason, automatic } = body;
+    const { userId, reason } = body;
 
     if (reporterUserId === userId) {
-      throw new ServerError("INVALID_REPORT", "Cannot report yourself", 400);
+      throw new ServerError(
+        "INVALID_REPORT",
+        "Cannot report yourself",
+        400,
+      );
     }
 
     const db = this.databaseService.get();
 
-    // Insert report into database with user existence check
     try {
       await db.transaction(async (tx) => {
-        // Check if user exists
         await this.checkUserExists(tx, userId);
 
-        // Insert report
-        await tx.insert(userReportsTable).values({
-          reporterUserId,
-          reportedUserId: userId,
+        await tx.insert(userReportsManualTable).values({
+          userId,
+          issuedBy: reporterUserId,
           reason,
-          automatic: automatic ?? false,
         });
       });
     } catch (error) {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while creating report:", error);
+      Logger.error("Database error while creating report:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to create report", 500);
     }
   }
 
-  public async getUserReports(
-    params: GetUserReportsRequest,
-  ): Promise<GetUserReportsResponse> {
+  /**
+   * Records an automatic anti-cheat report and, when the broken rule's action
+   * is `ban`, bans the violating player for one day.
+   *
+   * The report is always recorded. If the player is already banned the ban is
+   * skipped silently (no 409), since a duplicate ban would add no value.
+   */
+  public async reportAutomaticViolation(
+    body: AutomaticReportUserRequest,
+    issuedByUserId?: string,
+  ): Promise<void> {
+    const { userId, ruleId } = body;
+    const db = this.databaseService.get();
+
+    try {
+      await db.transaction(async (tx) => {
+        await this.checkUserExists(tx, userId);
+
+        await tx.insert(userReportsAutomaticTable).values({
+          userId,
+          issuedBy: issuedByUserId ?? null,
+          ruleId,
+        });
+      });
+    } catch (error) {
+      if (error instanceof ServerError) {
+        throw error;
+      }
+      Logger.error("Database error while creating automatic report:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to create automatic report",
+        500,
+      );
+    }
+
+    const action = await this.antiCheatRulesService.getRuleAction(ruleId);
+    if (action !== "ban") {
+      return;
+    }
+
+    try {
+      await this.banUser(
+        {
+          userId,
+          reason: `Anti-cheat rule ${ruleId}`,
+          duration: { value: 1, unit: "days" },
+        },
+        issuedByUserId,
+      );
+    } catch (error) {
+      if (
+        error instanceof ServerError &&
+        error.getCode() === "USER_ALREADY_BANNED"
+      ) {
+        return;
+      }
+      throw error;
+    }
+  }
+
+  public async getUserManualReports(
+    params: GetUserReportsManualRequest,
+  ): Promise<GetUserReportsManualResponse> {
     const { userId, cursor, limit = 20 } = params;
     const db = this.databaseService.get();
 
-    // Check if user exists and fetch reports in transaction
     try {
       return await db.transaction(async (tx) => {
-        // Check if user exists
-        await this.checkUserExists(tx, userId);
+        const conditions = [];
 
-        // Build query conditions
-        const conditions = [eq(userReportsTable.reportedUserId, userId)];
-
-        if (cursor) {
-          conditions.push(gt(userReportsTable.id, cursor));
+        if (userId !== undefined) {
+          await this.checkUserExists(tx, userId);
+          conditions.push(eq(userReportsManualTable.userId, userId));
         }
 
-        // Fetch one extra item to determine if there are more results
+        if (cursor) {
+          conditions.push(gt(userReportsManualTable.id, cursor));
+        }
+
+        const reporterUser = alias(usersTable, "reporter_user");
+        const reportedUser = alias(usersTable, "reported_user");
         const reports = await tx
           .select({
-            id: userReportsTable.id,
-            reporterUserId: userReportsTable.reporterUserId,
-            reportedUserId: userReportsTable.reportedUserId,
-            reason: userReportsTable.reason,
-            automatic: userReportsTable.automatic,
+            id: userReportsManualTable.id,
+            userId: userReportsManualTable.userId,
+            userDisplayName: reportedUser.displayName,
+            issuedByUserId: userReportsManualTable.issuedBy,
+            issuedByUserDisplayName: reporterUser.displayName,
+            reason: userReportsManualTable.reason,
+            createdAt: userReportsManualTable.createdAt,
+            updatedAt: userReportsManualTable.updatedAt,
           })
-          .from(userReportsTable)
-          .where(conditions.length > 1 ? and(...conditions) : conditions[0])
-          .orderBy(userReportsTable.id)
+          .from(userReportsManualTable)
+          .innerJoin(
+            reporterUser,
+            eq(userReportsManualTable.issuedBy, reporterUser.id),
+          )
+          .innerJoin(
+            reportedUser,
+            eq(userReportsManualTable.userId, reportedUser.id),
+          )
+          .where(
+            conditions.length === 0
+              ? undefined
+              : conditions.length === 1
+                ? conditions[0]
+                : and(...conditions),
+          )
+          .orderBy(userReportsManualTable.id)
           .limit(limit + 1);
 
-        // Remove the extra item and use it to determine if there are more results
         const hasNextPage = reports.length > limit;
         const results = reports.slice(0, limit);
 
         return {
           results: results.map((report) => ({
-            reporterUserId: report.reporterUserId,
-            reportedUserId: report.reportedUserId,
+            userId: report.userId,
+            userDisplayName: report.userDisplayName,
+            issuedByUserId: report.issuedByUserId,
+            issuedByUserDisplayName: report.issuedByUserDisplayName,
             reason: report.reason,
-            automatic: report.automatic,
+            createdAt: report.createdAt.toISOString(),
+            updatedAt: report.updatedAt?.toISOString() || null,
           })),
           nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
           hasMore: hasNextPage,
@@ -251,10 +339,91 @@ export class UserModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while fetching user reports:", error);
+      Logger.error("Database error while fetching user reports:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch user reports",
+        500,
+      );
+    }
+  }
+
+  public async getUserAutomaticReports(
+    params: GetUserReportsAutomaticRequest,
+  ): Promise<GetUserReportsAutomaticResponse> {
+    const { userId, cursor, limit = 20 } = params;
+    const db = this.databaseService.get();
+
+    try {
+      return await db.transaction(async (tx) => {
+        const conditions = [];
+
+        if (userId !== undefined) {
+          await this.checkUserExists(tx, userId);
+          conditions.push(eq(userReportsAutomaticTable.userId, userId));
+        }
+
+        if (cursor) {
+          conditions.push(gt(userReportsAutomaticTable.id, cursor));
+        }
+
+        const issuerUser = alias(usersTable, "issuer_user");
+        const reportedUser = alias(usersTable, "reported_user");
+        const reports = await tx
+          .select({
+            id: userReportsAutomaticTable.id,
+            userId: userReportsAutomaticTable.userId,
+            userDisplayName: reportedUser.displayName,
+            issuedByUserId: userReportsAutomaticTable.issuedBy,
+            issuedByUserDisplayName: issuerUser.displayName,
+            ruleId: userReportsAutomaticTable.ruleId,
+            createdAt: userReportsAutomaticTable.createdAt,
+            updatedAt: userReportsAutomaticTable.updatedAt,
+          })
+          .from(userReportsAutomaticTable)
+          .innerJoin(
+            reportedUser,
+            eq(userReportsAutomaticTable.userId, reportedUser.id),
+          )
+          .leftJoin(
+            issuerUser,
+            eq(userReportsAutomaticTable.issuedBy, issuerUser.id),
+          )
+          .where(
+            conditions.length === 0
+              ? undefined
+              : conditions.length === 1
+                ? conditions[0]
+                : and(...conditions),
+          )
+          .orderBy(userReportsAutomaticTable.id)
+          .limit(limit + 1);
+
+        const hasNextPage = reports.length > limit;
+        const results = reports.slice(0, limit);
+
+        return {
+          results: results.map((report) => ({
+            userId: report.userId,
+            userDisplayName: report.userDisplayName,
+            issuedByUserId: report.issuedByUserId ?? null,
+            issuedByUserDisplayName: report.issuedByUserDisplayName ?? null,
+            ruleId: report.ruleId,
+            createdAt: report.createdAt.toISOString(),
+            updatedAt: report.updatedAt?.toISOString() || null,
+          })),
+          nextCursor: hasNextPage ? results[results.length - 1].id : undefined,
+          hasMore: hasNextPage,
+        };
+      });
+    } catch (error) {
+      if (error instanceof ServerError) {
+        throw error;
+      }
+      Logger.error("Database error while fetching automatic reports:", error);
+      throw new ServerError(
+        "DATABASE_ERROR",
+        "Failed to fetch automatic reports",
         500,
       );
     }
@@ -269,28 +438,44 @@ export class UserModerationService {
     // Check if user exists and fetch bans in transaction
     try {
       return await db.transaction(async (tx) => {
-        // Check if user exists
-        await this.checkUserExists(tx, userId);
+        // Build query conditions. When a user ID is provided, verify the user
+        // exists and filter bans by that user; otherwise list all bans.
+        const conditions = [];
 
-        // Build query conditions
-        const conditions = [eq(userBansTable.userId, userId)];
+        if (userId !== undefined) {
+          await this.checkUserExists(tx, userId);
+          conditions.push(eq(userBansTable.userId, userId));
+        }
 
         if (cursor) {
           conditions.push(gt(userBansTable.id, cursor));
         }
 
         // Fetch one extra item to determine if there are more results
+        const bannedUser = alias(usersTable, "banned_user");
+        const issuerUser = alias(usersTable, "issuer_user");
         const bans = await tx
           .select({
             id: userBansTable.id,
             userId: userBansTable.userId,
+            userDisplayName: bannedUser.displayName,
+            issuedByUserId: userBansTable.issuedBy,
+            issuedByUserDisplayName: issuerUser.displayName,
             reason: userBansTable.reason,
             createdAt: userBansTable.createdAt,
             updatedAt: userBansTable.updatedAt,
             expiresAt: userBansTable.expiresAt,
           })
           .from(userBansTable)
-          .where(conditions.length > 1 ? and(...conditions) : conditions[0])
+          .innerJoin(bannedUser, eq(userBansTable.userId, bannedUser.id))
+          .leftJoin(issuerUser, eq(userBansTable.issuedBy, issuerUser.id))
+          .where(
+            conditions.length === 0
+              ? undefined
+              : conditions.length === 1
+                ? conditions[0]
+                : and(...conditions),
+          )
           .orderBy(userBansTable.id)
           .limit(limit + 1);
 
@@ -301,6 +486,9 @@ export class UserModerationService {
         return {
           results: results.map((ban) => ({
             userId: ban.userId,
+            userDisplayName: ban.userDisplayName,
+            issuedByUserId: ban.issuedByUserId ?? null,
+            issuedByUserDisplayName: ban.issuedByUserDisplayName ?? null,
             reason: ban.reason,
             createdAt: ban.createdAt.toISOString(),
             updatedAt: ban.updatedAt?.toISOString() || null,
@@ -314,7 +502,7 @@ export class UserModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while fetching user bans:", error);
+      Logger.error("Database error while fetching user bans:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to fetch user bans", 500);
     }
   }
@@ -380,7 +568,7 @@ export class UserModerationService {
         throw error;
       }
 
-      console.error("Database error while checking user existence:", error);
+      Logger.error("Database error while checking user existence:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to verify user existence",

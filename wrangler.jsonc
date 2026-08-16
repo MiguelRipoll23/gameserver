@@ -1,0 +1,99 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "gameserver",
+	"main": "src/main.ts",
+	"compatibility_date": "2026-08-07",
+	"compatibility_flags": ["nodejs_compat"],
+	"upload_source_maps": true,
+	"keep_vars": true,
+
+	"assets": {
+		"directory": "./static"
+	},
+
+	"triggers": {
+		"crons": ["0 0 * * *"]
+	},
+
+	"kv_namespaces": [
+		{
+			"binding": "GAMESERVER_KV",
+			"id": "0be91fae94a8424f85d489a3b1242f5b"
+		}
+	],
+
+	"observability": {
+		"enabled": true
+	},
+
+	"exports": {
+		"WebSocketDurableObject": {
+			"type": "durable-object",
+			"storage": "sqlite"
+		}
+	},
+
+	"durable_objects": {
+		"bindings": [
+			{
+				"class_name": "WebSocketDurableObject",
+				"name": "WEBSOCKET_DURABLE_OBJECT"
+			}
+		]
+	},
+
+	"hyperdrive": [
+		{
+			"binding": "HYPERDRIVE",
+			"id": "2667e278a39346acb33074be05cba835"
+		}
+	],
+
+	"env": {
+		"staging": {
+			"durable_objects": {
+				"bindings": [
+					{
+						"class_name": "WebSocketDurableObject",
+						"name": "WEBSOCKET_DURABLE_OBJECT"
+					}
+				]
+			},
+			"kv_namespaces": [
+				{
+					"binding": "GAMESERVER_KV",
+					"id": "35aaedeba2604e6da7862014efcca636"
+				}
+			],
+			"hyperdrive": [
+				{
+					"binding": "HYPERDRIVE",
+					"id": "d09e9b94aa9c49339d15d696bafd14f7"
+				}
+			]
+		},
+		"production": {
+			"name": "gameserver",
+			"durable_objects": {
+				"bindings": [
+					{
+						"class_name": "WebSocketDurableObject",
+						"name": "WEBSOCKET_DURABLE_OBJECT"
+					}
+				]
+			},
+			"kv_namespaces": [
+				{
+					"binding": "GAMESERVER_KV",
+					"id": "8c1d5c1b984f4cdf98ec8be7c2a123b1"
+				}
+			],
+			"hyperdrive": [
+				{
+					"binding": "HYPERDRIVE",
+					"id": "d82b1240ee88426890b56aa284666c08"
+				}
+			]
+		}
+	}
+}

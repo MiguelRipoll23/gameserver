@@ -1,19 +1,22 @@
 import { inject, injectable } from "@needle-di/core";
-import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
+import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { UserModerationService } from "../../services/user-moderation-service.ts";
 import {
   BanUserRequestSchema,
   GetUserBansQuerySchema,
   GetUserBansResponseSchema,
-  GetUserReportsQuerySchema,
-  GetUserReportsResponseSchema,
+  GetUserReportsAutomaticQuerySchema,
+  GetUserReportsAutomaticResponseSchema,
+  GetUserReportsManualQuerySchema,
+  GetUserReportsManualResponseSchema,
   UnbanUserRequestSchema,
 } from "../../schemas/user-moderation-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
+import { HonoVariables } from "../../../../../core/types/hono-variables-type.ts";
 
 @injectable()
 export class ManagementUserModerationRouter {
-  private app: OpenAPIHono;
+  private app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(
     private userModerationService = inject(UserModerationService),
@@ -22,12 +25,13 @@ export class ManagementUserModerationRouter {
     this.setRoutes();
   }
 
-  public getRouter(): OpenAPIHono {
+  public getRouter(): OpenAPIHono<{ Variables: HonoVariables }> {
     return this.app;
   }
 
   private setRoutes(): void {
     this.registerGetUserReportsRoute();
+    this.registerGetUserAutomaticReportsRoute();
     this.registerGetUserBansRoute();
     this.registerBanUserRoute();
     this.registerUnbanUserRoute();
@@ -37,26 +41,20 @@ export class ManagementUserModerationRouter {
     this.app.openapi(
       createRoute({
         method: "get",
-        path: "/reports/:userId",
+        path: "/reports",
         summary: "Get user reports",
         description:
-          "Retrieves all reports for a specific user with pagination",
+          "Retrieves manual reports with pagination. Optionally filters by user",
         tags: ["User reports"],
         request: {
-          params: z.object({
-            userId: z
-              .string()
-              .length(36)
-              .describe("The user ID to get reports for"),
-          }),
-          query: GetUserReportsQuerySchema,
+          query: GetUserReportsManualQuerySchema,
         },
         responses: {
           200: {
             description: "Responds with user reports data",
             content: {
               "application/json": {
-                schema: GetUserReportsResponseSchema,
+                schema: GetUserReportsManualResponseSchema,
               },
             },
           },
@@ -67,14 +65,49 @@ export class ManagementUserModerationRouter {
         },
       }),
       async (c) => {
-        const userId = c.req.param("userId");
-        const { cursor, limit } = c.req.valid("query");
+        const query = c.req.valid("query");
 
-        const response = await this.userModerationService.getUserReports({
-          userId,
-          cursor,
-          limit,
-        });
+        const response = await this.userModerationService.getUserManualReports(
+          query,
+        );
+
+        return c.json(response, 200);
+      },
+    );
+  }
+
+  private registerGetUserAutomaticReportsRoute(): void {
+    this.app.openapi(
+      createRoute({
+        method: "get",
+        path: "/reports/automatic",
+        summary: "Get automatic anti-cheat reports",
+        description:
+          "Retrieves automatic anti-cheat reports with pagination. Optionally filters by user",
+        tags: ["User reports"],
+        request: {
+          query: GetUserReportsAutomaticQuerySchema,
+        },
+        responses: {
+          200: {
+            description: "Responds with automatic anti-cheat reports data",
+            content: {
+              "application/json": {
+                schema: GetUserReportsAutomaticResponseSchema,
+              },
+            },
+          },
+          ...ServerResponse.BadRequest,
+          ...ServerResponse.Unauthorized,
+          ...ServerResponse.Forbidden,
+          ...ServerResponse.NotFound,
+        },
+      }),
+      async (c) => {
+        const query = c.req.valid("query");
+
+        const response =
+          await this.userModerationService.getUserAutomaticReports(query);
 
         return c.json(response, 200);
       },
@@ -85,17 +118,12 @@ export class ManagementUserModerationRouter {
     this.app.openapi(
       createRoute({
         method: "get",
-        path: "/bans/:userId",
+        path: "/bans",
         summary: "Get user bans",
-        description: "Retrieves all bans for a specific user with pagination",
+        description:
+          "Retrieves bans with pagination. Optionally filters by user",
         tags: ["User bans"],
         request: {
-          params: z.object({
-            userId: z
-              .string()
-              .length(36)
-              .describe("The user ID to get bans for"),
-          }),
           query: GetUserBansQuerySchema,
         },
         responses: {
@@ -114,14 +142,9 @@ export class ManagementUserModerationRouter {
         },
       }),
       async (c) => {
-        const userId = c.req.param("userId");
-        const { cursor, limit } = c.req.valid("query");
+        const query = c.req.valid("query");
 
-        const response = await this.userModerationService.getUserBans({
-          userId,
-          cursor,
-          limit,
-        });
+        const response = await this.userModerationService.getUserBans(query);
 
         return c.json(response, 200);
       },
@@ -155,7 +178,8 @@ export class ManagementUserModerationRouter {
       }),
       async (c) => {
         const validated = c.req.valid("json");
-        await this.userModerationService.banUser(validated);
+        const issuerUserId = c.get("userId");
+        await this.userModerationService.banUser(validated, issuerUserId);
         return c.body(null, 204);
       },
     );

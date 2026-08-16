@@ -1,5 +1,17 @@
 import type { Context } from "hono";
+import type { ConnInfo } from "hono/conninfo";
 import { ServerError } from "../models/server-error.ts";
+
+/**
+ * Resolves the client connection info for a request.
+ *
+ * On Cloudflare Workers the client IP is provided by the `CF-Connecting-IP`
+ * header in the Cloudflare Workers runtime.
+ */
+export function getConnInfo(_c: Context): ConnInfo {
+  const address = _c.req.header("CF-Connecting-IP") ?? "unknown";
+  return { remote: { address } } as ConnInfo;
+}
 
 /**
  * Extracts and validates the origin from the request header

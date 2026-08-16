@@ -1,8 +1,8 @@
 # Game server
 
-A secure game server built for multiplayer games.
+A game server for multiplayer peer-to-peer games.
 
-[![Deploy on Deno](https://deno.com/button)](https://console.deno.com/new?clone=https://github.com/MiguelRipoll23/gameserver&predeploy=deno%20task%20predeploy)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MiguelRipoll23/gameserver)
 
 Used by these games:
 
@@ -19,21 +19,37 @@ Used by these games:
 - Chat messages integrity using digital signatures
 - Secure player score management
 - Discord bot for management and moderation
+- Anti-cheat rules with automatic violation reporting and temporary bans
 
 ## Configuration
 
-Follow the steps below after using the `Deploy` button above this section:
+The application runs on Cloudflare Workers, with `wrangler.jsonc` as the source of truth for the Worker's bindings.
 
-1. On the Deno Deploy project page, go to Settings → Environment Variables.
-2. Copy `.env.example` to `.env` (Deno Deploy requires the `.env` extension when
-   importing).
-3. Drag and drop the `.env` file onto the Environment Variables panel, or click
-   Import and select the file.
+1. Configure the Worker variables and secrets listed in `.env.example` via the Cloudflare dashboard or `wrangler secret put`.
+2. Create the resources declared in `wrangler.jsonc` and fill in their IDs for each environment (top-level, `staging`, and `production`):
+   - `GAMESERVER_KV` — one KV namespace per environment.
+   - `HYPERDRIVE` — one Hyperdrive configuration per environment (same binding name, different `id`).
+   - `WEBSOCKET_DURABLE_OBJECT` — declared via `durable_objects`; no ID required.
+3. Connect the Worker to the repository in the Cloudflare dashboard (Settings → Builds), set the build command to `pnpm run predeploy`, and keep the deploy command as `npx wrangler deploy`. Commit and push — Workers Builds runs predeploy (migrations + Discord registration) and deploys on every push.
 
 ### Database configuration
 
-Provision a database and create the `authenticated_user` role so the migrations can be automatically applied when
-being deployed.
+Provision a PostgreSQL database and create the `authenticated_user` role before running migrations. The deployed Worker connects through Cloudflare Hyperdrive, so the Worker itself never needs a `DATABASE_URL` secret — only the migration/CI commands (which run outside the Worker) connect to PostgreSQL directly.
+
+#### Local configuration
+
+Copy `.env.example` to `.env` and set:
+
+- `DATABASE_URL` — used by the local migration commands (`pnpm run db:migrate` and `pnpm run predeploy`).
+- `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` — used by `pnpm run dev` to emulate the `HYPERDRIVE` binding.
+
+The `dev` script loads `.env` into the process environment, which is how Wrangler reads the local Hyperdrive connection string. The same variable works whether you run plain `pnpm run dev` or `--env staging`/`--env production`, because the binding name stays `HYPERDRIVE`.
+
+#### CI/CD (staging and production)
+
+Deployment runs through Cloudflare Workers Builds, which authenticates through the dashboard connection — no `CLOUDFLARE_API_TOKEN` is needed. Set the build command to `pnpm run predeploy` to apply migrations and register the Discord slash commands before each deploy, and keep the deploy command as `npx wrangler deploy`. For separate `staging` and `production` Workers, connect each environment's Worker and add `--env staging`/`--env production` to the deploy command.
+
+Add `DATABASE_URL`, `DISCORD_APPLICATION_ID`, and `DISCORD_BOT_TOKEN` as build variables/secrets in the Workers Builds settings (Settings → Build). The build command runs on every push to the production branch (and on preview branches if enabled), so migrations run before each deploy.
 
 ## Contributing
 

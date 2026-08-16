@@ -16,6 +16,9 @@ export const userBansTable = pgTable.withRLS(
     userId: uuid("user_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
+    issuedBy: uuid("issued_by_user_id").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
     reason: varchar("reason", { length: 500 }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()

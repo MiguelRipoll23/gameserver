@@ -29,6 +29,18 @@ export const DISCORD_SLASH_COMMANDS: DiscordSlashCommandPayload[] = [
     ],
   },
   {
+    name: "unban-player",
+    description: "Remove a player's ban",
+    options: [
+      {
+        name: "player-name",
+        description: "The player display name to unban",
+        type: STRING,
+        required: true,
+      },
+    ],
+  },
+  {
     name: "ban-player",
     description: "Temporarily or permanently ban a player",
     options: [

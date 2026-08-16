@@ -1,5 +1,8 @@
+import { env } from "cloudflare:workers";
+
 export class WebAuthnUtils {
-  private static readonly DEFAULT_RP_NAME = "Game server API";
+  private static readonly DEFAULT_RP_NAME = "Game server";
+  private static readonly DEFAULT_RP_ID = "localhost";
   private static readonly DEFAULT_ALLOWED_ORIGINS = "http://localhost:8000";
   private static cachedPatterns: string[] | null = null;
   private static cachedAllowedOrigins: string | null = null;
@@ -8,7 +11,37 @@ export class WebAuthnUtils {
    * Gets the relying party name from environment variable or uses default
    */
   public static getRelyingPartyName(): string {
-    return Deno.env.get("RP_NAME") ?? WebAuthnUtils.DEFAULT_RP_NAME;
+    return env.RP_NAME ?? WebAuthnUtils.DEFAULT_RP_NAME;
+  }
+
+  /**
+   * Gets the relying party ID from environment variable or uses default
+   * @returns The relying party ID (e.g., "example.com")
+   */
+  public static getRelyingPartyID(): string {
+    return env.RP_ID ?? WebAuthnUtils.DEFAULT_RP_ID;
+  }
+
+  /**
+   * Gets the origins to serve on the WebAuthn Relying Party manifest
+   * (`/.well-known/webauthn`). Starts with the concrete origins configured in
+   * `RP_ALLOWED_ORIGINS` and, when the requesting origin matches an allowed
+   * pattern (including wildcards), appends the complete requesting origin so
+   * wildcard patterns are not discarded.
+   * @param requestOrigin - The origin of the request (e.g., "https://example.com")
+   * @returns Array of concrete origins (e.g., ["https://example.com", "https://sub.example.com"])
+   */
+  public static getManifestOrigins(requestOrigin: string): string[] {
+    const origins = WebAuthnUtils.getAllowedOrigins();
+
+    if (
+      WebAuthnUtils.isOriginAllowed(requestOrigin) &&
+      !origins.includes(requestOrigin)
+    ) {
+      origins.push(requestOrigin);
+    }
+
+    return origins;
   }
 
   /**
@@ -35,11 +68,36 @@ export class WebAuthnUtils {
   }
 
   /**
+   * Gets the concrete allowed origins for the WebAuthn Relying Party manifest
+   * (`/.well-known/webauthn`). Only fully-qualified origins are included:
+   * wildcard patterns and malformed values are excluded because the manifest
+   * only accepts valid web origins.
+   * @returns Array of concrete origins (e.g., "https://example.com")
+   */
+  public static getAllowedOrigins(): string[] {
+    return WebAuthnUtils.getAllowedOriginPatterns().filter((pattern) => {
+      if (pattern.includes("*")) {
+        return false;
+      }
+
+      try {
+        const url = new URL(pattern);
+        return (
+          (url.protocol === "http:" || url.protocol === "https:") &&
+          url.hostname.length > 0
+        );
+      } catch {
+        return false;
+      }
+    });
+  }
+
+  /**
    * Gets and caches the allowed origin patterns from environment variable
    * @returns Array of origin patterns
    */
   private static getAllowedOriginPatterns(): string[] {
-    const allowedOrigins = Deno.env.get("RP_ALLOWED_ORIGINS") ??
+    const allowedOrigins = env.RP_ALLOWED_ORIGINS ??
       WebAuthnUtils.DEFAULT_ALLOWED_ORIGINS;
 
     // Return cached patterns if the env var hasn't changed
@@ -57,20 +115,6 @@ export class WebAuthnUtils {
       .map((p) => p.trim())
       .filter((p) => p.length > 0);
     return WebAuthnUtils.cachedPatterns;
-  }
-
-  /**
-   * Extracts the relying party ID (hostname) from the given origin
-   * @param origin - The origin to extract from (e.g., "https://example.com:8080")
-   * @returns The hostname (e.g., "example.com")
-   */
-  public static getRelyingPartyIDFromOrigin(origin: string): string {
-    try {
-      const url = new URL(origin);
-      return url.hostname;
-    } catch {
-      throw new Error("Invalid origin format");
-    }
   }
 
   /**

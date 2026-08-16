@@ -1,7 +1,8 @@
 import { inject, injectable } from "@needle-di/core";
-import { DatabaseService } from "../../../../core/services/database-service.ts";
-import { and, eq } from "drizzle-orm";
+import { and, eq, lt } from "drizzle-orm";
 import { authenticationChallengesTable } from "../../../../db/schema.ts";
+import { DatabaseService } from "../../../../core/services/database-service.ts";
+import { sql } from "drizzle-orm";
 
 @injectable()
 export class AuthenticationChallengesService {
@@ -18,7 +19,7 @@ export class AuthenticationChallengesService {
       .values({
         transactionId,
         type,
-        data: data as Record<string, unknown>,
+        data,
       });
   }
 
@@ -43,5 +44,21 @@ export class AuthenticationChallengesService {
     if (rows.length === 0) return null;
 
     return { data: rows[0].data as T, createdAt: rows[0].createdAt };
+  }
+
+  /** Removes challenges older than the one-hour lifetime used by the old cron. */
+  public async cleanupExpired(): Promise<number> {
+    const deleted = await this.databaseService
+      .get()
+      .delete(authenticationChallengesTable)
+      .where(
+        lt(
+          authenticationChallengesTable.createdAt,
+          sql`now() - interval '1 hour'`,
+        ),
+      )
+      .returning({ id: authenticationChallengesTable.id });
+
+    return deleted.length;
   }
 }

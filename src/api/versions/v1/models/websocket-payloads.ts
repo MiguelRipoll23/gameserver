@@ -53,6 +53,13 @@ export function buildNotificationPayload(
     .toArrayBuffer();
 }
 
+export function buildAntiCheatPayload(rulesBinary: ArrayBuffer): ArrayBuffer {
+  return BinaryWriter.build()
+    .unsignedInt8(WebSocketType.AntiCheat)
+    .arrayBuffer(rulesBinary)
+    .toArrayBuffer();
+}
+
 export default {
   buildNotificationPayload,
   buildAuthenticationResponsePayload,

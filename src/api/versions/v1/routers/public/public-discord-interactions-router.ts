@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
+import { Logger } from "../../../../../core/utils/logger.ts";
 import { inject, injectable } from "@needle-di/core";
 import { DiscordCommandService } from "../../services/discord-command-service.ts";
 import { DiscordSignatureVerificationMiddleware } from "../../../../middlewares/discord-signature-verification-middleware.ts";
@@ -56,6 +57,7 @@ export class PublicDiscordInteractionsRouter {
         description:
           "Verifies and processes an incoming Discord HTTP interaction",
         tags: ["Discord"],
+        security: [],
         request: {
           body: {
             content: {
@@ -83,8 +85,27 @@ export class PublicDiscordInteractionsRouter {
         const payload = c.get(
           "discordInteraction",
         ) as DiscordInteractionPayload;
+        const commandName = payload.data?.name ?? "unknown";
+
+        Logger.info(
+          "Discord interaction received:",
+          JSON.stringify({
+            interactionId: payload.id,
+            type: payload.type,
+            command: commandName,
+            guildId: payload.guildId ?? null,
+          }),
+        );
 
         if (payload.type === DiscordInteractionType.Ping) {
+          Logger.info(
+            "Discord interaction completed:",
+            JSON.stringify({
+              interactionId: payload.id,
+              command: "ping",
+              outcome: "pong",
+            }),
+          );
           return c.json(
             {
               type: DiscordInteractionResponseType.Pong,
@@ -102,6 +123,14 @@ export class PublicDiscordInteractionsRouter {
         }
 
         const response = await this.commandService.handle(payload);
+        Logger.info(
+          "Discord interaction completed:",
+          JSON.stringify({
+            interactionId: payload.id,
+            command: commandName,
+            outcome: "response",
+          }),
+        );
         return c.json(response, 200);
       },
     );

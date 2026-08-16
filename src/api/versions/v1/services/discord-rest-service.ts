@@ -1,5 +1,6 @@
 import { injectable } from "@needle-di/core";
 import { ENV_DISCORD_BOT_TOKEN } from "../constants/environment-constants.ts";
+import { env } from "cloudflare:workers";
 
 const DISCORD_API_BASE = "https://discord.com/api/v10";
 const ROLE_CACHE_TTL_MS = 60_000;
@@ -18,7 +19,7 @@ export class DiscordRestService {
   >();
 
   constructor() {
-    this.token = Deno.env.get(ENV_DISCORD_BOT_TOKEN) ?? "";
+    this.token = env[ENV_DISCORD_BOT_TOKEN] ?? "";
   }
 
   public async hasAllowedRole(

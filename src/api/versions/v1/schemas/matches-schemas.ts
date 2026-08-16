@@ -72,3 +72,61 @@ export const FindMatchesResponseSchema = PaginatedResponseSchema(
 );
 
 export type FindMatchesResponse = z.infer<typeof FindMatchesResponseSchema>;
+
+
+export const MatchResponseSchema = z.object({
+  id: z
+    .number()
+    .int()
+    .describe("The match ID")
+    .openapi({ example: 1 }),
+  hostUserId: z
+    .string()
+    .uuid()
+    .describe("The ID of the user hosting the match")
+    .openapi({ example: "550e8400-e29b-41d4-a716-446655440000" }),
+  hostUserDisplayName: z
+    .string()
+    .describe("Display name of the user hosting the match")
+    .openapi({ example: "Player1" }),
+  clientVersion: z
+    .string()
+    .describe("Version of the game client")
+    .openapi({ example: "0.0.1-alpha.1" }),
+  totalSlots: z
+    .number()
+    .int()
+    .min(1)
+    .describe("Total number of slots available in the match")
+    .openapi({ example: 4 }),
+  availableSlots: z
+    .number()
+    .int()
+    .describe("Number of slots still available in the match")
+    .openapi({ example: 2 }),
+  pingMedianMilliseconds: z
+    .number()
+    .int()
+    .describe("Median ping in milliseconds across all players")
+    .openapi({ example: 50 }),
+  attributes: z
+    .record(z.string(), z.unknown())
+    .describe("Key-value attributes describing the match")
+    .openapi({ example: { mode: "battle" } }),
+  createdAt: z
+    .string()
+    .describe("The match created timestamp")
+    .openapi({ example: "2026-02-23T19:41:36.918Z" }),
+  updatedAt: z
+    .string()
+    .describe("The match updated timestamp")
+    .openapi({ example: "2026-02-23T19:41:36.918Z" }),
+});
+
+export type MatchResponse = z.infer<typeof MatchResponseSchema>;
+
+export const GetMatchesResponseSchema = PaginatedResponseSchema(
+  MatchResponseSchema,
+);
+
+export type GetMatchesResponse = z.infer<typeof GetMatchesResponseSchema>;

@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { and, asc, eq, gt, like } from "drizzle-orm";
@@ -14,15 +15,13 @@ import {
   GetBlockedWordsResponse,
   UpdateWordRequest,
 } from "../schemas/text-moderation-schemas.ts";
-import { EventsService } from "./events-service.ts";
-import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
-import { EventDispatchMode } from "../constants/event-constants.ts";
+import { env } from "cloudflare:workers";
+import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../constants/durable-object-constants.ts";
 
 @injectable()
 export class TextModerationService {
   constructor(
     private databaseService = inject(DatabaseService),
-    private eventsService = inject(EventsService),
   ) {}
 
   public async blockWord(body: BlockWordRequest): Promise<void> {
@@ -48,7 +47,7 @@ export class TextModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while blocking word:", error);
+      Logger.error("Database error while blocking word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to block word", 500);
     }
 
@@ -110,7 +109,7 @@ export class TextModerationService {
         hasMore,
       };
     } catch (error) {
-      console.error("Database error while fetching blocked words:", error);
+      Logger.error("Database error while fetching blocked words:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch blocked words",
@@ -138,44 +137,68 @@ export class TextModerationService {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while unblocking word:", error);
+      Logger.error("Database error while unblocking word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to unblock word", 500);
     }
 
     this.dispatchRefreshCacheEvent();
   }
 
-  public async updateWord(body: UpdateWordRequest): Promise<void> {
-    const { word, newWord, notes } = body;
-    const normalizedCurrentWord = this.normalizeWord(word);
-    const normalizedNewWord = this.normalizeWord(newWord);
+  public async updateWord(
+    wordId: number,
+    body: UpdateWordRequest,
+  ): Promise<void> {
+    const { word, notes } = body;
     const db = this.databaseService.get();
 
     try {
       await db.transaction(async (tx) => {
-        // Check if the current word exists and is blocked
-        await this.checkWordIsBlocked(tx, normalizedCurrentWord, word);
+        // Check the blocked word exists by id
+        const existing = await tx
+          .select()
+          .from(blockedWordsTable)
+          .where(eq(blockedWordsTable.id, wordId))
+          .limit(1);
 
-        // If the new word is different from the current word, check if it already exists
-        if (normalizedCurrentWord !== normalizedNewWord) {
-          await this.checkWordNotBlocked(tx, normalizedNewWord, newWord);
+        if (existing.length === 0) {
+          throw new ServerError(
+            "WORD_NOT_FOUND",
+            `Blocked word with id ${wordId} does not exist`,
+            404,
+          );
         }
 
-        // Update the blocked word
+        const updateData: Partial<BlockedWordInsertEntity> = {
+          updatedAt: new Date(),
+        };
+
+        // Update the word text when provided, ensuring the new value is not
+        // already blocked under a different entry
+        if (word !== undefined) {
+          const normalizedNewWord = this.normalizeWord(word);
+
+          if (normalizedNewWord !== existing[0].word) {
+            await this.checkWordNotBlocked(tx, normalizedNewWord, word);
+          }
+
+          updateData.word = normalizedNewWord;
+        }
+
+        // Omit keeps the current notes, null clears them
+        if (notes !== undefined) {
+          updateData.notes = notes;
+        }
+
         await tx
           .update(blockedWordsTable)
-          .set({
-            word: normalizedNewWord,
-            notes,
-            updatedAt: new Date(),
-          })
-          .where(eq(blockedWordsTable.word, normalizedCurrentWord));
+          .set(updateData)
+          .where(eq(blockedWordsTable.id, wordId));
       });
     } catch (error) {
       if (error instanceof ServerError) {
         throw error;
       }
-      console.error("Database error while updating word:", error);
+      Logger.error("Database error while updating word:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to update word", 500);
     }
 
@@ -188,7 +211,7 @@ export class TextModerationService {
     try {
       return await db.select().from(blockedWordsTable);
     } catch (error) {
-      console.error("Database error while fetching blocked words:", error);
+      Logger.error("Database error while fetching blocked words:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch blocked words",
@@ -242,10 +265,6 @@ export class TextModerationService {
   }
 
   private dispatchRefreshCacheEvent(): void {
-    this.eventsService.dispatch(
-      BroadcastCommandType.RefreshBlockedWordsCache,
-      null,
-      EventDispatchMode.LocalAndBroadcast,
-    );
+    void env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME).refreshBlockedWords();
   }
 }

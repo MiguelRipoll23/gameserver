@@ -13,6 +13,12 @@ export class ServerResponse {
     },
   };
 
+  public static Created = {
+    201: {
+      description: "Responds with created",
+    },
+  };
+
   public static NoContent = {
     204: {
       description: "Responds with no content",

@@ -53,9 +53,9 @@ export class ManagementNotificationRouter {
           ...ServerResponse.Forbidden,
         },
       }),
-      (c) => {
+      async (c) => {
         const { channelName, text } = c.req.valid("json");
-        this.notificationService.notify(
+        await this.notificationService.notify(
           NotificationChannelNameToType[channelName],
           text,
         );
@@ -91,9 +91,9 @@ export class ManagementNotificationRouter {
           ...ServerResponse.NotFound,
         },
       }),
-      (c) => {
+      async (c) => {
         const { channelName, userId, text } = c.req.valid("json");
-        this.notificationService.notifyUser(
+        await this.notificationService.notifyUser(
           NotificationChannelNameToType[channelName],
           userId,
           text,

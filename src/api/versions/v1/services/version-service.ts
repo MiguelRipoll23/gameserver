@@ -1,24 +1,24 @@
-import { inject, injectable } from "@needle-di/core";
+import { injectable } from "@needle-di/core";
 import { ServerError } from "../models/server-error.ts";
 import {
   GetVersionResponse,
   GetVersionResponseSchema,
   UpdateVersionRequest,
 } from "../schemas/version-schemas.ts";
-import { GameConfigurationService } from "./game-configuration-service.ts";
+import { env } from "cloudflare:workers";
 
-const VERSION_KEY = "version";
+const VERSION_KEY = "game-version";
 
 @injectable()
 export class VersionService {
-  constructor(
-    private gameConfigurationService = inject(GameConfigurationService),
-  ) {}
+  private get versionKv(): KVNamespace {
+    return env.GAMESERVER_KV;
+  }
 
   public async get(): Promise<GetVersionResponse> {
-    const response = await this.gameConfigurationService.get(VERSION_KEY);
+    const raw = await this.versionKv.get(VERSION_KEY);
 
-    if (response === null) {
+    if (raw === null) {
       throw new ServerError(
         "MISSING_VERSION",
         "Missing version information on the server",
@@ -26,13 +26,18 @@ export class VersionService {
       );
     }
 
-    return GetVersionResponseSchema.parse(response);
+    try {
+      return GetVersionResponseSchema.parse(JSON.parse(raw));
+    } catch {
+      throw new ServerError(
+        "INVALID_VERSION",
+        "Invalid version information on the server",
+        500,
+      );
+    }
   }
 
   public async set(data: UpdateVersionRequest): Promise<void> {
-    await this.gameConfigurationService.save(
-      VERSION_KEY,
-      data,
-    );
+    await this.versionKv.put(VERSION_KEY, JSON.stringify(data));
   }
 }

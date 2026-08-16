@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
 import { ServerError } from "../models/server-error.ts";
@@ -27,11 +28,32 @@ export class BotManagementService {
   ) {}
 
   private isDuplicateNameError(error: unknown): boolean {
-    return (
-      typeof error === "object" &&
-      error !== null &&
-      (error as { code?: unknown }).code === "23505"
-    );
+    return this.getDatabaseErrorCode(error) === "23505";
+  }
+
+  private isForeignKeyViolationError(error: unknown): boolean {
+    return this.getDatabaseErrorCode(error) === "23503";
+  }
+
+  /**
+   * Drizzle wraps database errors in a `DrizzleQueryError` whose `cause` holds
+   * the original driver error (with the Postgres error `code`). Walks the cause
+   * chain until a Postgres error code is found.
+   */
+  private getDatabaseErrorCode(error: unknown): string | undefined {
+    let current: unknown = error;
+    let depth = 0;
+
+    while (typeof current === "object" && current !== null && depth < 10) {
+      const candidate = current as { code?: unknown; cause?: unknown };
+      if (typeof candidate.code === "string") {
+        return candidate.code;
+      }
+      current = candidate.cause;
+      depth += 1;
+    }
+
+    return undefined;
   }
 
   public async createBot(
@@ -63,7 +85,14 @@ export class BotManagementService {
           409,
         );
       }
-      console.error("Failed to create bot:", error);
+      if (this.isForeignKeyViolationError(error)) {
+        throw new ServerError(
+          "USER_NOT_FOUND",
+          "Authenticated user does not exist",
+          404,
+        );
+      }
+      Logger.error("Failed to create bot:", error);
       throw new ServerError(
         "BOT_CREATION_FAILED",
         "Failed to create bot",
@@ -118,7 +147,7 @@ export class BotManagementService {
       );
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to update bot:", error);
+      Logger.error("Failed to update bot:", error);
       throw new ServerError(
         "BOT_UPDATE_FAILED",
         "Failed to update bot",
@@ -142,7 +171,7 @@ export class BotManagementService {
       );
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to delete bot:", error);
+      Logger.error("Failed to delete bot:", error);
       throw new ServerError(
         "BOT_DELETION_FAILED",
         "Failed to delete bot",
@@ -200,7 +229,7 @@ export class BotManagementService {
       };
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to fetch bots:", error);
+      Logger.error("Failed to fetch bots:", error);
       throw new ServerError("DATABASE_ERROR", "Failed to fetch bots", 500);
     }
   }
@@ -241,7 +270,7 @@ export class BotManagementService {
       return { token };
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to mint bot token:", error);
+      Logger.error("Failed to mint bot token:", error);
       throw new ServerError(
         "BOT_TOKEN_CREATION_FAILED",
         "Failed to create bot token",
@@ -279,7 +308,7 @@ export class BotManagementService {
       );
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to fetch bot roles:", error);
+      Logger.error("Failed to fetch bot roles:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to fetch bot roles",
@@ -322,7 +351,7 @@ export class BotManagementService {
       );
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Error adding bot role:", error);
+      Logger.error("Error adding bot role:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to add bot role",
@@ -367,7 +396,7 @@ export class BotManagementService {
       );
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Error removing bot role:", error);
+      Logger.error("Error removing bot role:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to remove bot role",

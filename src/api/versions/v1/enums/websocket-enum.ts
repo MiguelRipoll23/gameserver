@@ -5,4 +5,5 @@ export enum WebSocketType {
   ChatMessage = 3,
   PlayerKicked = 4,
   Notification = 5,
+  AntiCheat = 6,
 }

@@ -66,7 +66,7 @@ export class AuthenticatedMatchesRouter {
       createRoute({
         method: "post",
         path: "/find",
-        summary: "Find matches",
+        summary: "Find available matches",
         description: "Obtains available matches to join for the player",
         tags: ["Matches"],
         request: {
@@ -104,7 +104,7 @@ export class AuthenticatedMatchesRouter {
       createRoute({
         method: "delete",
         path: "/owned",
-        summary: "Delete match",
+        summary: "Delete owned match",
         description: "Deletes the match that the player is currently hosting",
         tags: ["Matches"],
         responses: {

@@ -1,17 +1,17 @@
-import { inject, injectable } from "@needle-di/core";
+import { injectable } from "@needle-di/core";
 import { ServerError } from "../models/server-error.ts";
 import { NotificationChannelType } from "../enums/notification-channel-enum.ts";
-import { EventsService } from "./events-service.ts";
-import { BroadcastCommandType } from "../enums/broadcast-command-enum.ts";
-import { EventDispatchMode } from "../constants/event-constants.ts";
+import { env } from "cloudflare:workers";
+import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../constants/durable-object-constants.ts";
 
 @injectable()
 export class NotificationService {
-  constructor(
-    private readonly eventsService = inject(EventsService),
-  ) {}
+  constructor() {}
 
-  public notify(channelId: NotificationChannelType, text: string): void {
+  public async notify(
+    channelId: NotificationChannelType,
+    text: string,
+  ): Promise<void> {
     const message = text.trim();
 
     // Check if the message is empty
@@ -32,21 +32,14 @@ export class NotificationService {
       );
     }
 
-    this.eventsService.dispatch(
-      BroadcastCommandType.Notification,
-      {
-        channelId,
-        message,
-      },
-      EventDispatchMode.LocalAndBroadcast,
-    );
+    await env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME).pushServerNotification(channelId, message);
   }
 
-  public notifyUser(
+  public async notifyUser(
     channelId: NotificationChannelType,
     userId: string,
     text: string,
-  ): void {
+  ): Promise<void> {
     const message = text.trim();
 
     // Check if the message is empty
@@ -72,14 +65,6 @@ export class NotificationService {
       );
     }
 
-    this.eventsService.dispatch(
-      BroadcastCommandType.PlayerNotification,
-      {
-        userId: userId.trim(),
-        channelId,
-        message,
-      },
-      EventDispatchMode.LocalOrBroadcast,
-    );
+    await env.WEBSOCKET_DURABLE_OBJECT.getByName(WEBSOCKET_DURABLE_OBJECT_NAME).pushUserNotification(userId.trim(), channelId, message);
   }
 }

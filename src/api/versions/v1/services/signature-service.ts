@@ -5,10 +5,11 @@ import { inject, injectable } from "@needle-di/core";
 
 @injectable()
 export class SignatureService {
-  private ALGORITHM: EcKeyImportParams & EcKeyGenParams = {
-    name: "ECDSA",
-    namedCurve: "P-256",
-  };
+  private ALGORITHM: SubtleCryptoImportKeyAlgorithm & SubtleCryptoGenerateKeyAlgorithm =
+    {
+      name: "ECDSA",
+      namedCurve: "P-256",
+    };
 
   private privateKey: CryptoKey | null = null;
   private publicKey: CryptoKey | null = null;
@@ -79,19 +80,25 @@ export class SignatureService {
   }
 
   private async generateAndStoreKeys(): Promise<void> {
-    const { privateKey, publicKey } = await crypto.subtle.generateKey(
+    const keyPair = (await crypto.subtle.generateKey(
       this.ALGORITHM,
       true,
       ["sign", "verify"],
-    );
+    )) as CryptoKeyPair;
 
-    this.privateKey = privateKey;
-    this.publicKey = publicKey;
-    this.encodedPublicKey = await this.encodePublicKey(publicKey);
+    this.privateKey = keyPair.privateKey;
+    this.publicKey = keyPair.publicKey;
+    this.encodedPublicKey = await this.encodePublicKey(keyPair.publicKey);
 
     await this.serverSignatureKeysService.save({
-      privateKey: await crypto.subtle.exportKey("jwk", privateKey),
-      publicKey: await crypto.subtle.exportKey("jwk", publicKey),
+      privateKey: (await crypto.subtle.exportKey(
+        "jwk",
+        keyPair.privateKey,
+      )) as JsonWebKey,
+      publicKey: (await crypto.subtle.exportKey(
+        "jwk",
+        keyPair.publicKey,
+      )) as JsonWebKey,
     });
   }
 
@@ -113,7 +120,7 @@ export class SignatureService {
   }
 
   private async encodePublicKey(key: CryptoKey): Promise<string> {
-    const spki = await crypto.subtle.exportKey("spki", key);
+    const spki = (await crypto.subtle.exportKey("spki", key)) as ArrayBuffer;
     return encodeBase64(spki);
   }
 }

@@ -204,3 +204,18 @@ Procfile          text
 
 # Ignore files (like .npmignore or .gitignore)
 *.*ignore         text
+######################################################################
+# Local project standard: LF line endings (see .editorconfig).
+# These eol attributes override core.autocrlf so every checkout is LF and
+# editors/git stop fighting over line endings.
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.mjs   text eol=lf
+*.cjs   text eol=lf
+*.json  text eol=lf
+*.jsonc text eol=lf
+*.md    text eol=lf
+*.toml  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf

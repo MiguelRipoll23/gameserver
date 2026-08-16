@@ -1,4 +1,5 @@
 import { WebSocketType } from "../enums/websocket-enum.ts";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { CommandHandlerMetadata } from "../interfaces/command-handler-metadata-interface.ts";
 
 const commandHandlers: CommandHandlerMetadata[] = [];
@@ -16,7 +17,7 @@ export function CommandHandler(commandId: WebSocketType) {
 
     // Prevent duplicate registrations
     if (hasCommandHandler(target, propertyKey, commandId)) {
-      console.warn(
+      Logger.warn(
         `Duplicate @CommandHandler registration for ${propertyKey} with command ${commandId}`,
       );
       return;

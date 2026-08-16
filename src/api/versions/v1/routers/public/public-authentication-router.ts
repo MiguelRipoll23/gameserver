@@ -1,7 +1,6 @@
 import { inject, injectable } from "@needle-di/core";
 import { createRoute, OpenAPIHono } from "@hono/zod-openapi";
 import { AuthenticationService } from "../../services/authentication-service.ts";
-import { getConnInfo } from "hono/deno";
 import {
   GetAuthenticationOptionsRequestSchema,
   GetAuthenticationOptionsResponseSchema,
@@ -11,7 +10,7 @@ import {
   VerifyAuthenticationResponseSchema,
 } from "../../schemas/authentication-schemas.ts";
 import { ServerResponse } from "../../models/server-response.ts";
-import { extractAndValidateOrigin } from "../../utils/origin-utils.ts";
+import { extractAndValidateOrigin, getConnInfo } from "../../utils/origin-utils.ts";
 
 @injectable()
 export class PublicAuthenticationRouter {
@@ -42,6 +41,7 @@ export class PublicAuthenticationRouter {
         summary: "Get authentication options",
         description: "Authentication options for a new credential",
         tags: ["User authentication"],
+        security: [],
         request: {
           body: {
             content: {
@@ -87,6 +87,7 @@ export class PublicAuthenticationRouter {
         description:
           "Result of an authentication attempt for an existing credential",
         tags: ["User authentication"],
+        security: [],
         request: {
           body: {
             content: {
@@ -135,6 +136,7 @@ export class PublicAuthenticationRouter {
         description:
           "Rotates a refresh token and returns a new access token pair",
         tags: ["User authentication"],
+        security: [],
         request: {
           body: {
             content: {

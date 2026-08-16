@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import {
@@ -40,7 +41,7 @@ export class RegistrationService {
     origin: string,
   ): Promise<object> {
     const { transactionId, displayName } = registrationOptionsRequest;
-    console.log("Registration options for display name", displayName);
+    Logger.log("Registration options for display name", displayName);
 
     // Emojis are reserved for NPC
     this.validateNoEmojiInDisplayName(displayName);
@@ -55,14 +56,14 @@ export class RegistrationService {
       );
     }
 
-    const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+    const rpID = WebAuthnUtils.getRelyingPartyID();
     const userId = crypto.randomUUID();
     const options = await generateRegistrationOptions({
       rpName: WebAuthnUtils.getRelyingPartyName(),
       rpID,
       userName: displayName,
       userDisplayName: displayName,
-      userID: new TextEncoder().encode(userId),
+      userID: new TextEncoder().encode(userId) as Uint8Array<ArrayBuffer>,
       authenticatorSelection: {
         authenticatorAttachment: "platform",
         residentKey: "required",
@@ -176,7 +177,7 @@ export class RegistrationService {
     origin: string,
   ): Promise<VerifiedRegistrationResponse> {
     try {
-      const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+      const rpID = WebAuthnUtils.getRelyingPartyID();
       const verification = await verifyRegistrationResponse({
         response: registrationResponse,
         expectedChallenge: registrationOptions.challenge,
@@ -193,7 +194,7 @@ export class RegistrationService {
 
       return verification;
     } catch (error) {
-      console.error(error);
+      Logger.error(error);
 
       throw new ServerError(
         "REGISTRATION_VERIFICATION_FAILED",
@@ -269,9 +270,9 @@ export class RegistrationService {
         });
       });
 
-      console.log(`Added credential and user for ${user.displayName}`);
+      Logger.log(`Added credential and user for ${user.displayName}`);
     } catch (error) {
-      console.error("Failed to add credential and user:", error);
+      Logger.error("Failed to add credential and user:", error);
       throw new ServerError(
         "CREDENTIAL_USER_ADD_FAILED",
         "Failed to add credential and user",

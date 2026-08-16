@@ -45,25 +45,38 @@ export const UnblockWordParamSchema = z.object({
 
 export type UnblockWordParam = z.infer<typeof UnblockWordParamSchema>;
 
-export const UpdateWordRequestSchema = z.object({
-  word: z
-    .string()
-    .min(1)
-    .max(255)
-    .describe("The current word to update")
-    .openapi({ example: "oldword" }),
-  newWord: z
-    .string()
-    .min(1)
-    .max(255)
-    .describe("The new word to replace it with")
-    .openapi({ example: "newword" }),
-  notes: z
-    .string()
-    .optional()
-    .describe("Optional updated notes about why this word is blocked")
-    .openapi({ example: "Updated reason for blocking" }),
+export const UpdateWordParamsSchema = z.object({
+  wordId: z.coerce
+    .number()
+    .int()
+    .positive()
+    .describe("The ID of the blocked word to update")
+    .openapi({ example: 1 }),
 });
+
+export type UpdateWordParams = z.infer<typeof UpdateWordParamsSchema>;
+
+export const UpdateWordRequestSchema = z
+  .object({
+    word: z
+      .string()
+      .min(1)
+      .max(255)
+      .optional()
+      .describe("The new blocked word text")
+      .openapi({ example: "newword" }),
+    notes: z
+      .string()
+      .nullable()
+      .optional()
+      .describe(
+        "Updated notes about why this word is blocked. Omit to keep, send null to clear",
+      )
+      .openapi({ example: "Updated reason for blocking" }),
+  })
+  .refine((data) => data.word !== undefined || data.notes !== undefined, {
+    message: "At least one of word or notes must be provided",
+  });
 
 export type UpdateWordRequest = z.infer<typeof UpdateWordRequestSchema>;
 

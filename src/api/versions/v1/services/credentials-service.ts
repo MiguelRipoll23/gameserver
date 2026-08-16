@@ -1,4 +1,5 @@
 import { inject, injectable } from "@needle-di/core";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { ServerError } from "../models/server-error.ts";
 import { userCredentialsTable } from "../../../../db/schema.ts";
@@ -31,7 +32,7 @@ export class CredentialsService {
       return credentials[0];
     } catch (error) {
       if (error instanceof ServerError) throw error;
-      console.error("Failed to query credential:", error);
+      Logger.error("Failed to query credential:", error);
       throw new ServerError(
         "DATABASE_ERROR",
         "Failed to retrieve credential",
@@ -65,12 +66,12 @@ export class CredentialsService {
         );
 
       if (result.length === 0 && newCounter > 0) {
-        console.warn(
+        Logger.warn(
           `Credential counter not advanced for ${id}: stored >= ${newCounter}. Possible race condition or credential cloning.`,
         );
       }
     } catch (error) {
-      console.error("Failed to update credential counter:", error);
+      Logger.error("Failed to update credential counter:", error);
       throw new ServerError(
         "CREDENTIAL_COUNTER_UPDATE_FAILED",
         "Failed to update credential counter",

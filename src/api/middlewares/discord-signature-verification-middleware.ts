@@ -6,16 +6,21 @@ import {
   ENV_DISCORD_BOT_TOKEN,
   ENV_DISCORD_PUBLIC_KEY,
 } from "../versions/v1/constants/environment-constants.ts";
+import { env } from "cloudflare:workers";
 import type { DiscordInteractionPayload } from "../versions/v1/types/discord-interaction-payload-type.ts";
 
 const TIMESTAMP_FRESHNESS_MS = 300_000;
 
+/**
+ * Discord signs `timestamp + rawBody` with the application's Ed25519 key.
+ * `verifyKey` keeps the raw body bytes intact while validating that signature.
+ */
 @injectable()
 export class DiscordSignatureVerificationMiddleware {
   public create() {
     return createMiddleware(async (context, next) => {
-      const publicKey = Deno.env.get(ENV_DISCORD_PUBLIC_KEY);
-      const botToken = Deno.env.get(ENV_DISCORD_BOT_TOKEN);
+      const publicKey = env[ENV_DISCORD_PUBLIC_KEY];
+      const botToken = env[ENV_DISCORD_BOT_TOKEN];
       if (!publicKey || !botToken) {
         throw new ServerError(
           "DISCORD_NOT_CONFIGURED",
@@ -35,12 +40,11 @@ export class DiscordSignatureVerificationMiddleware {
       }
 
       const timestampSeconds = Number(timestamp);
-      const parsedTimestamp = Number.isFinite(timestampSeconds)
-        ? timestampSeconds * 1000
-        : Date.parse(timestamp);
       if (
-        !Number.isFinite(parsedTimestamp) ||
-        Math.abs(Date.now() - parsedTimestamp) > TIMESTAMP_FRESHNESS_MS
+        !/^\d+$/.test(timestamp) ||
+        !Number.isSafeInteger(timestampSeconds) ||
+        Math.abs(Date.now() - timestampSeconds * 1000) >
+          TIMESTAMP_FRESHNESS_MS
       ) {
         throw new ServerError(
           "DISCORD_SIGNATURE_STALE",
@@ -49,7 +53,7 @@ export class DiscordSignatureVerificationMiddleware {
         );
       }
 
-      const body = await context.req.text();
+      const body = await context.req.arrayBuffer();
       const isValid = await verifyKey(
         body,
         signature,
@@ -66,7 +70,8 @@ export class DiscordSignatureVerificationMiddleware {
 
       let payload: DiscordInteractionPayload;
       try {
-        const parsed = JSON.parse(body) as DiscordInteractionPayload & {
+        const bodyText = new TextDecoder().decode(body);
+        const parsed = JSON.parse(bodyText) as DiscordInteractionPayload & {
           guild_id?: string;
         };
         if (typeof parsed !== "object" || parsed === null) {

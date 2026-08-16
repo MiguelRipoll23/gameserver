@@ -1,4 +1,5 @@
 import { BinaryReader } from "../../../../core/utils/binary-reader-utils.ts";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { getCommandHandlers } from "../decorators/command-handler.ts";
 import { WebSocketType } from "../enums/websocket-enum.ts";
 import { WebSocketUser } from "../models/websocket-user.ts";
@@ -20,7 +21,7 @@ export class WebSocketDispatcherService {
       const maybe = inst[methodName];
 
       if (typeof maybe !== "function") {
-        console.error(
+        Logger.error(
           `Method "${methodName}" not found or is not a function on the instance.`,
         );
         continue;
@@ -33,22 +34,22 @@ export class WebSocketDispatcherService {
     }
   }
 
-  public dispatchCommand(
+  public async dispatchCommand(
     user: WebSocketUser,
     commandId: WebSocketType,
     binaryReader: BinaryReader,
-  ): void {
+  ): Promise<void> {
     const commandHandler = this.commandHandlers.get(commandId);
 
     if (commandHandler === undefined) {
-      console.warn(`No command handler found for ${WebSocketType[commandId]}`);
+      Logger.warn(`No command handler found for ${WebSocketType[commandId]}`);
       return;
     }
 
     try {
-      commandHandler(user, binaryReader);
+      await commandHandler(user, binaryReader);
     } catch (error) {
-      console.error(
+      Logger.error(
         `Error executing command handler for ${WebSocketType[commandId]}:`,
         error,
       );
@@ -60,6 +61,6 @@ export class WebSocketDispatcherService {
     commandHandler: CommandHandlerFunction,
   ): void {
     this.commandHandlers.set(commandId, commandHandler);
-    console.log(`Command handler bound for ${WebSocketType[commandId]}`);
+    Logger.log(`Command handler bound for ${WebSocketType[commandId]}`);
   }
 }

@@ -1,4 +1,5 @@
 import { encodeBase64 } from "hono/utils/encode";
+import { Logger } from "../../../../core/utils/logger.ts";
 import { DatabaseService } from "../../../../core/services/database-service.ts";
 import { inject, injectable } from "@needle-di/core";
 import { JWTService } from "../../../../core/services/jwt-service.ts";
@@ -69,7 +70,7 @@ export class AuthenticationService {
       );
     }
 
-    const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+    const rpID = WebAuthnUtils.getRelyingPartyID();
     const options = await generateAuthenticationOptions({
       rpID,
       userVerification: "preferred",
@@ -182,7 +183,7 @@ export class AuthenticationService {
       );
     }
 
-    console.info(
+    Logger.info(
       JSON.stringify({
         event: "refresh_token_consumed",
         refreshTokenHash,
@@ -242,9 +243,9 @@ export class AuthenticationService {
         error instanceof ServerError &&
         expectedRejectionCodes.has(error.getCode())
       ) {
-        console.warn(logPayload);
+        Logger.warn(logPayload);
       } else {
-        console.error(logPayload);
+        Logger.error(logPayload);
       }
 
       // NOTE: This flow is fail-closed. The refresh token has already been
@@ -331,7 +332,7 @@ export class AuthenticationService {
     origin: string,
   ): Promise<VerifiedAuthenticationResponse> {
     try {
-      const rpID = WebAuthnUtils.getRelyingPartyIDFromOrigin(origin);
+      const rpID = WebAuthnUtils.getRelyingPartyID();
       const verification = await verifyAuthenticationResponse({
         response: authenticationResponse,
         expectedChallenge: authenticationOptions.challenge,
@@ -352,7 +353,7 @@ export class AuthenticationService {
 
       return verification;
     } catch (error) {
-      console.error(error);
+      Logger.error(error);
       if (error instanceof ServerError) throw error;
       throw new ServerError(
         "AUTHENTICATION_FAILED",
