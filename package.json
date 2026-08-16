@@ -7,10 +7,10 @@
     "dev": "node --env-file-if-exists=.env ./node_modules/wrangler/bin/wrangler.js dev",
     "cf-typegen": "wrangler types",
     "typecheck": "tsc --noEmit",
-    "predeploy": "node --env-file=.env --import tsx scripts/predeploy.ts",
+    "predeploy": "node --env-file-if-exists=.env --import tsx scripts/predeploy.ts",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "node --env-file=.env --import tsx scripts/migrate-database.ts",
-    "openapi:generate": "node --env-file=.env --import tsx --import ./scripts/register-openapi-loader.mjs scripts/generate-openapi-schema.ts"
+    "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/migrate-database.ts",
+    "openapi:generate": "node --env-file-if-exists=.env --import tsx --import ./scripts/register-openapi-loader.mjs scripts/generate-openapi-schema.ts"
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.6.0",

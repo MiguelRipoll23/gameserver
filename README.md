@@ -30,7 +30,7 @@ The application runs on Cloudflare Workers, with `wrangler.jsonc` as the source 
    - `GAMESERVER_KV` — one KV namespace per environment.
    - `HYPERDRIVE` — one Hyperdrive configuration per environment (same binding name, different `id`).
    - `WEBSOCKET_DURABLE_OBJECT` — declared via `durable_objects`; no ID required.
-3. Commit and push. GitHub Actions deploys to `staging` on pull requests and to `production` on pushes to `main`.
+3. Connect the Worker to the repository in the Cloudflare dashboard (Settings → Builds), keep the deploy command as `npx wrangler deploy`, and optionally set the build command to `pnpm run predeploy`. Commit and push — Workers Builds deploys on every push.
 
 ### Database configuration
 
@@ -47,13 +47,14 @@ The `dev` script loads `.env` into the process environment, which is how Wrangle
 
 #### CI/CD (staging and production)
 
-In CI, the deploy workflow runs `wrangler deploy --env <target>` and `pnpm run predeploy` (which applies migrations and registers the Discord slash commands). Configure these secrets on the matching GitHub Actions environment (`staging` and `production`):
+Deployment runs through Cloudflare Workers Builds, which authenticates through the dashboard connection — no `CLOUDFLARE_API_TOKEN` is needed. Set the deploy command to `npx wrangler deploy` and, to apply migrations and register the Discord slash commands before each deploy, set the build command to `pnpm run predeploy`.
 
-- `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` — used by `wrangler deploy`.
+Configure these as build secrets/variables in the Workers Builds settings. They are read from the process environment when no `.env` file exists:
+
 - `DATABASE_URL` — used by `pnpm run predeploy` to run migrations against the target database.
 - `DISCORD_APPLICATION_ID` and `DISCORD_BOT_TOKEN` — used by `pnpm run predeploy` to register the Discord slash commands.
 
-The reusable deploy workflow selects the environment with `environment: ${{ inputs.target }}`, so the job picks up the secrets for the target environment. Staging deploys on pull requests to `main`; production deploys on pushes to `main`.
+For separate `staging` and `production` Workers, connect each environment's Worker and add `--env staging`/`--env production` to the deploy command.
 
 ## Contributing
 
