@@ -43,8 +43,8 @@ importers:
         specifier: ^8.21.0
         version: 8.21.0
       drizzle-kit:
-        specifier: 1.0.0-rc.4
-        version: 1.0.0-rc.4
+        specifier: 1.0.0-rc.5-ab785fc
+        version: 1.0.0-rc.5-ab785fc
       tsx:
         specifier: ^4.23.12
         version: 4.23.12
@@ -1012,8 +1012,8 @@ packages:
     resolution: {integrity: sha512-jjJx8iwAeJcj8oEauV43fue9lNqkf38fy60aSs2+G8D1nJmDxUIrk08o3h0F3wgwuBWWJUZO+X/VgfXsxpCiJA==}
     engines: {node: '>=18.4.0'}
 
-  drizzle-kit@1.0.0-rc.4:
-    resolution: {integrity: sha512-KZCpjRyu+oYHLj/UJogfFlOkWhHVkaEI2EOT1U3NDVXUzLoTyPjqwFxwOrlQxsY6jzRyxcz4EacqboGfhEeYrA==}
+  drizzle-kit@1.0.0-rc.5-ab785fc:
+    resolution: {integrity: sha512-TSg7sK1finOxdo48O9mDfyMY3lhi/aHCVIil5TFhthyq/H/89H/3nwX5V9Gdp7HYMUGFHyWJD5iowSn98l0elw==}
     hasBin: true
 
   drizzle-orm@1.0.0-rc.4:
@@ -2035,7 +2035,7 @@ snapshots:
 
   discord-interactions@4.4.0: {}
 
-  drizzle-kit@1.0.0-rc.4:
+  drizzle-kit@1.0.0-rc.5-ab785fc:
     dependencies:
       '@drizzle-team/brocli': 0.12.0
       '@js-temporal/polyfill': 0.5.1
