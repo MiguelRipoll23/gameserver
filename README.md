@@ -4,6 +4,8 @@ A game server for multiplayer peer-to-peer games.
 
 Deploys to Cloudflare Workers with Cloudflare Hyperdrive for PostgreSQL connectivity.
 
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/MiguelRipoll23/gameserver)
+
 Used by these games:
 
 - [Hood Ball - 2D Rocket League inspired-game](https://hoodball.vercel.app)
@@ -22,13 +24,14 @@ Used by these games:
 
 ## Configuration
 
-The application runs on Cloudflare Workers. Before deploying:
+The application runs on Cloudflare Workers, with `wrangler.jsonc` as the source of truth for the Worker's bindings.
 
-1. Install the latest Node.js and run `pnpm install`.
-2. Authenticate Wrangler with `npx wrangler login`, or provide `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-3. Configure the required Worker secrets with Wrangler, including `JWT_SECRET`, `RP_ALLOWED_ORIGINS`, and the Discord/Cloudflare Calls secrets when those features are enabled.
-4. Configure the `HYPERDRIVE` binding in `wrangler.jsonc` — one binding name whose `id` differs per environment (top-level for local development, plus `staging` and `production` overrides).
-5. Deploy with `pnpm run deploy:staging` or `pnpm run deploy:production`.
+1. Configure the Worker variables and secrets listed in `.env.example` via the Cloudflare dashboard or `wrangler secret put`.
+2. Create the resources declared in `wrangler.jsonc` and fill in their IDs for each environment (top-level, `staging`, and `production`):
+   - `GAMESERVER_KV` — one KV namespace per environment.
+   - `HYPERDRIVE` — one Hyperdrive configuration per environment (same binding name, different `id`).
+   - `WEBSOCKET_DURABLE_OBJECT` — declared via `durable_objects`; no ID required.
+3. Commit and push. GitHub Actions deploys to `staging` on pull requests and to `production` on pushes to `main`.
 
 ### Database configuration
 
