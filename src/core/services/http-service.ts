@@ -18,7 +18,7 @@ export class HTTPService {
   public readonly app: OpenAPIHono<{ Variables: HonoVariables }>;
 
   constructor(
-    private rootRooter = inject(RootRouter),
+    private rootRouter = inject(RootRouter),
     private apiRouter = inject(APIRouter),
     private databaseService = inject(DatabaseService),
   ) {
@@ -89,7 +89,7 @@ export class HTTPService {
   }
 
   private setRoutes(): void {
-    this.app.route("/", this.rootRooter.getRouter());
+    this.app.route("/", this.rootRouter.getRouter());
     this.app.route("/api", this.apiRouter.getRouter());
 
     OpenAPIService.setRoutes(this.app);
