@@ -45,7 +45,6 @@ export class OpenAPIService {
         },
         darkMode: true,
         defaultOpenAllTags: true,
-        tagsSorter: "alpha",
         authentication: {
           preferredSecurityScheme: "bearer",
         },
