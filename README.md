@@ -34,9 +34,26 @@ The application runs on Cloudflare Workers, with `wrangler.jsonc` as the source 
 
 ### Database configuration
 
-The deployed Worker connects through Cloudflare Hyperdrive and does not require a `DATABASE_URL` Worker secret. `DATABASE_URL` is only needed by the local/CI migration commands (`pnpm run db:migrate` and `pnpm run predeploy`) because those commands run outside the Worker and connect directly to PostgreSQL.
+Provision a PostgreSQL database and create the `authenticated_user` role before running migrations. The deployed Worker connects through Cloudflare Hyperdrive, so the Worker itself never needs a `DATABASE_URL` secret — only the migration/CI commands (which run outside the Worker) connect to PostgreSQL directly.
 
-Provision a PostgreSQL database and create the `authenticated_user` role before running migrations. Copy `.env.example` to `.env` and set `DATABASE_URL` (used by local/CI migrations) and `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` (used by `pnpm run dev` to emulate the Hyperdrive binding). The `dev` script loads `.env` into the process environment, which is how Wrangler reads the local Hyperdrive connection string. The same variable works whether you run plain `pnpm run dev` or `--env staging`/`--env production`, because the binding name stays `HYPERDRIVE`.
+#### Local configuration
+
+Copy `.env.example` to `.env` and set:
+
+- `DATABASE_URL` — used by the local migration commands (`pnpm run db:migrate` and `pnpm run predeploy`).
+- `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` — used by `pnpm run dev` to emulate the `HYPERDRIVE` binding.
+
+The `dev` script loads `.env` into the process environment, which is how Wrangler reads the local Hyperdrive connection string. The same variable works whether you run plain `pnpm run dev` or `--env staging`/`--env production`, because the binding name stays `HYPERDRIVE`.
+
+#### CI/CD (staging and production)
+
+In CI, the deploy workflow runs `wrangler deploy --env <target>` and `pnpm run predeploy` (which applies migrations and registers the Discord slash commands). Configure these secrets on the matching GitHub Actions environment (`staging` and `production`):
+
+- `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` — used by `wrangler deploy`.
+- `DATABASE_URL` — used by `pnpm run predeploy` to run migrations against the target database.
+- `DISCORD_APPLICATION_ID` and `DISCORD_BOT_TOKEN` — used by `pnpm run predeploy` to register the Discord slash commands.
+
+The reusable deploy workflow selects the environment with `environment: ${{ inputs.target }}`, so the job picks up the secrets for the target environment. Staging deploys on pull requests to `main`; production deploys on pushes to `main`.
 
 ## Contributing
 

@@ -19,6 +19,8 @@ on:
           - staging
           - production
 
+permissions: {}
+
 jobs:
   deploy-staging:
     if: >-
@@ -28,7 +30,6 @@ jobs:
     uses: ./.github/workflows/deploy-reusable.yml
     with:
       target: staging
-    secrets: inherit
 
   deploy-production:
     if: >-
@@ -37,4 +38,3 @@ jobs:
     uses: ./.github/workflows/deploy-reusable.yml
     with:
       target: production
-    secrets: inherit
