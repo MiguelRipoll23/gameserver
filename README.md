@@ -30,7 +30,7 @@ The application runs on Cloudflare Workers, with `wrangler.jsonc` as the source 
    - `GAMESERVER_KV` — one KV namespace per environment.
    - `HYPERDRIVE` — one Hyperdrive configuration per environment (same binding name, different `id`).
    - `WEBSOCKET_DURABLE_OBJECT` — declared via `durable_objects`; no ID required.
-3. Connect the Worker to the repository in the Cloudflare dashboard (Settings → Builds) and set the deploy command to `npx wrangler deploy` (no build command needed). Commit and push — Workers Builds deploys on every push.
+3. Connect the Worker to the repository in the Cloudflare dashboard (Settings → Builds), set the build command to `pnpm run predeploy`, and keep the deploy command as `npx wrangler deploy`. Commit and push — Workers Builds runs predeploy (migrations + Discord registration) and deploys on every push.
 
 ### Database configuration
 
@@ -47,9 +47,9 @@ The `dev` script loads `.env` into the process environment, which is how Wrangle
 
 #### CI/CD (staging and production)
 
-Deployment runs through Cloudflare Workers Builds, which authenticates through the dashboard connection — no `CLOUDFLARE_API_TOKEN` is needed. Set the deploy command to `npx wrangler deploy` (no build command). For separate `staging` and `production` Workers, connect each environment's Worker and add `--env staging`/`--env production` to the deploy command.
+Deployment runs through Cloudflare Workers Builds, which authenticates through the dashboard connection — no `CLOUDFLARE_API_TOKEN` is needed. Set the build command to `pnpm run predeploy` to apply migrations and register the Discord slash commands before each deploy, and keep the deploy command as `npx wrangler deploy`. For separate `staging` and `production` Workers, connect each environment's Worker and add `--env staging`/`--env production` to the deploy command.
 
-Database migrations and Discord slash-command registration run separately from deploys via the `Predeploy` GitHub Actions workflow (or `pnpm run predeploy` locally). It applies migrations and registers Discord commands automatically on pushes to `main` (production), and can be triggered manually for `staging` or `production`. Add `DATABASE_URL`, `DISCORD_APPLICATION_ID`, and `DISCORD_BOT_TOKEN` secrets to each GitHub Actions environment.
+Add `DATABASE_URL`, `DISCORD_APPLICATION_ID`, and `DISCORD_BOT_TOKEN` as build variables/secrets in the Workers Builds settings (Settings → Build). The build command runs on every push to the production branch (and on preview branches if enabled), so migrations run before each deploy.
 
 ## Contributing
 
