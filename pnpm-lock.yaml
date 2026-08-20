@@ -12,8 +12,8 @@ importers:
         specifier: ^1.6.0
         version: 1.6.0(hono@4.13.2)(zod@4.4.3)
       '@needle-di/core':
-        specifier: ^1.1.3
-        version: 1.1.3
+        specifier: ^1.2.0
+        version: 1.2.0
       '@scalar/hono-api-reference':
         specifier: ^0.11.14
         version: 0.11.14(hono@4.13.2)
@@ -778,8 +778,8 @@ packages:
   '@levischuck/tiny-cbor@0.2.11':
     resolution: {integrity: sha512-llBRm4dT4Z89aRsm6u2oEZ8tfwL/2l6BwpZ7JcyieouniDECM5AqNgr/y08zalEIvW3RSK4upYyybDcmjXqAow==}
 
-  '@needle-di/core@1.1.3':
-    resolution: {integrity: sha512-Jeals0rTBlC9rP0LjgEX3xaD9FCZykCMmiCBxvjaL6UjNRyd8fpp64kFgQi1IYt/6aeNOrjm4ElK9PdIlPKqLQ==}
+  '@needle-di/core@1.2.0':
+    resolution: {integrity: sha512-+OOUh+cUqidnUdvhAdrMncHmCNFXNaASe5N8zxhiARQzXbke4QTtWm2/bcVMdNzrzJgQWrNL0M99hiKEThthwg==}
 
   '@peculiar/asn1-android@2.9.0':
     resolution: {integrity: sha512-ErGsrDbWYhMu/H43L3qohwCwPrjdinn8GGm4Q52evA1u2juJxqkPXv+26vBC35hhMoUkzYIOTLrFzSbXanRU+A==}
@@ -1795,7 +1795,7 @@ snapshots:
 
   '@levischuck/tiny-cbor@0.2.11': {}
 
-  '@needle-di/core@1.1.3': {}
+  '@needle-di/core@1.2.0': {}
 
   '@peculiar/asn1-android@2.9.0':
     dependencies:
