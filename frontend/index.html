@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en" data-theme="kumo" data-mode="light">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Game server console</title>
+    <script>
+      // Kumo themes via data-mode on <html>; follow the OS colour scheme and
+      // update live when the user switches it. Runs before paint to avoid a flash.
+      ;(function () {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)')
+        var root = document.documentElement
+        var apply = function () {
+          root.setAttribute('data-mode', mq.matches ? 'dark' : 'light')
+        }
+        apply()
+        if (mq.addEventListener) mq.addEventListener('change', apply)
+        else if (mq.addListener) mq.addListener(apply)
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

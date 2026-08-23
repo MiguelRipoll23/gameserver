@@ -1,8 +1,14 @@
 version: 2
 updates:
-  # Node.js project dependencies (npm ecosystem, pnpm lockfile auto-detected).
+  # Backend (Cloudflare Workers game server) — pnpm lockfile auto-detected.
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+
+  # Frontend (management console) — npm lockfile.
+  - package-ecosystem: "npm"
+    directory: "/frontend"
     schedule:
       interval: "weekly"
 

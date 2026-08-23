@@ -2,7 +2,10 @@
 
 ## Project Overview
 
-This is a **Cloudflare Workers-based game server** using:
+This is a **monorepo** containing two packages:
+
+### Backend (`backend/`) — Game Server
+Cloudflare Workers-based game server using:
 - **Runtime:** Cloudflare Workers (KV, Durable Objects, Hyperdrive)
 - **Framework:** Hono (with Zod OpenAPI)
 - **Database:** PostgreSQL via `pg` driver, **Drizzle ORM**
@@ -11,30 +14,34 @@ This is a **Cloudflare Workers-based game server** using:
 - **Validation:** Zod schemas (v4)
 - **Deployment:** Cloudflare Workers
 
-## TypeScript & Import Rules
+### Frontend (`frontend/`) — Management Console
+React + TypeScript + Vite management dashboard using:
+- **UI:** Cloudflare Kumo + Tailwind CSS
+- **Routing:** TanStack Router
+- **Data fetching:** TanStack React Query + openapi-fetch
+- **API types:** Generated via `openapi-typescript` from the backend's OpenAPI schema
+- **Linting:** Oxlint
+
+## Workspace
+
+- Package manager: **pnpm** (root `pnpm-workspace.yaml` defines both packages).
+- Install dependencies from root: `pnpm install`.
+- Scripts are run per-package: `cd backend && pnpm run dev` or `pnpm --filter gameserver dev`.
+
+## TypeScript & Import Rules (Backend)
 
 - **Do NOT use dynamic imports for types or interfaces.** Always use static imports at the top of the file.
-- **Correct:**
-  ```ts
-  import { MyType } from "../types/my-type.ts";
-  ```
-- **Incorrect:**
-  ```ts
-  // ❌ Do not use dynamic import for types
-  foo: import("../types/my-type.ts").MyType;
-  ```
 - Use relative imports with `.ts` extensions (e.g., `../../db/schema.ts`).
 - Barrel exports through `schema.ts` for all database tables.
 
-## Environment & Bindings
+## Environment & Bindings (Backend)
 
 - Bindings are read directly via `import { env } from "cloudflare:workers"` — do not add wrapper helpers around `env`.
-- Bindings: `GAMESERVER_KV` (KV), `HYPERDRIVE` (PostgreSQL via Hyperdrive), `WEBSOCKET_DURABLE_OBJECT` (WebSocket Durable Object). KV and Hyperdrive keep one binding name and vary the `id` per environment in `wrangler.jsonc`.
+- Bindings: `GAMESERVER_KV` (KV), `HYPERDRIVE` (PostgreSQL via Hyperdrive), `WEBSOCKET_DURABLE_OBJECT` (WebSocket Durable Object).
 - Local development reads a single gitignored `.env` (copy from `.env.example`): `DATABASE_URL` for migrations, and `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` for `pnpm run dev`.
-- Install dependencies with `pnpm install`.
 - Regenerate `worker-configuration.d.ts` with `pnpm run cf-typegen` after changing `wrangler.jsonc`.
 
-## Database & Drizzle ORM
+## Database & Drizzle ORM (Backend)
 
 - Tables are defined in `src/db/tables/` as individual files, re-exported from `src/db/schema.ts`.
 - Every table file exports two types:
@@ -44,10 +51,10 @@ This is a **Cloudflare Workers-based game server** using:
   ```
 - Use `pgTable` from `drizzle-orm/pg-core`. Column names use `snake_case` in SQL.
 - Foreign keys use `.references()` with `onDelete` cascade where appropriate.
-- For migrations: `pnpm run db:generate` (creates SQL), then `pnpm run db:migrate` (applies via scripts/migrate-database.ts). `DATABASE_URL` is required only by these local/CI migration commands; deployed Workers use the `HYPERDRIVE` binding (one binding name, per-environment `id` in `wrangler.jsonc`).
-- **Row-Level Security (RLS):** Most tables define `pgPolicy` rules using `authenticatedUserRole` and helpers from `src/db/rls.ts` (`isCurrentUser`, `isCurrentCredential`).
+- For migrations: `pnpm run db:generate` (creates SQL), then `pnpm run db:migrate` (applies via scripts/migrate-database.ts).
+- **Row-Level Security (RLS):** Most tables define `pgPolicy` rules using `authenticatedUserRole` and helpers from `src/db/rls.ts`.
 
-## API Structure
+## API Structure (Backend)
 
 - API is versioned under `src/api/versions/v1/`.
 - Routers are split by access level: `public-router.ts`, `authenticated-router.ts`, `moderation-router.ts`, `management-router.ts`.
@@ -55,7 +62,7 @@ This is a **Cloudflare Workers-based game server** using:
 - Schemas use `z.object()` from `@hono/zod-openapi` with `.openapi({ example: ... })` metadata.
 - Use `.describe()` on fields for documentation.
 
-## DI Pattern (@needle-di/core)
+## DI Pattern (Backend)
 
 - Classes are decorated with `@injectable()` and use constructor injection:
   ```ts
@@ -69,7 +76,7 @@ This is a **Cloudflare Workers-based game server** using:
 - All injectable dependencies are declared with `= inject(...)` default values.
 - `compilerOptions.experimentalDecorators: true` is set in `tsconfig.json`.
 
-## Error Handling
+## Error Handling (Backend)
 
 - Use `ServerError` (from `src/api/versions/v1/models/server-error.ts`) for all API errors:
   ```ts
@@ -83,7 +90,7 @@ This is a **Cloudflare Workers-based game server** using:
 - **Files:** `kebab-case.ts` (e.g., `matches-service.ts`, `users-table.ts`)
 - **Classes:** PascalCase (e.g., `MatchesService`, `DatabaseService`)
 - **Exports:** camelCase for table instances (e.g., `usersTable`, `matchesTable`)
-- **Entity types:** PascalCase with `Entity` suffix (e.g., `UserEntity`, `MatchEntity`)
+- **Entity types:** PascalCase with `Entity` suffix (e.g., `UserEntity`)
 - **Insert types:** PascalCase with `InsertEntity` suffix (e.g., `UserInsertEntity`)
-- **Env vars and bindings:** `UPPER_SNAKE_CASE` (e.g., `JWT_SECRET`, `DATABASE_URL`, `HYPERDRIVE`, `GAMESERVER_KV`)
+- **Env vars and bindings:** `UPPER_SNAKE_CASE` (e.g., `JWT_SECRET`, `DATABASE_URL`)
 - **Error codes:** `UPPER_SNAKE_CASE` (e.g., `MATCH_NOT_FOUND`)
