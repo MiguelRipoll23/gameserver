@@ -1,0 +1,114 @@
+/* Kumo component styles must be imported before Tailwind so their @theme tokens win. */
+@source "../node_modules/@cloudflare/kumo/dist/**/*.{js,jsx,ts,tsx}";
+@import "@cloudflare/kumo/styles";
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+/* Match the app's content background so overscroll/rubber-band areas blend in.
+ * The document (html) is the scroll container: keeping `overflow` off body
+ * preserves position:sticky on the docked sidebar, and document-level scrolling
+ * is what Safari iOS needs to collapse its toolbar. */
+html,
+body {
+  background-color: var(--color-kumo-recessed);
+  overscroll-behavior-y: auto;
+}
+
+html {
+  overflow-y: auto;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * On iOS Safari, the sidebar backdrop AND the off-screen sidebar panel are
+ * fixed-position elements that stay in the DOM even when closed. Safari
+ * samples these fixed layers and locks the viewport, permanently disabling
+ * the collapsible toolbar ("minimal UI"). Yank them from the render tree
+ * when closed so Safari can reclaim scroll control.
+ */
+[data-sidebar-backdrop].pointer-events-none {
+  display: none !important;
+}
+
+/* The mobile sidebar panel is position:fixed; inset-y:0 even when closed
+ * (translated off-screen). Remove it from the render tree so Safari
+ * doesn't lock onto the fixed layer. */
+.group\/sidebar-wrapper [data-sidebar="sidebar"].-translate-x-full {
+  display: none !important;
+}
+
+/* Slim scrollbars for dense panels */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-kumo-line, rgba(128, 128, 128, 0.35)) transparent;
+}
+
+/* JSON pretty output styling */
+.json-viewer {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  tab-size: 2;
+  overflow: auto;
+  white-space: pre;
+  word-break: normal;
+}
+
+.json-key {
+  color: var(--color-kumo-strong, inherit);
+}
+
+.json-string {
+  color: var(--color-kumo-success, #18794e);
+}
+
+.json-number {
+  color: var(--color-kumo-info, #1d4ed8);
+}
+
+.json-boolean {
+  color: var(--color-kumo-warning, #b45309);
+}
+
+.json-null {
+  color: var(--color-kumo-inactive, #9ca3af);
+}
+
+/* Monospace token chips */
+.token-chip {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+/* Subtle entrance animation for content panels */
+@keyframes kumo-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: kumo-rise 0.18s ease-out both;
+}
