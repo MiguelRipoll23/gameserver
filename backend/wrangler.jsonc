@@ -50,28 +50,6 @@
 	],
 
 	"env": {
-		"staging": {
-			"durable_objects": {
-				"bindings": [
-					{
-						"class_name": "WebSocketDurableObject",
-						"name": "WEBSOCKET_DURABLE_OBJECT"
-					}
-				]
-			},
-			"kv_namespaces": [
-				{
-					"binding": "GAMESERVER_KV",
-					"id": "35aaedeba2604e6da7862014efcca636"
-				}
-			],
-			"hyperdrive": [
-				{
-					"binding": "HYPERDRIVE",
-					"id": "d09e9b94aa9c49339d15d696bafd14f7"
-				}
-			]
-		},
 		"production": {
 			"name": "gameserver",
 			"durable_objects": {
