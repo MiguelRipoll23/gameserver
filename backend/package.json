@@ -29,7 +29,7 @@
     "drizzle-kit": "1.0.0-rc.5-ab785fc",
     "tsx": "^4.23.12",
     "typescript": "^7.0.2",
-    "wrangler": "^4.123.0"
+    "wrangler": "^4.127.1"
   },
   "allowScripts": {
     "esbuild@0.25.12": true,
