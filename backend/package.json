@@ -21,7 +21,7 @@
     "drizzle-orm": "1.0.0-rc.5-169397b",
     "hono": "^4.13.2",
     "pg": "^8.23.0",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
