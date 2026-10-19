@@ -19,7 +19,7 @@
     "@simplewebauthn/server": "^13.3.2",
     "discord-interactions": "^4.4.0",
     "drizzle-orm": "1.0.0-rc.5-169397b",
-    "hono": "^4.13.2",
+    "hono": "^4.13.5",
     "pg": "^8.23.0",
     "zod": "^4.4.3"
   },
