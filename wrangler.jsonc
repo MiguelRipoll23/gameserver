@@ -7,6 +7,16 @@
 	"upload_source_maps": true,
 	"keep_vars": true,
 
+	// Origins allowed to start a WebAuthn ceremony (see WebAuthnUtils). Browsers
+	// only accept a foreign `rpId` from an origin listed in this Worker's
+	// `/.well-known/webauthn` manifest, so the management console's own origin
+	// has to be here: it relays the passkey flow to this Worker while the
+	// ceremony runs against the console's domain. The Vercel entries are the
+	// game client and the previous console deployment.
+	"vars": {
+		"RP_ALLOWED_ORIGINS": "https://gameserver-console.miguelripoll23.workers.dev,https://gameserver-console.vercel.app,https://hoodball.vercel.app,https://aircombat.vercel.app,http://localhost:8080,http://localhost:5173"
+	},
+
 	"assets": {
 		"directory": "./static"
 	},

@@ -10,6 +10,7 @@ import {
 } from "../api/versions/v1/enums/notification-channel-enum.ts";
 import { WEBSOCKET_DURABLE_OBJECT_NAME } from "../api/versions/v1/constants/durable-object-constants.ts";
 import { ServerError } from "../api/versions/v1/models/server-error.ts";
+import { HTTPService } from "./services/http-service.ts";
 import type { GetVersionResponse } from "../api/versions/v1/schemas/version-schemas.ts";
 import type { GetConfigurationResponse } from "../api/versions/v1/schemas/configuration-schemas.ts";
 
@@ -37,6 +38,16 @@ const UserSchema = z.object({ userId: z.string().uuid() });
 const AntiCheatConfigSchema = z.object({ rules: z.string().min(1) });
 
 const container = new Container();
+
+let httpService: HTTPService | null = null;
+
+function getHTTPService(): HTTPService {
+  if (httpService === null) {
+    httpService = container.get(HTTPService);
+  }
+
+  return httpService;
+}
 
 let services: {
   configuration: ConfigurationService;
@@ -69,11 +80,20 @@ function getServices(): NonNullable<typeof services> {
  * and no shared secret to configure or rotate. The console declares the binding
  * in its `wrangler.jsonc` and mirrors this contract in `GameServerClient`.
  *
+ * `fetch` forwards an HTTP request to this Worker's public API. The console uses
+ * it for the passkey flow, which must run against the game server (passkeys are
+ * scoped to its domain) while the browser only talks to the console's origin.
+ *
  * States that are normal for a fresh deployment (no version or configuration
  * stored yet) are returned instead of thrown, because RPC errors reach the
  * caller without the error code.
  */
 export class ConsoleEntrypoint extends WorkerEntrypoint {
+  /** Forwards a request to this Worker's public API (the default handler). */
+  public async fetch(request: Request): Promise<Response> {
+    return await getHTTPService().fetch(request);
+  }
+
   public async getVersion(): Promise<GetVersionResponse> {
     try {
       return await getServices().version.get();
