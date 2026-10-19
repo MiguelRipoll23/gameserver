@@ -1,4 +1,3 @@
-import { logger } from "hono/logger";
 import { HTTPException } from "hono/http-exception";
 import { bodyLimit } from "hono/body-limit";
 import { OpenAPIHono } from "@hono/zod-openapi";
@@ -10,7 +9,6 @@ import { RootRouter } from "../routers/root-router.ts";
 import { ErrorHandlingService } from "./error-handling-service.ts";
 import { HonoVariables } from "../types/hono-variables-type.ts";
 import { ServerError } from "../../api/versions/v1/models/server-error.ts";
-import { Logger } from "../utils/logger.ts";
 import { DatabaseService } from "./database-service.ts";
 
 @injectable()
@@ -65,10 +63,6 @@ export class HTTPService {
   }
 
   private setMiddlewares(): void {
-    this.app.use(
-      "*",
-      logger((message, ...rest) => Logger.log(message, ...rest)),
-    );
     this.setBodyLimitMiddleware();
   }
 

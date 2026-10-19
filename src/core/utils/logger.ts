@@ -2,13 +2,12 @@
  * Logger - a console abstraction for Cloudflare Workers.
  *
  * `console` formatting can be unreliable in the Workers runtime (e.g. objects
- * printed as `[object Object]` or colored text leaking into structured logs),
- * so every log call is normalized before reaching `console`:
+ * printed as `[object Object]`), so every log call is normalized before
+ * reaching `console`:
  *
- * - ANSI escape codes (colored text) are stripped from strings.
  * - Objects are stringified with `JSON.stringify` (safe for BigInt and
  *   circular references).
- * - `Error` instances are reduced to their (ANSI-free) stack trace.
+ * - `Error` instances are reduced to their stack trace.
  *
  * Note: `console` format specifiers (`%s`, `%d`, `%o`, ...) still apply when the
  * first argument is a string containing them and more arguments follow. Prefer
@@ -51,11 +50,11 @@ export class Logger {
 
   private static format(value: unknown): unknown {
     if (typeof value === "string") {
-      return Logger.stripAnsi(value);
+      return value;
     }
 
     if (value instanceof Error) {
-      return Logger.stripAnsi(value.stack ?? value.message);
+      return value.stack ?? value.message;
     }
 
     if (typeof value === "object" && value !== null) {
@@ -74,14 +73,6 @@ export class Logger {
       return value.toString();
     }
 
-    if (typeof value === "string") {
-      return Logger.stripAnsi(value);
-    }
-
     return value;
-  }
-
-  private static stripAnsi(text: string): string {
-    return text.replace(/\u001b\[[0-9;]*[A-Za-z]/g, "");
   }
 }
