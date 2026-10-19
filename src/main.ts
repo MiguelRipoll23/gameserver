@@ -1,0 +1,42 @@
+import { Container } from "@needle-di/core";
+import { Logger } from "./core/utils/logger.ts";
+import { HTTPService } from "./core/services/http-service.ts";
+import { DatabaseService } from "./core/services/database-service.ts";
+import { AuthenticationChallengesService } from "./api/versions/v1/services/authentication-challenges-service.ts";
+import { logDiscordBotConfiguration } from "./api/versions/v1/utils/discord-bot-config-utils.ts";
+
+// Re-export the Durable Object so it is included in the Worker bundle and the
+// `WEBSOCKET_DURABLE_OBJECT` binding resolves to it.
+export { WebSocketDurableObject } from "./api/versions/v1/durable-objects/websocket-durable-object.ts";
+
+// RPC surface for the management console, reached through a service binding.
+export { ConsoleEntrypoint } from "./core/console-entrypoint.ts";
+
+const container = new Container();
+
+let httpService: HTTPService | null = null;
+
+function getHTTPService(): HTTPService {
+  if (httpService === null) {
+    logDiscordBotConfiguration();
+    httpService = container.get(HTTPService);
+  }
+
+  return httpService;
+}
+
+export default {
+  async fetch(request: Request, _env: Env): Promise<Response> {
+    return getHTTPService().fetch(request);
+  },
+
+  async scheduled(_controller: ScheduledController, _env: Env): Promise<void> {
+    const databaseService = container.get(DatabaseService);
+    const challengesService = container.get(AuthenticationChallengesService);
+
+    await databaseService.withConnection(async () => {
+      const deleted = await challengesService.cleanupExpired();
+      Logger.log(`Cleaned up ${deleted} expired authentication challenges`);
+    });
+  },
+} satisfies ExportedHandler<Env>;

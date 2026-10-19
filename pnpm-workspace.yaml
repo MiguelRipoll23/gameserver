@@ -1,6 +1,5 @@
 packages:
-  - "backend"
-  - "frontend"
+  - "."
 
 allowBuilds:
   esbuild: false
