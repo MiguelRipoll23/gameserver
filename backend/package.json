@@ -16,7 +16,7 @@
     "@hono/zod-openapi": "^1.6.0",
     "@needle-di/core": "^1.1.3",
     "@scalar/hono-api-reference": "^0.11.14",
-    "@simplewebauthn/server": "^13.3.2",
+    "@simplewebauthn/server": "^13.3.3",
     "discord-interactions": "^4.4.0",
     "drizzle-orm": "1.0.0-rc.5-169397b",
     "hono": "^4.13.2",
