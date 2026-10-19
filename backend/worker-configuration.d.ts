@@ -18,30 +18,6 @@ declare namespace Cloudflare {
 		mainModule: typeof import("./src/main");
 		durableNamespaces: "WebSocketDurableObject";
 	}
-	interface StagingEnv {
-		GAMESERVER_KV: KVNamespace;
-		HYPERDRIVE: Hyperdrive;
-		DATABASE_URL: string;
-		JWT_SECRET: string;
-		RP_ALLOWED_ORIGINS: string;
-		DISCORD_PUBLIC_KEY: string;
-		DISCORD_BOT_TOKEN: string;
-		DISCORD_APPLICATION_ID: string;
-		CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: string;
-		WEBSOCKET_DURABLE_OBJECT: DurableObjectNamespace<import("./src/main").WebSocketDurableObject>;
-	}
-	interface ProductionEnv {
-		GAMESERVER_KV: KVNamespace;
-		HYPERDRIVE: Hyperdrive;
-		DATABASE_URL: string;
-		JWT_SECRET: string;
-		RP_ALLOWED_ORIGINS: string;
-		DISCORD_PUBLIC_KEY: string;
-		DISCORD_BOT_TOKEN: string;
-		DISCORD_APPLICATION_ID: string;
-		CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE: string;
-		WEBSOCKET_DURABLE_OBJECT: DurableObjectNamespace<import("./src/main").WebSocketDurableObject>;
-	}
 	interface Env extends __BaseEnv_Env {}
 }
 interface Env extends __BaseEnv_Env {}
