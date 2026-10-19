@@ -25,12 +25,20 @@ Used by these games:
 
 The application runs on Cloudflare Workers, with `wrangler.jsonc` as the source of truth for the Worker's bindings.
 
+The Worker is deployed as a single `gameserver` Worker: top-level settings are production, and the `previews` block configures branch previews.
+
 1. Configure the Worker variables and secrets listed in `.env.example` via the Cloudflare dashboard or `wrangler secret put`.
-2. Create the resources declared in `wrangler.jsonc` and fill in their IDs for each environment (top-level, `staging`, and `production`):
-   - `GAMESERVER_KV` — one KV namespace per environment.
-   - `HYPERDRIVE` — one Hyperdrive configuration per environment (same binding name, different `id`).
-   - `WEBSOCKET_DURABLE_OBJECT` — declared via `durable_objects`; no ID required.
-3. Connect the Worker to the repository in the Cloudflare dashboard (Settings → Builds), set the build command to `pnpm run predeploy`, and keep the deploy command as `npx wrangler deploy`. Commit and push — Workers Builds runs predeploy (migrations + Discord registration) and deploys on every push.
+2. Create the resources declared in `wrangler.jsonc`:
+   - Top level (production) — `GAMESERVER_KV` and `HYPERDRIVE`.
+   - `previews` block — a separate `GAMESERVER_KV` namespace and `HYPERDRIVE` configuration (same binding names) pointing at a staging database.
+   - `WEBSOCKET_DURABLE_OBJECT` — declared via `exports` and `durable_objects`; no ID required. Every preview gets its own Durable Object namespace and storage automatically.
+3. Connect the Worker to the repository in the Cloudflare dashboard (Settings → Builds), set the deploy command to `pnpm run predeploy && npx wrangler deploy`, and enable Preview Builds with `npx wrangler preview` as the preview command. Commit and push — Workers Builds creates or updates a preview for every non-production branch and deploys `main` to production.
+4. Set preview secrets once for every new preview, since previews do not inherit production secrets:
+   ```sh
+   npx wrangler preview base-config secret put JWT_SECRET
+   npx wrangler preview base-config secret put DISCORD_BOT_TOKEN
+   npx wrangler preview base-config secret put DISCORD_PUBLIC_KEY
+   ```
 
 ### Database configuration
 
@@ -43,15 +51,20 @@ Copy `.env.example` to `.env` and set:
 - `DATABASE_URL` — used by the local migration commands (`pnpm run db:migrate` and `pnpm run predeploy`).
 - `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` — used by `pnpm run dev` to emulate the `HYPERDRIVE` binding.
 
-The `dev` script loads `.env` into the process environment, which is how Wrangler reads the local Hyperdrive connection string. The same variable works whether you run plain `pnpm run dev` or `--env staging`/`--env production`, because the binding name stays `HYPERDRIVE`.
+The `dev` script loads `.env` into the process environment, which is how Wrangler reads the local Hyperdrive connection string. The binding name stays `HYPERDRIVE` for production and previews, so the same variable works in every context.
 
-#### CI/CD (staging and production)
+#### CI/CD (production and preview builds)
 
-Deployment runs through Cloudflare Workers Builds, which authenticates through the dashboard connection — no `CLOUDFLARE_API_TOKEN` is needed. Set the build command to `pnpm run predeploy` to apply migrations and register the Discord slash commands before each deploy, and keep the deploy command as `npx wrangler deploy`. For separate `staging` and `production` Workers, connect each environment's Worker and add `--env staging`/`--env production` to the deploy command.
+Deployment runs through Cloudflare Workers Builds, which authenticates through the dashboard connection — no `CLOUDFLARE_API_TOKEN` is needed.
 
-Add `DATABASE_URL`, `DISCORD_APPLICATION_ID`, and `DISCORD_BOT_TOKEN` as build variables/secrets in the Workers Builds settings (Settings → Build). The build command runs on every push to the production branch (and on preview branches if enabled), so migrations run before each deploy.
+- Deploy command: `pnpm run predeploy && npx wrangler deploy`. Migrations and Discord slash-command registration run before each production deploy.
+- Preview command: `npx wrangler preview` (enable Preview Builds in Settings → Build). Every push to a non-production branch creates or updates that branch's preview and comments its URL on the pull request.
 
-To deploy the `staging` environment whenever a pull request is opened or updated, enable preview branches in Workers Builds and set the preview deploy command to `npx wrangler deploy --env staging`. Cloudflare authenticates through the dashboard connection, so all secrets stay in the Cloudflare dashboard — nothing needs to be stored in GitHub.
+Add `DATABASE_URL`, `DISCORD_APPLICATION_ID`, and `DISCORD_BOT_TOKEN` as build variables/secrets in the Workers Builds settings (Settings → Build). Preview builds share the same build variables, but because migrations live in the deploy command they only run for production deploys. Apply migrations to the staging database used by the previews separately: `DATABASE_URL=<staging-url> pnpm run db:migrate`.
+
+Previews do not inherit production settings. Their KV and Hyperdrive bindings come from the `previews` block, and their secrets come from the Previews Base configuration or `npx wrangler preview secret put <NAME> --name <preview>`. Cron Triggers and routes only run in production, so the nightly cleanup job does not run in previews. Delete a preview branch with `npx wrangler preview delete --name <branch>`.
+
+All secrets stay in the Cloudflare dashboard — nothing needs to be stored in GitHub.
 
 ## Contributing
 
