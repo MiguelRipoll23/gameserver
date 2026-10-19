@@ -2,10 +2,9 @@
 
 ## Project Overview
 
-This is a **monorepo** containing two packages:
+This repository is the **game server** for multiplayer peer-to-peer games. It is a
+Cloudflare Workers app:
 
-### Backend (`backend/`) — Game Server
-Cloudflare Workers-based game server using:
 - **Runtime:** Cloudflare Workers (KV, Durable Objects, Hyperdrive)
 - **Framework:** Hono (with Zod OpenAPI)
 - **Database:** PostgreSQL via `pg` driver, **Drizzle ORM**
@@ -14,34 +13,47 @@ Cloudflare Workers-based game server using:
 - **Validation:** Zod schemas (v4)
 - **Deployment:** Cloudflare Workers
 
-### Frontend (`frontend/`) — Management Console
-React + TypeScript + Vite management dashboard using:
-- **UI:** Cloudflare Kumo + Tailwind CSS
-- **Routing:** TanStack Router
-- **Data fetching:** TanStack React Query + openapi-fetch
-- **API types:** Generated via `openapi-typescript` from the backend's OpenAPI schema
-- **Linting:** Oxlint
+The management console and its API live in a separate repository
+(`gameserver-console`). This server only serves game clients.
 
 ## Workspace
 
-- Package manager: **pnpm** (root `pnpm-workspace.yaml` defines both packages).
-- Install dependencies from root: `pnpm install`.
-- Scripts are run per-package: `cd backend && pnpm run dev` or `pnpm --filter gameserver dev`.
+- Package manager: **pnpm** (single package at the repository root).
+- Install dependencies from the root: `pnpm install`.
+- Scripts: `pnpm run dev`, `pnpm run typecheck`, `pnpm run cf-typegen`,
+  `pnpm run db:generate`, `pnpm run db:migrate`, `pnpm run openapi:generate`.
 
-## TypeScript & Import Rules (Backend)
+## API Surface
+
+- API is versioned under `src/api/versions/v1/`.
+- Routers are split by access level: `public-router.ts`, `authenticated-router.ts`.
+- Management/moderation endpoints are **not** part of this server. They live in
+  the `gameserver-console` backend. If a game client needs data, add it here.
+- Client-facing moderation kept here: `POST /user-moderation/manual-report`,
+  `POST /user-moderation/automatic-report`, `GET /user-bans` (own ban status).
+- `src/core/console-entrypoint.ts` exposes the `ConsoleEntrypoint` RPC surface
+  the `gameserver-console` backend calls through a service binding for
+  Worker-local actions (Durable Object kick/notification/cache refresh, KV
+  configuration). It is re-exported from `src/main.ts`. Service bindings are only
+  reachable from Workers on the same Cloudflare account, so these methods have no
+  public route and no shared secret.
+- All route handlers use `@hono/zod-openapi` for typed request/response
+  validation and OpenAPI docs.
+
+## TypeScript & Import Rules
 
 - **Do NOT use dynamic imports for types or interfaces.** Always use static imports at the top of the file.
 - Use relative imports with `.ts` extensions (e.g., `../../db/schema.ts`).
 - Barrel exports through `schema.ts` for all database tables.
 
-## Environment & Bindings (Backend)
+## Environment & Bindings
 
 - Bindings are read directly via `import { env } from "cloudflare:workers"` — do not add wrapper helpers around `env`.
 - Bindings: `GAMESERVER_KV` (KV), `HYPERDRIVE` (PostgreSQL via Hyperdrive), `WEBSOCKET_DURABLE_OBJECT` (WebSocket Durable Object).
 - Local development reads a single gitignored `.env` (copy from `.env.example`): `DATABASE_URL` for migrations, and `CLOUDFLARE_HYPERDRIVE_LOCAL_CONNECTION_STRING_HYPERDRIVE` for `pnpm run dev`.
-- Regenerate `worker-configuration.d.ts` with `pnpm run cf-typegen` after changing `wrangler.jsonc`.
+- Regenerate `worker-configuration.d.ts` with `pnpm run cf-typegen` after changing `wrangler.jsonc`. Secrets that only exist at runtime are declared in `src/core/env-augment.d.ts`.
 
-## Database & Drizzle ORM (Backend)
+## Database & Drizzle ORM
 
 - Tables are defined in `src/db/tables/` as individual files, re-exported from `src/db/schema.ts`.
 - Every table file exports two types:
@@ -54,15 +66,7 @@ React + TypeScript + Vite management dashboard using:
 - For migrations: `pnpm run db:generate` (creates SQL), then `pnpm run db:migrate` (applies via scripts/migrate-database.ts).
 - **Row-Level Security (RLS):** Most tables define `pgPolicy` rules using `authenticatedUserRole` and helpers from `src/db/rls.ts`.
 
-## API Structure (Backend)
-
-- API is versioned under `src/api/versions/v1/`.
-- Routers are split by access level: `public-router.ts`, `authenticated-router.ts`, `moderation-router.ts`, `management-router.ts`.
-- All route handlers use `@hono/zod-openapi` for typed request/response validation and OpenAPI docs.
-- Schemas use `z.object()` from `@hono/zod-openapi` with `.openapi({ example: ... })` metadata.
-- Use `.describe()` on fields for documentation.
-
-## DI Pattern (Backend)
+## DI Pattern
 
 - Classes are decorated with `@injectable()` and use constructor injection:
   ```ts
@@ -76,7 +80,7 @@ React + TypeScript + Vite management dashboard using:
 - All injectable dependencies are declared with `= inject(...)` default values.
 - `compilerOptions.experimentalDecorators: true` is set in `tsconfig.json`.
 
-## Error Handling (Backend)
+## Error Handling
 
 - Use `ServerError` (from `src/api/versions/v1/models/server-error.ts`) for all API errors:
   ```ts
