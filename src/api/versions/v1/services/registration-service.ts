@@ -183,6 +183,11 @@ export class RegistrationService {
         expectedChallenge: registrationOptions.challenge,
         expectedOrigin: origin,
         expectedRPID: rpID,
+        // Registration does not request user verification (WebAuthn defaults
+        // to `"preferred"`), so verification must not require it. The
+        // SimpleWebAuthn default of `true` rejected authenticators without
+        // user verification, blocking registration for those devices.
+        requireUserVerification: false,
       });
 
       if (

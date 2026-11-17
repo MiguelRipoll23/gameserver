@@ -341,6 +341,11 @@ export class AuthenticationService {
         credential: AuthenticationUtils.transformCredentialForWebAuthn(
           credential,
         ),
+        // The options above request `userVerification: "preferred"`, so
+        // verification must not demand user verification. SimpleWebAuthn
+        // defaults this to `true`, which rejected authenticators that skipped
+        // biometric/PIN verification and failed every sign-in from them.
+        requireUserVerification: false,
       });
 
       if (!verification.verified) {
